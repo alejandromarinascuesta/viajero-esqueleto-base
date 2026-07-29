@@ -1,24 +1,59 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Recomendador · herramienta interna" },
+      {
+        name: "description",
+        content:
+          "Herramienta interna de la agencia de viajes para crear recomendaciones y gestionar criterios comerciales.",
+      },
+      {
+        property: "og:title",
+        content: "Recomendador · herramienta interna",
+      },
+      {
+        property: "og:description",
+        content:
+          "Herramienta interna de la agencia de viajes para crear recomendaciones y gestionar criterios comerciales.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-border">
+        <div className="mx-auto flex h-14 max-w-5xl items-center px-6">
+          <h1 className="text-base font-medium tracking-tight">
+            Recomendador · herramienta interna
+          </h1>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-5xl px-6 py-8">
+        <Tabs defaultValue="nueva" className="w-full">
+          <TabsList>
+            <TabsTrigger value="nueva">Nueva recomendación</TabsTrigger>
+            <TabsTrigger value="criterio">Criterio comercial</TabsTrigger>
+          </TabsList>
+          <TabsContent
+            value="nueva"
+            className="min-h-[16rem] rounded-lg border border-dashed border-border"
+          />
+          <TabsContent
+            value="criterio"
+            className="min-h-[16rem] rounded-lg border border-dashed border-border"
+          />
+        </Tabs>
+      </main>
     </div>
   );
 }
