@@ -1,0 +1,1304 @@
+{
+ "meta": {
+  "descripcion": "Ultima observacion real guardada. No contiene valores inventados: las metricas que la fuente no devolvio quedan a null y se marcan como no disponibles.",
+  "catalogo": "30 experiencias del catalogo de la agencia",
+  "ingestadoEn": "2026-07-30T11:09:11.312Z",
+  "fuentes": [
+   "catalogo",
+   "clima (Open-Meteo)",
+   "interes (Wikimedia Pageviews)"
+  ]
+ },
+ "destinos": [
+  {
+   "id": "EXP01",
+   "nombre": "Mallorca en familia - Playa de Muro",
+   "destino": "Mallorca",
+   "pais": "España",
+   "lat": 39.8,
+   "lon": 3.13,
+   "tipo": "playa",
+   "iata": "PMI",
+   "precioDesdePp": 690,
+   "noches": 7,
+   "temporada": "4-10",
+   "horasVuelo": 1.0,
+   "visado": "no",
+   "aptoNinos": "alto",
+   "intensidad": 1,
+   "margenPct": 18,
+   "cupo": 24,
+   "motivos": [
+    "Playa de arena poco profunda ideal para niños pequeños",
+    "Vuelo de una hora sin escalas",
+    "Hotel con club infantil y media pensión"
+   ],
+   "noRecomendadoSi": "",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": -18.1,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP02",
+   "nombre": "Ibiza sin niños - Cala Llonga",
+   "destino": "Ibiza",
+   "pais": "España",
+   "lat": 38.95,
+   "lon": 1.43,
+   "tipo": "playa",
+   "iata": "IBZ",
+   "precioDesdePp": 620,
+   "noches": 4,
+   "temporada": "5-10",
+   "horasVuelo": 1.0,
+   "visado": "no",
+   "aptoNinos": "bajo",
+   "intensidad": 3,
+   "margenPct": 22,
+   "cupo": 12,
+   "motivos": [
+    "Hotel solo adultos con piscina infinita",
+    "Calas tranquilas lejos del ruido del centro",
+    "Escapada corta que cabe en un puente"
+   ],
+   "noRecomendadoSi": "familias con niños",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": 26.3,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": -18.4,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP03",
+   "nombre": "Tenerife Sur todo incluido",
+   "destino": "Tenerife",
+   "pais": "España",
+   "lat": 28.05,
+   "lon": -16.72,
+   "tipo": "playa",
+   "iata": "TCI",
+   "precioDesdePp": 750,
+   "noches": 7,
+   "temporada": "1-12",
+   "horasVuelo": 3.0,
+   "visado": "no",
+   "aptoNinos": "alto",
+   "intensidad": 1,
+   "margenPct": 20,
+   "cupo": 30,
+   "motivos": [
+    "Buen tiempo garantizado los doce meses del año",
+    "Todo incluido sin gastos sorpresa",
+    "Parques acuáticos y de animales a veinte minutos"
+   ],
+   "noRecomendadoSi": "",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": 22.4,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": -23.1,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP04",
+   "nombre": "Gran Canaria en invierno - Maspalomas",
+   "destino": "Gran Canaria",
+   "pais": "España",
+   "lat": 27.75,
+   "lon": -15.58,
+   "tipo": "playa",
+   "iata": "LPA",
+   "precioDesdePp": 680,
+   "noches": 7,
+   "temporada": "10-4",
+   "horasVuelo": 3.0,
+   "visado": "no",
+   "aptoNinos": "alto",
+   "intensidad": 1,
+   "margenPct": 19,
+   "cupo": 26,
+   "motivos": [
+    "Veintidós grados en pleno enero",
+    "Paseo marítimo llano y accesible",
+    "Dunas y playa enorme sin masificar en temporada baja"
+   ],
+   "noRecomendadoSi": "",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": 26.1,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": -23.9,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP05",
+   "nombre": "San Sebastián gastronómico",
+   "destino": "San Sebastián",
+   "pais": "España",
+   "lat": 43.32,
+   "lon": -1.98,
+   "tipo": "ciudad",
+   "iata": "EAS",
+   "precioDesdePp": 540,
+   "noches": 3,
+   "temporada": "5-9",
+   "horasVuelo": 1.0,
+   "visado": "no",
+   "aptoNinos": "medio",
+   "intensidad": 2,
+   "margenPct": 24,
+   "cupo": 10,
+   "motivos": [
+    "Ruta de pintxos guiada incluida",
+    "Ciudad que se recorre andando",
+    "Playa urbana en el centro"
+   ],
+   "noRecomendadoSi": "presupuesto ajustado",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": 20.7,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": -33.1,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP06",
+   "nombre": "Picos de Europa - senderismo",
+   "destino": "Picos de Europa",
+   "pais": "España",
+   "lat": 43.19,
+   "lon": -4.85,
+   "tipo": "naturaleza",
+   "iata": null,
+   "precioDesdePp": 590,
+   "noches": 5,
+   "temporada": "6-9",
+   "horasVuelo": 0.0,
+   "visado": "no",
+   "aptoNinos": "medio",
+   "intensidad": 4,
+   "margenPct": 21,
+   "cupo": 14,
+   "motivos": [
+    "Rutas señalizadas de dificultad media",
+    "Alojamiento rural con cocina local",
+    "Se llega en coche sin depender de vuelos"
+   ],
+   "noRecomendadoSi": "movilidad reducida",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": -32.1,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP07",
+   "nombre": "Sevilla monumental",
+   "destino": "Sevilla",
+   "pais": "España",
+   "lat": 37.39,
+   "lon": -5.99,
+   "tipo": "cultural",
+   "iata": "SVQ",
+   "precioDesdePp": 390,
+   "noches": 3,
+   "temporada": "3-5",
+   "horasVuelo": 1.0,
+   "visado": "no",
+   "aptoNinos": "medio",
+   "intensidad": 2,
+   "margenPct": 23,
+   "cupo": 18,
+   "motivos": [
+    "Alcázar y Catedral con entradas incluidas",
+    "La opción más económica del catálogo",
+    "Bien conectada en tren de alta velocidad"
+   ],
+   "noRecomendadoSi": "julio y agosto por calor extremo",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": 29.3,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": -40.2,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP08",
+   "nombre": "Costa del Sol en familia - Marbella",
+   "destino": "Marbella",
+   "pais": "España",
+   "lat": 36.51,
+   "lon": -4.89,
+   "tipo": "playa",
+   "iata": "AGP",
+   "precioDesdePp": 720,
+   "noches": 7,
+   "temporada": "5-10",
+   "horasVuelo": 1.5,
+   "visado": "no",
+   "aptoNinos": "alto",
+   "intensidad": 1,
+   "margenPct": 19,
+   "cupo": 22,
+   "motivos": [
+    "Apartamentos con cocina para familias largas",
+    "Paseo marítimo de quince kilómetros",
+    "Parques temáticos a media hora"
+   ],
+   "noRecomendadoSi": "",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": -18.9,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP09",
+   "nombre": "Lisboa escapada",
+   "destino": "Lisboa",
+   "pais": "Portugal",
+   "lat": 38.72,
+   "lon": -9.14,
+   "tipo": "ciudad",
+   "iata": "LIS",
+   "precioDesdePp": 450,
+   "noches": 3,
+   "temporada": "1-12",
+   "horasVuelo": 1.5,
+   "visado": "no",
+   "aptoNinos": "medio",
+   "intensidad": 2,
+   "margenPct": 22,
+   "cupo": 20,
+   "motivos": [
+    "Vuelo directo de hora y media",
+    "Ciudad barata para comer y moverse",
+    "Miradores y tranvía histórico"
+   ],
+   "noRecomendadoSi": "movilidad reducida por las cuestas",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": -29.1,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP10",
+   "nombre": "Roma clásica",
+   "destino": "Roma",
+   "pais": "Italia",
+   "lat": 41.9,
+   "lon": 12.5,
+   "tipo": "cultural",
+   "iata": "ROM",
+   "precioDesdePp": 690,
+   "noches": 4,
+   "temporada": "3-6",
+   "horasVuelo": 2.5,
+   "visado": "no",
+   "aptoNinos": "medio",
+   "intensidad": 3,
+   "margenPct": 21,
+   "cupo": 16,
+   "motivos": [
+    "Coliseo y Vaticano con acceso sin cola",
+    "Todo el centro histórico se hace andando",
+    "Vuelos directos varias veces al día"
+   ],
+   "noRecomendadoSi": "julio y agosto por calor y masificación",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": -38.5,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP11",
+   "nombre": "París romántico",
+   "destino": "París",
+   "pais": "Francia",
+   "lat": 48.86,
+   "lon": 2.35,
+   "tipo": "ciudad",
+   "iata": "PAR",
+   "precioDesdePp": 820,
+   "noches": 4,
+   "temporada": "4-10",
+   "horasVuelo": 2.0,
+   "visado": "no",
+   "aptoNinos": "medio",
+   "intensidad": 2,
+   "margenPct": 23,
+   "cupo": 14,
+   "motivos": [
+    "Hotel en el Marais con encanto",
+    "Cena en crucero por el Sena incluida",
+    "Museos de primer nivel en cualquier época"
+   ],
+   "noRecomendadoSi": "presupuesto ajustado",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": 20.7,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP12",
+   "nombre": "Ámsterdam en primavera",
+   "destino": "Ámsterdam",
+   "pais": "Países Bajos",
+   "lat": 52.37,
+   "lon": 4.9,
+   "tipo": "ciudad",
+   "iata": "AMS",
+   "precioDesdePp": 640,
+   "noches": 3,
+   "temporada": "4-9",
+   "horasVuelo": 2.5,
+   "visado": "no",
+   "aptoNinos": "medio",
+   "intensidad": 2,
+   "margenPct": 22,
+   "cupo": 12,
+   "motivos": [
+    "Canales y museos concentrados en poco espacio",
+    "Ciudad totalmente llana ideal para caminar",
+    "Escapada de tres noches que cunde"
+   ],
+   "noRecomendadoSi": "",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": 18.7,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP13",
+   "nombre": "Santorini",
+   "destino": "Santorini",
+   "pais": "Grecia",
+   "lat": 36.42,
+   "lon": 25.43,
+   "tipo": "playa",
+   "iata": "JTR",
+   "precioDesdePp": 1250,
+   "noches": 6,
+   "temporada": "5-10",
+   "horasVuelo": 3.5,
+   "visado": "no",
+   "aptoNinos": "bajo",
+   "intensidad": 2,
+   "margenPct": 26,
+   "cupo": 10,
+   "motivos": [
+    "Hotel con vistas a la caldera",
+    "Puestas de sol reconocidas mundialmente",
+    "Ambiente tranquilo de pareja"
+   ],
+   "noRecomendadoSi": "familias con niños pequeños",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP14",
+   "nombre": "Creta en familia - Chania",
+   "destino": "Creta",
+   "pais": "Grecia",
+   "lat": 35.51,
+   "lon": 24.02,
+   "tipo": "playa",
+   "iata": "CHQ",
+   "precioDesdePp": 980,
+   "noches": 7,
+   "temporada": "5-10",
+   "horasVuelo": 3.5,
+   "visado": "no",
+   "aptoNinos": "alto",
+   "intensidad": 2,
+   "margenPct": 23,
+   "cupo": 18,
+   "motivos": [
+    "Playas de aguas poco profundas y cálidas",
+    "Hotel con club infantil y cocina mediterránea",
+    "Historia minoica a media hora en coche"
+   ],
+   "noRecomendadoSi": "",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": 28.8,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP15",
+   "nombre": "Praga histórica",
+   "destino": "Praga",
+   "pais": "Chequia",
+   "lat": 50.08,
+   "lon": 14.44,
+   "tipo": "cultural",
+   "iata": "PRG",
+   "precioDesdePp": 520,
+   "noches": 4,
+   "temporada": "4-10",
+   "horasVuelo": 3.0,
+   "visado": "no",
+   "aptoNinos": "medio",
+   "intensidad": 2,
+   "margenPct": 24,
+   "cupo": 16,
+   "motivos": [
+    "Uno de los centros históricos mejor conservados de Europa",
+    "Precios bajos en comida y transporte",
+    "Mercados navideños en diciembre"
+   ],
+   "noRecomendadoSi": "",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP16",
+   "nombre": "Islandia - auroras y naturaleza",
+   "destino": "Islandia",
+   "pais": "Islandia",
+   "lat": 64.13,
+   "lon": -21.9,
+   "tipo": "naturaleza",
+   "iata": "REK",
+   "precioDesdePp": 1480,
+   "noches": 5,
+   "temporada": "9-3",
+   "horasVuelo": 4.5,
+   "visado": "no",
+   "aptoNinos": "bajo",
+   "intensidad": 4,
+   "margenPct": 25,
+   "cupo": 8,
+   "motivos": [
+    "Auroras boreales en temporada",
+    "Círculo Dorado y baños geotermales",
+    "Paisajes que no existen en ningún otro sitio de Europa"
+   ],
+   "noRecomendadoSi": "familias con niños pequeños;movilidad reducida",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": 11.8,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP17",
+   "nombre": "Puglia auténtica",
+   "destino": "Puglia",
+   "pais": "Italia",
+   "lat": 40.79,
+   "lon": 17.1,
+   "tipo": "cultural",
+   "iata": "BRI",
+   "precioDesdePp": 1050,
+   "noches": 7,
+   "temporada": "5-9",
+   "horasVuelo": 3.0,
+   "visado": "no",
+   "aptoNinos": "alto",
+   "intensidad": 3,
+   "margenPct": 24,
+   "cupo": 12,
+   "motivos": [
+    "Trulli de Alberobello y pueblos blancos",
+    "Cocina italiana lejos del turismo masivo",
+    "Playas del Adriático tranquilas"
+   ],
+   "noRecomendadoSi": "",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": 26.1,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP18",
+   "nombre": "Madeira - senderismo y flores",
+   "destino": "Madeira",
+   "pais": "Portugal",
+   "lat": 32.75,
+   "lon": -16.96,
+   "tipo": "naturaleza",
+   "iata": "FNC",
+   "precioDesdePp": 820,
+   "noches": 6,
+   "temporada": "1-12",
+   "horasVuelo": 3.5,
+   "visado": "no",
+   "aptoNinos": "medio",
+   "intensidad": 3,
+   "margenPct": 23,
+   "cupo": 14,
+   "motivos": [
+    "Levadas y rutas de senderismo todo el año",
+    "Clima suave los doce meses",
+    "Isla pequeña y fácil de recorrer"
+   ],
+   "noRecomendadoSi": "movilidad reducida",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": 15.3,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP19",
+   "nombre": "Croacia - islas de Dalmacia",
+   "destino": "Dalmacia",
+   "pais": "Croacia",
+   "lat": 43.51,
+   "lon": 16.44,
+   "tipo": "aventura",
+   "iata": "SPU",
+   "precioDesdePp": 1320,
+   "noches": 7,
+   "temporada": "6-9",
+   "horasVuelo": 3.0,
+   "visado": "no",
+   "aptoNinos": "medio",
+   "intensidad": 3,
+   "margenPct": 25,
+   "cupo": 10,
+   "motivos": [
+    "Navegación entre islas incluida",
+    "Aguas transparentes del Adriático",
+    "Split y Dubrovnik en el mismo viaje"
+   ],
+   "noRecomendadoSi": "movilidad reducida",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP20",
+   "nombre": "Nueva York esencial",
+   "destino": "Nueva York",
+   "pais": "Estados Unidos",
+   "lat": 40.71,
+   "lon": -74.01,
+   "tipo": "ciudad",
+   "iata": "NYC",
+   "precioDesdePp": 1680,
+   "noches": 6,
+   "temporada": "1-12",
+   "horasVuelo": 8.0,
+   "visado": "esta",
+   "aptoNinos": "medio",
+   "intensidad": 3,
+   "margenPct": 20,
+   "cupo": 12,
+   "motivos": [
+    "La ciudad funciona igual de bien en cualquier estación",
+    "Metro que llega a todas partes",
+    "Museos y espectáculos de primer nivel"
+   ],
+   "noRecomendadoSi": "presupuesto ajustado",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": 26.7,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP21",
+   "nombre": "Riviera Maya todo incluido",
+   "destino": "Riviera Maya",
+   "pais": "México",
+   "lat": 20.63,
+   "lon": -87.07,
+   "tipo": "playa",
+   "iata": "CUN",
+   "precioDesdePp": 1750,
+   "noches": 8,
+   "temporada": "11-5",
+   "horasVuelo": 10.0,
+   "visado": "no",
+   "aptoNinos": "alto",
+   "intensidad": 1,
+   "margenPct": 22,
+   "cupo": 16,
+   "motivos": [
+    "Todo incluido de verdad sin extras",
+    "Caribe con agua a veintiocho grados",
+    "Cenotes y ruinas mayas en excursión"
+   ],
+   "noRecomendadoSi": "",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": 28.3,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP22",
+   "nombre": "Marrakech exprés",
+   "destino": "Marrakech",
+   "pais": "Marruecos",
+   "lat": 31.63,
+   "lon": -8.01,
+   "tipo": "cultural",
+   "iata": "RAK",
+   "precioDesdePp": 690,
+   "noches": 4,
+   "temporada": "10-4",
+   "horasVuelo": 3.0,
+   "visado": "no",
+   "aptoNinos": "medio",
+   "intensidad": 3,
+   "margenPct": 26,
+   "cupo": 14,
+   "motivos": [
+    "Riad tradicional en la medina",
+    "Cambio cultural máximo a tres horas de vuelo",
+    "Excursión al desierto de un día"
+   ],
+   "noRecomendadoSi": "julio y agosto por calor extremo",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP23",
+   "nombre": "Bali - arrozales y playas",
+   "destino": "Bali",
+   "pais": "Indonesia",
+   "lat": -8.41,
+   "lon": 115.19,
+   "tipo": "naturaleza",
+   "iata": "DPS",
+   "precioDesdePp": 2150,
+   "noches": 10,
+   "temporada": "4-10",
+   "horasVuelo": 16.0,
+   "visado": "no",
+   "aptoNinos": "bajo",
+   "intensidad": 3,
+   "margenPct": 27,
+   "cupo": 8,
+   "motivos": [
+    "Combina interior de arrozales y costa",
+    "Relación calidad precio muy alta una vez allí",
+    "Cultura y templos muy distintos a Europa"
+   ],
+   "noRecomendadoSi": "niños menores de seis años por duración del vuelo",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": 21.2,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP24",
+   "nombre": "Dubái - lujo y desierto",
+   "destino": "Dubái",
+   "pais": "Emiratos",
+   "lat": 25.2,
+   "lon": 55.27,
+   "tipo": "ciudad",
+   "iata": "DXB",
+   "precioDesdePp": 1590,
+   "noches": 5,
+   "temporada": "11-3",
+   "horasVuelo": 7.0,
+   "visado": "no",
+   "aptoNinos": "medio",
+   "intensidad": 2,
+   "margenPct": 24,
+   "cupo": 10,
+   "motivos": [
+    "Hoteles de gama alta a precio contenido en temporada",
+    "Safari por el desierto incluido",
+    "Escala cómoda con vuelo directo"
+   ],
+   "noRecomendadoSi": "julio y agosto por calor extremo",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP25",
+   "nombre": "Tailandia - norte y playas",
+   "destino": "Tailandia",
+   "pais": "Tailandia",
+   "lat": 13.76,
+   "lon": 100.5,
+   "tipo": "aventura",
+   "iata": "BKK",
+   "precioDesdePp": 2290,
+   "noches": 12,
+   "temporada": "11-3",
+   "horasVuelo": 14.0,
+   "visado": "no",
+   "aptoNinos": "bajo",
+   "intensidad": 3,
+   "margenPct": 26,
+   "cupo": 8,
+   "motivos": [
+    "Dos viajes en uno entre norte cultural y sur de playa",
+    "Coste diario muy bajo sobre el terreno",
+    "Itinerario probado con traslados resueltos"
+   ],
+   "noRecomendadoSi": "niños menores de ocho años",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP26",
+   "nombre": "Japón - ruta clásica",
+   "destino": "Japón",
+   "pais": "Japón",
+   "lat": 35.68,
+   "lon": 139.69,
+   "tipo": "cultural",
+   "iata": "TYO",
+   "precioDesdePp": 3450,
+   "noches": 12,
+   "temporada": "3-4",
+   "horasVuelo": 14.0,
+   "visado": "no",
+   "aptoNinos": "medio",
+   "intensidad": 4,
+   "margenPct": 21,
+   "cupo": 6,
+   "motivos": [
+    "Tokio Kioto y Osaka con tren bala incluido",
+    "Cerezos en flor en primavera",
+    "Destino de una vez en la vida"
+   ],
+   "noRecomendadoSi": "presupuesto ajustado;movilidad reducida",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": 28.5,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP27",
+   "nombre": "Costa Rica - naturaleza y volcanes",
+   "destino": "Costa Rica",
+   "pais": "Costa Rica",
+   "lat": 9.75,
+   "lon": -83.75,
+   "tipo": "naturaleza",
+   "iata": "SJO",
+   "precioDesdePp": 2480,
+   "noches": 10,
+   "temporada": "12-4",
+   "horasVuelo": 12.0,
+   "visado": "no",
+   "aptoNinos": "medio",
+   "intensidad": 4,
+   "margenPct": 25,
+   "cupo": 8,
+   "motivos": [
+    "Volcanes selva y dos océanos en un solo viaje",
+    "Guías locales especializados en fauna",
+    "Infraestructura turística muy rodada"
+   ],
+   "noRecomendadoSi": "movilidad reducida",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": 18.3,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP28",
+   "nombre": "Maldivas - luna de miel",
+   "destino": "Maldivas",
+   "pais": "Maldivas",
+   "lat": 3.2,
+   "lon": 73.22,
+   "tipo": "playa",
+   "iata": "MLE",
+   "precioDesdePp": 2850,
+   "noches": 7,
+   "temporada": "11-4",
+   "horasVuelo": 11.0,
+   "visado": "no",
+   "aptoNinos": "bajo",
+   "intensidad": 1,
+   "margenPct": 28,
+   "cupo": 6,
+   "motivos": [
+    "Villa sobre el agua con acceso directo al mar",
+    "Privacidad total para parejas",
+    "Snorkel en arrecife desde el propio alojamiento"
+   ],
+   "noRecomendadoSi": "familias con niños",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP29",
+   "nombre": "Zanzíbar - playa y safari",
+   "destino": "Zanzíbar",
+   "pais": "Tanzania",
+   "lat": -6.16,
+   "lon": 39.2,
+   "tipo": "aventura",
+   "iata": "ZNZ",
+   "precioDesdePp": 2400,
+   "noches": 9,
+   "temporada": "6-10",
+   "horasVuelo": 10.0,
+   "visado": "si",
+   "aptoNinos": "medio",
+   "intensidad": 3,
+   "margenPct": 26,
+   "cupo": 6,
+   "motivos": [
+    "Safari en Serengeti combinado con playa",
+    "Fauna en su mejor temporada de junio a octubre",
+    "Combinación difícil de montar por cuenta propia"
+   ],
+   "noRecomendadoSi": "niños menores de seis años",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": 24.7,
+     "periodo": "2026-07",
+     "estado": "ok",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  },
+  {
+   "id": "EXP30",
+   "nombre": "Egipto - Nilo y pirámides",
+   "destino": "Egipto",
+   "pais": "Egipto",
+   "lat": 30.04,
+   "lon": 31.24,
+   "tipo": "cultural",
+   "iata": "CAI",
+   "precioDesdePp": 1290,
+   "noches": 8,
+   "temporada": "10-4",
+   "horasVuelo": 4.5,
+   "visado": "si",
+   "aptoNinos": "medio",
+   "intensidad": 3,
+   "margenPct": 27,
+   "cupo": 10,
+   "motivos": [
+    "Crucero por el Nilo con pensión completa",
+    "Guía egiptólogo en español",
+    "Historia sin comparación posible"
+   ],
+   "noRecomendadoSi": "julio y agosto por calor extremo",
+   "senales": [
+    {
+     "fuente": "clima",
+     "metrica": "temperatura_media",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    },
+    {
+     "fuente": "interes",
+     "metrica": "tendencia_interes_pct",
+     "valor": null,
+     "periodo": "2026-07",
+     "estado": "no_disponible",
+     "obtenidoEn": "2026-07-30T11:09:11.312Z"
+    }
+   ]
+  }
+ ]
+}

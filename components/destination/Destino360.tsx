@@ -1,0 +1,182 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { MessageSquare } from "lucide-react";
+import type { DestinoConScore } from "@/components/layout/Shell";
+import { Anillo, Kpi, Panel, Vacio } from "@/components/ui";
+import { accionRecomendada, pulso } from "@/lib/pulso";
+
+type Clima = { estado: string; temperatura: number | null; fuente: string; observadoEn?: string | null; mensaje?: string };
+
+export default function Destino360({
+  destino,
+  destinos,
+  mes,
+  onSeleccionar,
+  onAbrirCopiloto,
+}: {
+  destino: DestinoConScore;
+  destinos: DestinoConScore[];
+  mes: number;
+  onSeleccionar: (id: string) => void;
+  onAbrirCopiloto: (id: string) => void;
+}) {
+  const [clima, setClima] = useState<Clima | null>(null);
+  const [cargandoClima, setCargandoClima] = useState(true);
+
+  useEffect(() => {
+    let vivo = true;
+    setCargandoClima(true);
+    fetch(`/api/weather?destinationId=${encodeURIComponent(destino.id)}`)
+      .then((r) => r.json())
+      .then((d) => vivo && setClima(d))
+      .catch(() => vivo && setClima(null))
+      .finally(() => vivo && setCargandoClima(false));
+    return () => {
+      vivo = false;
+    };
+  }, [destino.id]);
+
+  const interes = destino.senales.find((s) => s.metrica === "tendencia_interes_pct" && s.estado === "ok")?.valor ?? null;
+  const p = pulso(interes);
+  const accion = accionRecomendada(
+    {
+      destino: destino.destino,
+      tendenciaInteres: interes,
+      cupo: destino.cupo,
+      margenPct: destino.margenPct,
+      temporada: destino.temporada,
+      fuentesFaltantes: destino.oportunidad.ausentes,
+    },
+    mes,
+  );
+
+  return (
+    <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
+      <Panel titulo="Catálogo">
+        <ul className="max-h-[600px] space-y-1 overflow-y-auto pr-1">
+          {destinos.map((d) => (
+            <li key={d.id}>
+              <button
+                type="button"
+                onClick={() => onSeleccionar(d.id)}
+                aria-current={d.id === destino.id ? "true" : undefined}
+                className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left transition-colors"
+                style={{
+                  background: d.id === destino.id ? "rgba(141,245,189,.045)" : "transparent",
+                  border: `1px solid ${d.id === destino.id ? "var(--line-strong)" : "transparent"}`,
+                }}
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-[13px]">{d.destino}</span>
+                  <span className="block text-[10px] text-[var(--dim)]">{d.pais}</span>
+                </span>
+                <span className="shrink-0 text-[15px] font-black" style={{ color: "var(--green)" }}>
+                  {d.oportunidad.score}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </Panel>
+
+      <div className="min-w-0 space-y-4">
+        <Panel>
+          <div className="grid gap-6 lg:grid-cols-[1.3fr_auto]">
+            <div className="min-w-0">
+              <span className="pill pill-green">{p.icono} {p.etiqueta}</span>
+              <h2 className="mt-3 text-[30px] tracking-tight">{destino.destino}</h2>
+              <p className="mt-1 text-[12px] text-[var(--dim)]">{destino.nombre} · {destino.pais}</p>
+              <div className="mt-4 rounded-r-xl border-l-2 p-4" style={{ borderColor: "var(--green)", background: "rgba(141,245,189,.035)" }}>
+                <p className="text-[13px] font-semibold">{accion.titulo}</p>
+                <p className="mt-1 text-[12px] leading-relaxed text-[var(--muted)]">{accion.detalle}</p>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button type="button" className="btn btn-primary" onClick={() => onAbrirCopiloto(destino.id)}>
+                  <MessageSquare size={14} className="mr-1.5 inline" aria-hidden />
+                  Preparar propuesta
+                </button>
+              </div>
+            </div>
+            <div className="grid place-items-center">
+              <Anillo valor={destino.oportunidad.score} sub="OPPORTUNITY SCORE" />
+              <p className="mt-3 text-[11px] text-[var(--dim)]">confianza {destino.oportunidad.confianza}%</p>
+            </div>
+          </div>
+        </Panel>
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Kpi etiqueta="Desde, por persona" valor={`${destino.precioDesdePp} €`} nota={`${destino.noches} noches`} />
+          <Kpi etiqueta="Margen" valor={`${destino.margenPct}%`} nota="catálogo de la agencia" />
+          <Kpi etiqueta="Cupo" valor={`${destino.cupo}`} nota="plazas disponibles" />
+          <Kpi
+            etiqueta="Clima ahora"
+            valor={cargandoClima ? "…" : clima?.temperatura != null ? `${clima.temperatura} °C` : "sin dato"}
+            nota={cargandoClima ? "consultando" : (clima?.fuente ?? "Open-Meteo")}
+          />
+        </div>
+
+        <div className="grid gap-3 xl:grid-cols-2">
+          <Panel titulo="Cómo se calcula el Opportunity Score">
+            <ul className="space-y-3">
+              {destino.oportunidad.componentes.map((c) => (
+                <li key={c.clave}>
+                  <div className="flex items-baseline justify-between gap-3 text-[12px]">
+                    <span>{c.etiqueta} <span className="text-[var(--dim)]">· peso {c.peso}%</span></span>
+                    <span className="tabular-nums" style={{ color: c.valor === null ? "var(--orange)" : "var(--green)" }}>
+                      {c.valor === null ? "sin dato" : `+${Math.round(c.aporta)}`}
+                    </span>
+                  </div>
+                  <div className="bar mt-1.5"><i style={{ width: `${c.valor === null ? 0 : Math.round(c.valor * 100)}%` }} /></div>
+                  <p className="mt-1 text-[10px] text-[var(--dim)]">{c.origen}</p>
+                </li>
+              ))}
+            </ul>
+            {destino.oportunidad.ausentes.length > 0 ? (
+              <p className="mt-4 text-[11px] leading-relaxed" style={{ color: "var(--orange)" }}>
+                Sin dato de {destino.oportunidad.ausentes.join(", ").toLowerCase()}. Su peso se reparte entre
+                las métricas disponibles y la confianza baja a {destino.oportunidad.confianza}%. No se rellena
+                con un valor estimado.
+              </p>
+            ) : null}
+          </Panel>
+
+          <div className="space-y-3">
+            <Panel titulo="Por qué se vende">
+              {destino.motivos.length === 0 ? (
+                <Vacio mensaje="El catálogo no tiene motivos escritos para esta experiencia." />
+              ) : (
+                <ul className="space-y-2 text-[13px]">
+                  {destino.motivos.map((m) => (
+                    <li key={m} className="flex gap-2">
+                      <span style={{ color: "var(--green)" }} aria-hidden>·</span>
+                      {m}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
+
+            <Panel titulo="Procedencia del dato">
+              <ul className="space-y-2 text-[11px]">
+                {destino.senales.map((s) => (
+                  <li key={`${s.fuente}-${s.metrica}`} className="flex items-baseline justify-between gap-3">
+                    <span className="text-[var(--muted)]">{s.fuente} · {s.metrica}</span>
+                    <span style={{ color: s.estado === "ok" ? "var(--green)" : "var(--dim)" }}>
+                      {s.estado === "ok" ? "dato real" : "sin dato"}
+                      {s.obtenidoEn ? ` · ${new Date(s.obtenidoEn).toLocaleDateString("es-ES")}` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-[11px] leading-relaxed text-[var(--dim)]">
+                Restricciones del catálogo: {destino.noRecomendadoSi || "ninguna"}. Temporada {destino.temporada}.
+                Vuelo {destino.horasVuelo} h. Apto para niños: {destino.aptoNinos}.
+              </p>
+            </Panel>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -27,7 +27,7 @@ deliberado: primero el criterio, después las pruebas, y solo al final el códig
 ## tests/ — la verificación
 
 ```
-node tests/verificar_reglas.mjs
+npm test
 ```
 
 17 pruebas. Diez comprueban que los destinos esperados sobreviven a las reglas.
@@ -65,7 +65,7 @@ determinista en `Copiloto.tsx`, no el modelo, porque tiene que ser reproducible.
 > La IA nunca decide. Descarta el código, ordenan los pesos que configura la
 > agencia, y la IA solo lee texto libre al principio y redacta al final.
 
-En `src/lib/recomendador/motor.ts` las reglas duras están separadas en dos
+En `lib/motor.ts` las reglas duras están separadas en dos
 niveles: **relajables** (presupuesto, noches, temporada) e **inviolables**
 (vuelo largo con menores, restricciones declaradas, veto comercial, visado,
 cupo). Cuando ninguna experiencia sobrevive, el sistema solo puede proponer
