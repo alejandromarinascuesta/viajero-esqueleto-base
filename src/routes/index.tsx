@@ -43,8 +43,8 @@ function Index() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-6">
-          <h1 className="text-base font-medium tracking-tight">
+        <div className="mx-auto flex h-14 w-full max-w-[110rem] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <h1 className="truncate text-base font-medium tracking-tight">
             Recomendador · herramienta interna
           </h1>
           <div className="flex items-center gap-2">
@@ -56,7 +56,7 @@ function Index() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
+      <main className="mx-auto w-full max-w-[110rem] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <Tabs defaultValue="senales" className="w-full">
           <TabsList>
             <TabsTrigger value="senales">Señales y fuentes</TabsTrigger>

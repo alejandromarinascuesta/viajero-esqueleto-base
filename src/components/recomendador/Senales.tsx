@@ -93,13 +93,13 @@ export function Senales() {
       {/* Cabecera: estado de un vistazo */}
       <section className="rounded-md border border-border p-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-6">
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
             <Dato valor={String(filas.length)} etiqueta="destinos" />
             <Dato valor={`🔥 ${suben}`} etiqueta="suben" />
             <Dato valor={`🥶 ${bajan}`} etiqueta="bajan" />
             <Dato valor={`${conSenal.length}/${filas.length}`} etiqueta="con señal" />
           </div>
-          <div className="flex items-end gap-3">
+          <div className="flex shrink-0 items-end gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="mes-senales" className="text-xs">
                 Mes
@@ -162,11 +162,14 @@ export function Senales() {
             {ordenadas.slice(0, 5).map((f, i) => {
               const p = pulso(f.tendenciaInteres);
               return (
-                <li key={f.id} className="flex items-center gap-3">
-                  <span className="w-4 shrink-0 text-xs text-muted-foreground">{i + 1}</span>
-                  <span className="w-6 shrink-0 text-base leading-none">{p.icono}</span>
-                  <span className="w-36 shrink-0 truncate text-sm">{f.destino}</span>
-                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                <li
+                  key={f.id}
+                  className="grid grid-cols-[1rem_1.5rem_minmax(6rem,10rem)_minmax(0,1fr)_4.5rem] items-center gap-3"
+                >
+                  <span className="text-xs text-muted-foreground">{i + 1}</span>
+                  <span className="text-base leading-none">{p.icono}</span>
+                  <span className="truncate text-sm">{f.destino}</span>
+                  <span className="h-2 overflow-hidden rounded-full bg-muted">
                     <span
                       className="block h-full bg-foreground/70"
                       style={{
@@ -174,7 +177,7 @@ export function Senales() {
                       }}
                     />
                   </span>
-                  <span className="w-16 shrink-0 text-right text-sm tabular-nums">
+                  <span className="text-right text-sm tabular-nums">
                     {(f.tendenciaInteres ?? 0) > 0 ? "+" : ""}
                     {f.tendenciaInteres} %
                   </span>
@@ -208,16 +211,18 @@ export function Senales() {
               key={f.id}
               type="button"
               onClick={() => setAbierta(f)}
-              className="flex w-full items-center gap-4 rounded-md border border-border p-3 text-left transition-colors hover:border-foreground/40"
+              className="grid w-full grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 rounded-md border border-border p-3 text-left transition-colors hover:border-foreground/40 md:grid-cols-[2rem_minmax(9rem,14rem)_7rem_minmax(0,1fr)_7rem]"
             >
-              <span className="w-8 shrink-0 text-center text-xl leading-none">{p.icono}</span>
-              <span className="w-44 shrink-0">
+              <span className="text-center text-xl leading-none">{p.icono}</span>
+
+              <span className="min-w-0">
                 <span className="block truncate text-sm">{f.destino}</span>
-                <span className="block text-[11px] text-muted-foreground">
+                <span className="block truncate text-[11px] text-muted-foreground">
                   {f.pais} · {f.tipo}
                 </span>
               </span>
-              <span className="w-24 shrink-0 text-sm tabular-nums">
+
+              <span className="text-right text-sm tabular-nums md:text-left">
                 {f.tendenciaInteres !== null ? (
                   <>
                     {f.tendenciaInteres > 0 ? "+" : ""}
@@ -228,15 +233,17 @@ export function Senales() {
                 )}
                 <span className="block text-[11px] text-muted-foreground">{p.etiqueta}</span>
               </span>
-              <span className="hidden flex-1 sm:block">
+
+              <span className="col-span-3 min-w-0 md:col-span-1">
                 <span className="block truncate text-sm">{accion.titulo}</span>
                 <span className="block truncate text-[11px] text-muted-foreground">
                   {accion.detalle}
                 </span>
               </span>
-              <span className="w-24 shrink-0 text-right">
-                <span className="block text-sm tabular-nums">{euros.format(f.precioDesdePp)}</span>
-                <span className="block text-[11px] text-muted-foreground">
+
+              <span className="col-span-3 text-right md:col-span-1">
+                <span className="text-sm tabular-nums">{euros.format(f.precioDesdePp)}</span>
+                <span className="ml-2 text-[11px] text-muted-foreground md:ml-0 md:block">
                   {f.temperaturaMedia !== null ? `${f.temperaturaMedia} °C` : "—"}
                 </span>
               </span>

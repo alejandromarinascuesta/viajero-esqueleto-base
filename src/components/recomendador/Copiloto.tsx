@@ -163,10 +163,10 @@ export function Copiloto({ tecnico }: { tecnico: boolean }) {
   };
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_24rem] 2xl:grid-cols-[minmax(0,1fr)_28rem]">
       {/* Conversación */}
-      <section className="flex min-h-[26rem] flex-col rounded-md border border-border">
-        <div className="flex-1 space-y-3 overflow-y-auto p-4">
+      <section className="flex min-h-[28rem] flex-col rounded-md border border-border xl:min-h-[34rem]">
+        <div className="flex-1 space-y-3 overflow-y-auto p-4 xl:max-h-[calc(100vh-20rem)]">
           {turnos.length === 0 ? (
             <div className="space-y-2 text-sm text-muted-foreground">
               <p>Cuenta lo que te ha dicho el cliente, con tus palabras:</p>
