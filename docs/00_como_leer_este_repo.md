@@ -36,6 +36,27 @@ relajable, e Ibiza a un grupo de amigos sin niños debe pasar.
 Sin credenciales lee el CSV. Con las variables de entorno del backend puestas,
 ataca la base de datos real.
 
+```
+npx esbuild tests/verificar_argumento.ts --bundle --platform=node \
+  --format=esm --outfile=/tmp/p.mjs && node /tmp/p.mjs
+```
+
+5 casos sobre la verificación del argumento redactado: que caza una cifra que no
+está en la ficha, que caza un campo citado que no existe, y que **no** da falso
+positivo con el precio total del grupo, que es un múltiplo legítimo del precio
+por persona.
+
+## Los tres usos del modelo de lenguaje, y solo tres
+
+| Dónde | Qué hace | Qué NO hace |
+|---|---|---|
+| `copiloto.functions.ts` → `extraerPerfil` | Convierte las notas de la llamada en un perfil estructurado, con el literal del que sale cada dato | No completa lo que las notas no dicen: lo deja a null y lo declara |
+| `copiloto.functions.ts` → `redactarArgumentos` | Redacta por qué encajan las dos propuestas **ya elegidas**, citando solo campos de la ficha | No elige, no ordena y no aporta ningún dato |
+| `senales.functions.ts` → `consultarCopiloto` | Responde preguntas del agente sobre catálogo, señales y criterio comercial | No recomienda: si se lo piden, remite al motor |
+
+El encaminamiento entre consulta y extracción lo decide una función
+determinista en `Copiloto.tsx`, no el modelo, porque tiene que ser reproducible.
+
 ## El principio que ordena todo el código
 
 > La IA nunca decide. Descarta el código, ordenan los pesos que configura la

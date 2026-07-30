@@ -1,10 +1,4 @@
-import type {
-  Perfil,
-  Propuesta,
-  ResultadoRecomendacion,
-  Restriccion,
-  VetoFila,
-} from "./tipos";
+import type { Perfil, Propuesta, ResultadoRecomendacion, Restriccion, VetoFila } from "./tipos";
 
 export type ExperienciaFila = {
   id: string;
@@ -96,7 +90,10 @@ function describirTemporada(temporada: string): string {
 }
 
 export function diasHastaMes(mes: number, hoy: Date): number {
-  const anio = mes > hoy.getMonth() + 1 ? hoy.getFullYear() : hoy.getFullYear() + (mes === hoy.getMonth() + 1 ? 0 : 1);
+  const anio =
+    mes > hoy.getMonth() + 1
+      ? hoy.getFullYear()
+      : hoy.getFullYear() + (mes === hoy.getMonth() + 1 ? 0 : 1);
   const objetivo = new Date(Date.UTC(anio, mes - 1, 1));
   const referencia = new Date(Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()));
   return Math.round((objetivo.getTime() - referencia.getTime()) / 86400000);
@@ -252,10 +249,12 @@ function puntuar(
 
   // Afinado del agente: reordena sin saltarse ninguna regla dura.
   if (ajuste.barato) {
-    puntuacion += 0.25 * (1 - normalizarEntre(fila.precio_desde_pp, rangos.precio.min, rangos.precio.max));
+    puntuacion +=
+      0.25 * (1 - normalizarEntre(fila.precio_desde_pp, rangos.precio.min, rangos.precio.max));
   }
   if (ajuste.vueloCorto) {
-    puntuacion += 0.25 * (1 - normalizarEntre(fila.horas_vuelo, rangos.vuelo.min, rangos.vuelo.max));
+    puntuacion +=
+      0.25 * (1 - normalizarEntre(fila.horas_vuelo, rangos.vuelo.min, rangos.vuelo.max));
   }
   if (ajuste.corto) {
     puntuacion += 0.15 * (1 - normalizarEntre(fila.noches, rangos.noches.min, rangos.noches.max));
@@ -280,8 +279,8 @@ function aPropuesta(
     precioPorPersona: fila.precio_desde_pp,
     precioTotalGrupo: fila.precio_desde_pp * personas,
     noches: fila.noches,
-    motivos: [fila.motivo_1, fila.motivo_2, fila.motivo_3].filter(
-      (motivo): motivo is string => Boolean(motivo && motivo.trim()),
+    motivos: [fila.motivo_1, fila.motivo_2, fila.motivo_3].filter((motivo): motivo is string =>
+      Boolean(motivo && motivo.trim()),
     ),
     puntuacion,
     incumplimientos,

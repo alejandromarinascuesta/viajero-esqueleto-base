@@ -28,7 +28,7 @@ create table if not exists experiencias (
 -- Todas las fuentes externas aterrizan aqui con la misma forma.
 create table if not exists senales (
   id           bigserial primary key,
-  fuente       text not null check (fuente in ('catalogo','busquedas','clima','vuelos','calendario')),
+  fuente       text not null check (fuente in ('catalogo','interes','clima','vuelos','calendario')),
   destino_id   text not null references experiencias(id) on delete cascade,
   periodo      text not null,
   metrica      text not null,
