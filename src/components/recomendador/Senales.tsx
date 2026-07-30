@@ -32,8 +32,14 @@ const FUENTES = [
   {
     id: "interes",
     nombre: "Interés por destino",
-    detalle: "Wikipedia · vistas de página · mensual",
+    detalle: "Wikipedia · vistas diarias · 28 días frente a los 28 anteriores",
     clave: false,
+  },
+  {
+    id: "reservas",
+    nombre: "Reservas reales",
+    detalle: "Amadeus · el entorno de pruebas solo publica periodos históricos",
+    clave: true,
   },
   {
     id: "clima",
