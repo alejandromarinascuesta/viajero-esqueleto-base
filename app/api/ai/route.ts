@@ -4,6 +4,7 @@ import { cargarDestinos } from "@/lib/data";
 import { contextoParaArgumento, INSTRUCCION_ARGUMENTO, pedirJson } from "@/lib/ai";
 import { extraerPerfilDeterminista } from "@/lib/extraccion";
 import { recomendar } from "@/lib/motor";
+import { leerCriterio } from "@/lib/criterio";
 import { verificarArgumento } from "@/lib/verificar";
 import type { Destino, Perfil } from "@/types";
 
@@ -13,6 +14,16 @@ export const maxDuration = 30;
 const Entrada = z.object({
   notas: z.string().min(3).max(2000),
   excluidos: z.array(z.string()).max(30).optional(),
+  campanas: z.array(z.string()).max(30).optional(),
+  pesos: z
+    .object({
+      encaje_cliente: z.number().int().min(1).max(5),
+      demanda: z.number().int().min(1).max(5),
+      margen: z.number().int().min(1).max(5),
+      campana: z.number().int().min(1).max(5),
+      cupo: z.number().int().min(1).max(5),
+    })
+    .optional(),
 });
 
 const MOTIVACIONES = ["descanso", "cultura", "aventura", "romantico", "celebracion"];
@@ -32,7 +43,7 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const { notas, excluidos = [] } = parseado.data;
+  const { notas, excluidos = [], campanas, pesos } = parseado.data;
 
   // 1 · Extraccion determinista. Siempre funciona: sin red, sin clave y sin coste.
   const extraido = extraerPerfilDeterminista(notas);
@@ -63,7 +74,15 @@ export async function POST(request: Request) {
 
   // 2 · El motor decide. Determinista, sin IA.
   const { destinos, origen } = await cargarDestinos();
-  const resultado = recomendar(destinos, perfil, undefined, excluidos);
+  // El criterio comercial que ha configurado la direccion. Lo que llega en la
+  // peticion solo sirve para previsualizar cambios sin guardarlos todavia.
+  const criterio = await leerCriterio();
+  const resultado = recomendar(
+    destinos,
+    perfil,
+    { pesos: pesos ?? criterio.pesos, campanas: campanas ?? criterio.campanas, vetos: criterio.vetos },
+    excluidos,
+  );
 
   // 3 · La IA solo redacta sobre las dos ya elegidas, y se verifica.
   let argumentos: {

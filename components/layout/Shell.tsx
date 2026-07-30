@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, Compass, LayoutGrid, MessageSquare, Network } from "lucide-react";
+import { Activity, Compass, LayoutGrid, MessageSquare, Network, SlidersHorizontal } from "lucide-react";
 import type { Destino, Oportunidad } from "@/types";
 import type { OrigenDatos } from "@/lib/data";
 import { Frescor } from "@/components/ui";
@@ -9,6 +9,7 @@ import Overview from "@/components/overview/Overview";
 import Radar from "@/components/radar/Radar";
 import Destino360 from "@/components/destination/Destino360";
 import Copiloto from "@/components/copilot/Copiloto";
+import CriterioComercial from "@/components/criterio/CriterioComercial";
 import Arquitectura from "@/components/architecture/Arquitectura";
 
 export type DestinoConScore = Destino & { oportunidad: Oportunidad };
@@ -18,6 +19,7 @@ const VISTAS = [
   { id: "radar", nombre: "Radar de demanda", icono: Activity },
   { id: "destino", nombre: "Destino 360", icono: Compass },
   { id: "copiloto", nombre: "Copiloto", icono: MessageSquare },
+  { id: "criterio", nombre: "Criterio comercial", icono: SlidersHorizontal },
   { id: "arquitectura", nombre: "Arquitectura", icono: Network },
 ] as const;
 
@@ -120,6 +122,7 @@ export default function Shell({
           <Destino360 destino={activo} destinos={destinos} mes={mes} onSeleccionar={setSeleccion} onAbrirCopiloto={abrirCopiloto} />
         ) : null}
         {vista === "copiloto" ? <Copiloto destinoSugerido={activo?.destino ?? ""} /> : null}
+        {vista === "criterio" ? <CriterioComercial destinos={destinos} /> : null}
         {vista === "arquitectura" ? <Arquitectura origen={origen} /> : null}
       </main>
     </div>

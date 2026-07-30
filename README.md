@@ -69,6 +69,7 @@ Estados de frescura que usa la interfaz: `En directo`, `Actualizado`, `Último d
 | **Radar de demanda** | Comparar los 30 destinos con búsqueda, cuatro filtros y cuatro ordenaciones |
 | **Destino 360** | La ficha completa, con el desglose de cómo se calcula su score y de dónde sale cada dato |
 | **Copiloto** | De las notas de una llamada a dos propuestas argumentadas y verificadas |
+| **Criterio comercial** | Los pesos, campañas y vetos que mueve la dirección. Es lo que convierte el algoritmo en plataforma |
 | **Arquitectura** | Cómo se orquesta, qué cuesta cada decisión y dónde están los puntos críticos |
 
 *Campaign Studio y Biblioteca quedan fuera de esta versión de forma deliberada: son la pata de contenido
@@ -110,7 +111,7 @@ npm run dev          # http://localhost:3000
 npm run typecheck
 npm run lint
 npm run build
-npm test             # 24 pruebas
+npm test             # 28 pruebas
 ```
 
 **Funciona sin ninguna variable de entorno.** Sin base de datos sirve la última observación real guardada
@@ -142,6 +143,7 @@ sin declararlo, sigue buscando una carpeta `dist` que Next.js no genera.
 | `GET /api/destinations?id=EXP14` | Un destino concreto. 404 con código `DESTINATION_NOT_FOUND` |
 | `GET /api/weather?destinationId=EXP14` | Clima en directo, o la última observación real si falla |
 | `POST /api/ai` | Notas → perfil → reglas → dos propuestas verificadas |
+| `GET`/`PUT` `/api/criterio` | Pesos, campañas y vetos de la dirección |
 
 ---
 
@@ -154,8 +156,10 @@ sin declararlo, sigue buscando una carpeta `dist` que Next.js no genera.
    y no se rellena.
 5. **Copiloto** (120 s). Pegar las notas de la familia con un bebé de dos años que pide la Riviera Maya. El
    sistema se niega y explica por qué. Descartar una opción y recalcular.
-6. **Modo técnico** (30 s). Abrir la traza: qué descartó cada regla y campos citados frente a inventados.
-7. **Arquitectura** (30 s). Las cuatro capas, los cuatro trade-offs y los cinco puntos críticos.
+6. **Criterio comercial** (45 s). Subir el peso del margen y ver cómo cambia el orden al instante. Vetar
+   un destino y comprobar que desaparece de las recomendaciones.
+7. **Modo técnico** (30 s). Abrir la traza: qué descartó cada regla y campos citados frente a inventados.
+8. **Arquitectura** (30 s). Las cuatro capas, los cuatro trade-offs y los cinco puntos críticos.
 
 ## Limitaciones reconocidas
 

@@ -59,7 +59,14 @@ type Evaluacion = { destino: Destino; relajables: string[]; inviolables: string[
  * Pasarse 50 € del presupuesto no puede pesar lo mismo que un vuelo de diez
  * horas con un bebé.
  */
-export function evaluarReglas(d: Destino, p: Perfil, personas: number): Evaluacion {
+export type Veto = { destinoId: string; mes: number | null; motivo: string };
+
+export function evaluarReglas(
+  d: Destino,
+  p: Perfil,
+  personas: number,
+  vetos: Veto[] = [],
+): Evaluacion {
   const relajables: string[] = [];
   const inviolables: string[] = [];
   const veto = norm(d.noRecomendadoSi);
@@ -92,6 +99,14 @@ export function evaluarReglas(d: Destino, p: Perfil, personas: number): Evaluaci
   if (norm(d.visado) === "si" && diasHastaMes(p.mes) < 30)
     inviolables.push(`trámite de visado: quedan ${diasHastaMes(p.mes)} días`);
 
+  // Veto comercial de la direccion. No se relaja: si la agencia ha decidido no
+  // vender un destino, el agente no puede saltarselo.
+  for (const v of vetos) {
+    if (v.destinoId !== d.id) continue;
+    if (v.mes !== null && v.mes !== p.mes) continue;
+    inviolables.push(`veto comercial${v.motivo ? `: ${v.motivo}` : ""}`);
+  }
+
   return { destino: d, relajables, inviolables, exceso };
 }
 
@@ -104,7 +119,13 @@ function diasHastaMes(mes: number, hoy = new Date()): number {
 
 const acotar = (v: number, min = 0, max = 1) => Math.min(max, Math.max(min, v));
 
-export function puntuar(d: Destino, p: Perfil, pesos: Pesos, rango: { margenMin: number; margenMax: number; cupoMax: number }) {
+export function puntuar(
+  d: Destino,
+  p: Perfil,
+  pesos: Pesos,
+  rango: { margenMin: number; margenMax: number; cupoMax: number },
+  campanas: string[] = [],
+) {
   const tipos = TIPOS_POR_MOTIVACION[p.motivacion] ?? [];
   let encaje = 0;
   if (tipos.includes(norm(d.tipo))) encaje += 0.5;
@@ -119,7 +140,7 @@ export function puntuar(d: Destino, p: Perfil, pesos: Pesos, rango: { margenMin:
     // por un fallo de una fuente externa.
     demanda: interes == null ? 0.5 : acotar((interes + 50) / 100),
     margen: rango.margenMax === rango.margenMin ? 0.5 : acotar((d.margenPct - rango.margenMin) / (rango.margenMax - rango.margenMin)),
-    campana: 0,
+    campana: campanas.includes(d.id) ? 1 : 0,
     cupo: 1 - acotar(d.cupo / Math.max(1, rango.cupoMax)),
   };
 
@@ -144,15 +165,20 @@ function aPropuesta(d: Destino, personas: number, puntuacion: number | null, inc
   };
 }
 
+export type Criterio = { pesos: Pesos; campanas: string[]; vetos: Veto[] };
+
 export function recomendar(
   destinos: Destino[],
   perfil: Perfil,
-  pesos: Pesos = { ...PESOS_POR_DEFECTO },
+  criterio: Partial<Criterio> = {},
   excluidos: string[] = [],
 ): Recomendacion {
+  const pesos = criterio.pesos ?? { ...PESOS_POR_DEFECTO };
+  const campanas = criterio.campanas ?? [];
+  const vetos = criterio.vetos ?? [];
   const personas = Math.max(1, perfil.adultos + perfil.edadesNinos.length);
   const candidatas = destinos.filter((d) => !excluidos.includes(d.id));
-  const evaluaciones = candidatas.map((d) => evaluarReglas(d, perfil, personas));
+  const evaluaciones = candidatas.map((d) => evaluarReglas(d, perfil, personas, vetos));
 
   const descartadasPor: Record<string, number> = {};
   for (const e of evaluaciones) {
@@ -168,6 +194,8 @@ export function recomendar(
     supervivientes: supervivientes.length,
     descartadasPor,
     pesos,
+    campanas,
+    vetos: vetos.length,
     excluidos,
   };
 
@@ -210,7 +238,7 @@ export function recomendar(
   };
 
   const ordenadas = supervivientes
-    .map((e) => ({ destino: e.destino, puntuacion: puntuar(e.destino, perfil, pesos, rango) }))
+    .map((e) => ({ destino: e.destino, puntuacion: puntuar(e.destino, perfil, pesos, rango, campanas) }))
     .sort((a, b) => b.puntuacion - a.puntuacion)
     .slice(0, 2);
 
