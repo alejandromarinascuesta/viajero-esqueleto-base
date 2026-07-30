@@ -73,7 +73,7 @@ create table if not exists descartes (
 );
 
 insert into pesos (clave, valor) values
-  ('encaje_cliente', 40), ('demanda', 15), ('margen', 20), ('campana', 15), ('cupo', 10)
+  ('encaje_cliente', 5), ('demanda', 2), ('margen', 3), ('campana', 2), ('cupo', 1)
 on conflict (clave) do nothing;
 
 insert into experiencias (id,nombre,destino,pais,lat,lon,tipo,precio_desde_pp,noches,temporada_agencia,horas_vuelo,visado,apto_ninos,intensidad,margen_pct,cupo,motivo_1,motivo_2,motivo_3,no_recomendado_si) values

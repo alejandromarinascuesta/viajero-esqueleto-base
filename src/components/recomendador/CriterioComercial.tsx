@@ -94,7 +94,9 @@ export function CriterioComercial() {
       <section className="space-y-4 rounded-md border border-border p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium">Pesos de puntuación</h2>
-          <span className="text-sm text-muted-foreground">Suma: {suma}</span>
+          <span className="text-sm text-muted-foreground">
+            Cada peso de 1 (poco) a 5 (mucho) · suma {suma}
+          </span>
         </div>
 
         {CLAVES_PESOS.map((clave) => (
@@ -105,8 +107,8 @@ export function CriterioComercial() {
             </div>
             <Slider
               id={`peso-${clave}`}
-              min={0}
-              max={100}
+              min={1}
+              max={5}
               step={1}
               value={[pesos[clave]]}
               onValueChange={([valor]) => setPesos({ ...pesos, [clave]: valor })}
@@ -208,7 +210,9 @@ export function CriterioComercial() {
                   className="flex items-center justify-between gap-3 border-b border-border py-1 last:border-b-0"
                 >
                   <span>
-                    {experiencia ? `${experiencia.nombre} · ${experiencia.destino}` : veto.destino_id}
+                    {experiencia
+                      ? `${experiencia.nombre} · ${experiencia.destino}`
+                      : veto.destino_id}
                     {" · "}
                     {veto.mes ? MESES[veto.mes - 1] : "todos los meses"}
                     {veto.motivo ? ` · ${veto.motivo}` : ""}

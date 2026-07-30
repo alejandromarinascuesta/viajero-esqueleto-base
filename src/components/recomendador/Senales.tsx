@@ -70,8 +70,65 @@ export function Senales() {
   const conClima = filas.filter((f) => f.temperaturaMedia !== null).length;
   const conInteres = filas.filter((f) => f.tendenciaInteres !== null).length;
 
+  const conSenal = filas.filter((f) => f.tendenciaInteres !== null);
+  const top5 = [...conSenal]
+    .sort((a, b) => (b.tendenciaInteres ?? 0) - (a.tendenciaInteres ?? 0))
+    .slice(0, 5);
+  const maxAbs = Math.max(1, ...top5.map((f) => Math.abs(f.tendenciaInteres ?? 0)));
+
   return (
     <div className="space-y-4">
+      <section className="rounded-md border border-border p-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-sm font-medium">Los 5 destinos que más suben</h2>
+          <span className="text-xs text-muted-foreground">
+            interés de los últimos 3 meses frente a los 3 anteriores
+          </span>
+        </div>
+
+        {top5.length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">
+            Todavía no hay señal ingerida. Pulsa «Refrescar fuentes» más abajo.
+          </p>
+        ) : (
+          <ol className="mt-3 space-y-2">
+            {top5.map((f, i) => {
+              const valor = f.tendenciaInteres ?? 0;
+              const ancho = Math.round((Math.abs(valor) / maxAbs) * 100);
+              return (
+                <li key={f.id} className="flex items-center gap-3">
+                  <span className="w-5 shrink-0 text-xs text-muted-foreground">{i + 1}</span>
+                  <span className="w-36 shrink-0 truncate text-sm">{f.destino}</span>
+                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                    <span
+                      className={
+                        valor >= 0
+                          ? "block h-full bg-foreground/70"
+                          : "block h-full bg-muted-foreground/40"
+                      }
+                      style={{ width: `${ancho}%` }}
+                    />
+                  </span>
+                  <span className="w-16 shrink-0 text-right text-sm">
+                    {valor > 0 ? "+" : ""}
+                    {valor} %
+                  </span>
+                  <span className="w-20 shrink-0 text-right text-xs text-muted-foreground">
+                    {f.precioDesdePp} €
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+
+        <p className="mt-3 text-xs text-muted-foreground">
+          Esto ordena qué promover al mercado, no qué proponer a un cliente concreto. Son dos
+          decisiones distintas: la primera es de la dirección, la segunda del agente. El panel de
+          criterio comercial es la bisagra entre las dos.
+        </p>
+      </section>
+
       <section className="rounded-md border border-border p-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="space-y-1.5">

@@ -57,13 +57,17 @@ function Index() {
       </header>
 
       <main className="mx-auto max-w-6xl px-6 py-8">
-        <Tabs defaultValue="copiloto" className="w-full">
+        <Tabs defaultValue="senales" className="w-full">
           <TabsList>
+            <TabsTrigger value="senales">Señales y fuentes</TabsTrigger>
             <TabsTrigger value="copiloto">Copiloto</TabsTrigger>
             <TabsTrigger value="nueva">Perfil detallado</TabsTrigger>
-            <TabsTrigger value="senales">Señales y fuentes</TabsTrigger>
             <TabsTrigger value="criterio">Criterio comercial</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="senales" className="pt-4">
+            <Senales />
+          </TabsContent>
 
           <TabsContent value="copiloto" className="pt-4">
             <Copiloto tecnico={tecnico} />
@@ -71,10 +75,6 @@ function Index() {
 
           <TabsContent value="nueva" className="pt-4">
             <NuevaRecomendacion />
-          </TabsContent>
-
-          <TabsContent value="senales" className="pt-4">
-            <Senales />
           </TabsContent>
 
           <TabsContent value="criterio" className="pt-4">
