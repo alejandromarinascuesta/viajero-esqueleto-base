@@ -32,6 +32,45 @@ const periodoDe = (d: Date) =>
   `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 
 /**
+ * Ejecuta en tandas pequeñas con una pausa entre ellas.
+ *
+ * Por qué existe: lanzar 30 peticiones simultáneas contra una API pública hace
+ * que limite por ritmo y devuelva errores en la mayoría. La primera ingesta
+ * real trajo dato de 17 de 30 destinos en clima y 10 de 30 en interés, con las
+ * dos fuentes fallando a la vez — el patron de un límite de ritmo, no de datos
+ * que no existen. Cinco en paralelo con 250 ms entre tandas respeta el uso
+ * razonable de las dos y tarda unos segundos.
+ */
+async function enTandas<T, R>(
+  elementos: T[],
+  tarea: (e: T) => Promise<R>,
+  tamano = 5,
+  pausaMs = 250,
+): Promise<R[]> {
+  const salida: R[] = [];
+  for (let i = 0; i < elementos.length; i += tamano) {
+    salida.push(...(await Promise.all(elementos.slice(i, i + tamano).map(tarea))));
+    if (i + tamano < elementos.length) await new Promise((r) => setTimeout(r, pausaMs));
+  }
+  return salida;
+}
+
+/** Un reintento ante fallo puntual. Las APIs publicas fallan de vez en cuando. */
+async function conReintento(url: string, opciones?: RequestInit): Promise<Response | null> {
+  for (let intento = 0; intento < 2; intento++) {
+    try {
+      const r = await fetch(url, opciones);
+      if (r.ok) return r;
+      if (r.status !== 429 && r.status < 500) return r;
+    } catch {
+      // se reintenta
+    }
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  return null;
+}
+
+/**
  * Clima — Open-Meteo, archivo histórico. Gratuita y sin clave.
  * Se consulta el mismo mes del año anterior: el clima de agosto en Creta no
  * cambia esta semana, así que se cachea de forma permanente.
@@ -43,40 +82,42 @@ async function conectorClima(destinos: Destino[], mes: number): Promise<FilaSena
   const hasta = `${anio}-${String(mes).padStart(2, "0")}-${ultimoDia}`;
   const periodo = `${new Date().getUTCFullYear()}-${String(mes).padStart(2, "0")}`;
 
-  return Promise.all(
-    destinos.map(async (d): Promise<FilaSenal> => {
-      const base: FilaSenal = {
-        fuente: "clima",
-        destino_id: d.id,
-        periodo,
-        metrica: "temperatura_media",
-        valor: null,
-        valor_bruto: null,
-        estado: "no_disponible",
+  return enTandas(destinos, async (d): Promise<FilaSenal> => {
+    const base: FilaSenal = {
+      fuente: "clima",
+      destino_id: d.id,
+      periodo,
+      metrica: "temperatura_media",
+      valor: null,
+      valor_bruto: null,
+      estado: "no_disponible",
+    };
+    try {
+      const url =
+        `https://archive-api.open-meteo.com/v1/archive?latitude=${d.lat}&longitude=${d.lon}` +
+        `&start_date=${desde}&end_date=${hasta}&daily=temperature_2m_mean&timezone=UTC`;
+      const r = await conReintento(url);
+      if (!r) return { ...base, valor_bruto: { motivo: "sin respuesta tras reintento" } };
+      if (!r.ok) return { ...base, valor_bruto: { motivo: `respuesta ${r.status}` } };
+      const j = (await r.json()) as { daily?: { temperature_2m_mean?: (number | null)[] } };
+      const serie = (j.daily?.temperature_2m_mean ?? []).filter(
+        (v): v is number => typeof v === "number",
+      );
+      if (serie.length === 0) return { ...base, valor_bruto: { motivo: "serie vacia" } };
+      const media = serie.reduce((a, b) => a + b, 0) / serie.length;
+      return {
+        ...base,
+        valor: Math.round(media * 10) / 10,
+        valor_bruto: { dias: serie.length, anio_referencia: anio },
+        estado: "ok",
       };
-      try {
-        const url =
-          `https://archive-api.open-meteo.com/v1/archive?latitude=${d.lat}&longitude=${d.lon}` +
-          `&start_date=${desde}&end_date=${hasta}&daily=temperature_2m_mean&timezone=UTC`;
-        const r = await fetch(url);
-        if (!r.ok) return base;
-        const j = (await r.json()) as { daily?: { temperature_2m_mean?: (number | null)[] } };
-        const serie = (j.daily?.temperature_2m_mean ?? []).filter(
-          (v): v is number => typeof v === "number",
-        );
-        if (serie.length === 0) return base;
-        const media = serie.reduce((a, b) => a + b, 0) / serie.length;
-        return {
-          ...base,
-          valor: Math.round(media * 10) / 10,
-          valor_bruto: { dias: serie.length, anio_referencia: anio },
-          estado: "ok",
-        };
-      } catch {
-        return base;
-      }
-    }),
-  );
+    } catch (e) {
+      return {
+        ...base,
+        valor_bruto: { motivo: e instanceof Error ? e.message : "fallo de red" },
+      };
+    }
+  });
 }
 
 /**
@@ -111,52 +152,65 @@ async function conectorInteres(destinos: Destino[], mes: number): Promise<FilaSe
   // Mismo periodo que el resto de fuentes, para que la ficha unificada cuadre.
   const periodo = `${new Date().getUTCFullYear()}-${String(mes).padStart(2, "0")}`;
 
-  return Promise.all(
-    destinos.map(async (d): Promise<FilaSenal> => {
-      const base: FilaSenal = {
-        fuente: "interes",
-        destino_id: d.id,
-        periodo,
-        metrica: "tendencia_interes_pct",
-        valor: null,
-        valor_bruto: null,
-        estado: "no_disponible",
-      };
-      try {
-        const titulo = encodeURIComponent(d.destino.replace(/ /g, "_"));
-        const url =
-          `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/es.wikipedia/` +
-          `all-access/user/${titulo}/daily/${desde}/${hasta}`;
-        const r = await fetch(url, { headers: { "User-Agent": "recomendador-agencia/1.0" } });
-        if (!r.ok) return base;
-        const j = (await r.json()) as { items?: { timestamp: string; views: number }[] };
-        const serie = (j.items ?? []).map((i) => i.views);
-        // Sin dos ventanas completas no hay comparacion honesta que hacer.
-        if (serie.length < 40) return base;
-
-        const recientes = serie.slice(-28);
-        const previos = serie.slice(-56, -28);
-        const media = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
-        const anterior = media(previos);
-        if (anterior === 0) return base;
-        const variacion = ((media(recientes) - anterior) / anterior) * 100;
-
+  return enTandas(destinos, async (d): Promise<FilaSenal> => {
+    const base: FilaSenal = {
+      fuente: "interes",
+      destino_id: d.id,
+      periodo,
+      metrica: "tendencia_interes_pct",
+      valor: null,
+      valor_bruto: null,
+      estado: "no_disponible",
+    };
+    try {
+      const titulo = encodeURIComponent(d.destino.replace(/ /g, "_"));
+      const url =
+        `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/es.wikipedia/` +
+        `all-access/user/${titulo}/daily/${desde}/${hasta}`;
+      const r = await conReintento(url, {
+        headers: { "User-Agent": "recomendador-agencia/1.0 (caso practico)" },
+      });
+      if (!r) return { ...base, valor_bruto: { motivo: "sin respuesta tras reintento" } };
+      if (!r.ok) {
         return {
           ...base,
-          valor: Math.round(variacion * 10) / 10,
           valor_bruto: {
-            dias: serie.length,
-            media_28d: Math.round(media(recientes)),
-            media_28d_previos: Math.round(anterior),
-            hasta: (j.items ?? []).at(-1)?.timestamp ?? null,
+            motivo:
+              r.status === 404 ? `no existe el articulo «${d.destino}»` : `respuesta ${r.status}`,
           },
-          estado: "ok",
         };
-      } catch {
-        return base;
       }
-    }),
-  );
+      const j = (await r.json()) as { items?: { timestamp: string; views: number }[] };
+      const serie = (j.items ?? []).map((i) => i.views);
+      // Sin dos ventanas completas no hay comparacion honesta que hacer.
+      if (serie.length < 40)
+        return { ...base, valor_bruto: { motivo: `solo ${serie.length} dias de serie` } };
+
+      const recientes = serie.slice(-28);
+      const previos = serie.slice(-56, -28);
+      const media = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
+      const anterior = media(previos);
+      if (anterior === 0) return { ...base, valor_bruto: { motivo: "ventana previa sin visitas" } };
+      const variacion = ((media(recientes) - anterior) / anterior) * 100;
+
+      return {
+        ...base,
+        valor: Math.round(variacion * 10) / 10,
+        valor_bruto: {
+          dias: serie.length,
+          media_28d: Math.round(media(recientes)),
+          media_28d_previos: Math.round(anterior),
+          hasta: (j.items ?? []).at(-1)?.timestamp ?? null,
+        },
+        estado: "ok",
+      };
+    } catch (e) {
+      return {
+        ...base,
+        valor_bruto: { motivo: e instanceof Error ? e.message : "fallo de red" },
+      };
+    }
+  });
 }
 
 /**

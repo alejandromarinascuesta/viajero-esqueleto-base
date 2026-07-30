@@ -346,10 +346,15 @@ function DetalleDestino({
             ) : null}
 
             {ficha.fuentesFaltantes.length > 0 ? (
-              <Badge variant="outline" className="w-fit text-[10px]">
-                sin dato de: {ficha.fuentesFaltantes.join(", ")} · no se sustituye por un valor
-                inventado
-              </Badge>
+              <div>
+                <Badge variant="outline" className="w-fit text-[10px]">
+                  sin dato de: {ficha.fuentesFaltantes.join(", ")}
+                </Badge>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Un hueco nunca se rellena con un valor inventado: se marca, y el peso de esa señal
+                  baja en la puntuación.
+                </p>
+              </div>
             ) : null}
           </>
         ) : null}
