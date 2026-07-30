@@ -16,6 +16,24 @@ export const RESTRICCIONES: { valor: Restriccion; etiqueta: string }[] = [
   { valor: "presupuesto ajustado", etiqueta: "Presupuesto ajustado" },
 ];
 
+export const CLAVES_PESOS = [
+  "encaje_cliente",
+  "demanda",
+  "margen",
+  "campana",
+  "cupo",
+] as const;
+
+export type ClavePeso = (typeof CLAVES_PESOS)[number];
+
+export const ETIQUETAS_PESOS: Record<ClavePeso, string> = {
+  encaje_cliente: "Encaje con el cliente",
+  demanda: "Demanda",
+  margen: "Margen",
+  campana: "Campaña",
+  cupo: "Cupo",
+};
+
 export type Perfil = {
   adultos: number;
   edadesNinos: number[];
@@ -28,6 +46,12 @@ export type Perfil = {
   restricciones: Restriccion[];
   destinosVisitados: string[];
   tensionDeclarada: string;
+};
+
+export type PeticionRecomendacion = {
+  perfil: Perfil;
+  excluidos: string[];
+  afinar: string;
 };
 
 export type Propuesta = {
@@ -43,8 +67,19 @@ export type Propuesta = {
 };
 
 export type ResultadoRecomendacion = {
-  modo: "recomendadas" | "sin_supervivientes";
+  modo: "recomendadas" | "sin_supervivientes" | "sin_opciones";
   candidatas: number;
   supervivientes: number;
   propuestas: Propuesta[];
+  mensaje: string | null;
+  avisos: string[];
+  recomendacionId?: number | null;
+};
+
+export type VetoFila = {
+  id: number;
+  destino_id: string | null;
+  mes: number | null;
+  motivo: string | null;
+  activo: boolean | null;
 };

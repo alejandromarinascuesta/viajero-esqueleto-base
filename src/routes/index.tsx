@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { CriterioComercial } from "@/components/recomendador/CriterioComercial";
 import { NuevaRecomendacion } from "@/components/recomendador/NuevaRecomendacion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -50,10 +51,10 @@ function Index() {
             <NuevaRecomendacion />
           </TabsContent>
 
-          <TabsContent
-            value="criterio"
-            className="min-h-[16rem] rounded-lg border border-dashed border-border"
-          />
+          <TabsContent value="criterio" className="pt-4">
+            <CriterioComercial />
+          </TabsContent>
+
         </Tabs>
       </main>
     </div>
