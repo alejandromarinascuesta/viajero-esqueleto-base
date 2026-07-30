@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+import { CriterioComercial } from "@/components/recomendador/CriterioComercial";
 import { NuevaRecomendacion } from "@/components/recomendador/NuevaRecomendacion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
