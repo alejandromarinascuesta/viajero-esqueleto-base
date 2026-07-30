@@ -136,6 +136,13 @@ function evaluarReglasDuras(
     relajables.push(`fuera de temporada, disponible ${describirTemporada(fila.temporada_agencia)}`);
   }
 
+  // Calidad de la experiencia, no seguridad: si el cliente insiste, el agente
+  // debe poder proponerlo con el aviso visible.
+  const noRecomendado = normalizarTexto(fila.no_recomendado_si);
+  if ((perfil.mes === 7 || perfil.mes === 8) && noRecomendado.includes("julio y agosto")) {
+    relajables.push(`no recomendado en ${MESES[perfil.mes - 1]} por calidad de la experiencia`);
+  }
+
   // INVIOLABLES --------------------------------------------------------
   const menorDeSeis = perfil.edadesNinos.some((edad) => edad < 6);
   if (menorDeSeis && fila.horas_vuelo > 6) {
@@ -146,16 +153,11 @@ function evaluarReglasDuras(
     inviolables.push(`vuelo de ${fila.horas_vuelo} h con la restricción «no vuelos largos»`);
   }
 
-  const noRecomendado = normalizarTexto(fila.no_recomendado_si);
   for (const restriccion of perfil.restricciones as Restriccion[]) {
     if (restriccion === "no vuelos largos") continue;
     if (noRecomendado && noRecomendado.includes(normalizarTexto(restriccion))) {
       inviolables.push(`no recomendado si ${restriccion}`);
     }
-  }
-
-  if ((perfil.mes === 7 || perfil.mes === 8) && noRecomendado.includes("julio y agosto")) {
-    inviolables.push(`no recomendado en ${MESES[perfil.mes - 1]}`);
   }
 
   const hayNinos = perfil.edadesNinos.length > 0;

@@ -1,0 +1,59 @@
+flowchart LR
+  subgraph F["1 · Fuentes dispersas"]
+    direction TB
+    F1["Catálogo agencia<br/><i>CSV · propietario</i>"]
+    F2["Google Trends<br/><i>búsquedas · semanal</i>"]
+    F3["Open-Meteo<br/><i>clima · estable</i>"]
+    F4["Amadeus<br/><i>precio vuelo · diario</i>"]
+    F5["Calendario escolar<br/><i>estático</i>"]
+  end
+
+  subgraph I["2 · Ingesta en lote · nocturna"]
+    C["Conectores<br/>obtener → normalizar → escribir<br/><i>misma interfaz para las 5</i>"]
+  end
+
+  subgraph D["3 · Almacén unificado"]
+    direction TB
+    S[("señales<br/><i>una sola forma<br/>para todas las fuentes</i>")]
+    U[("ficha de destino<br/><i>destino × mes</i>")]
+  end
+
+  subgraph M["4 · Motor determinista · sin IA"]
+    direction TB
+    R["Reglas duras<br/><i>descartan</i>"]
+    P["Pesos de la agencia<br/><i>ordenan</i>"]
+  end
+
+  subgraph A["5 · Capa de IA · dos usos y solo dos"]
+    direction TB
+    E["Extraer perfil<br/>de las notas"]
+    G["Redactar argumento<br/><i>citando solo la ficha</i>"]
+  end
+
+  AG(["Agente comercial"])
+  AD(["Dirección"])
+  LG[("Registro<br/><i>recomendado · descartado · reservado</i>")]
+
+  F1 --> C
+  F2 --> C
+  F3 --> C
+  F4 --> C
+  F5 --> C
+  C --> S --> U
+
+  AG -- "notas de la llamada" --> E
+  E -- "perfil que el agente corrige" --> R
+  U --> R --> P --> G
+  G -- "2 propuestas argumentadas" --> AG
+  AD -- "pesos y vetos" --> P
+  AG -- "elige · descarta · afina" --> LG
+  LG -. "v2 · corrige los pesos con lo que se vende" .-> P
+
+  classDef fuente fill:#eef3fb,stroke:#4a6fa5,color:#1a2b45
+  classDef det fill:#eaf5ec,stroke:#3f7d4f,color:#1a3320
+  classDef ia fill:#fdf0e6,stroke:#c1743a,color:#4a2a10
+  classDef dato fill:#f3eefb,stroke:#6f4a9e,color:#2b1a45
+  class F1,F2,F3,F4,F5 fuente
+  class R,P,C det
+  class E,G ia
+  class S,U,LG dato

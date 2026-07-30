@@ -1,0 +1,82 @@
+[
+  {
+    "id": "P01",
+    "titulo": "Familia clásica de agosto",
+    "notas": "Matrimonio de unos 45, dos niños de 5 y 8. Unos 3.500 en total, primera quincena de agosto, una semana. Quieren playa tranquila y que los críos no se aburran.",
+    "perfil": {"adultos": 2, "ninos": [5, 8], "presupuesto_total": 3500, "flexible": false, "mes": 8, "dias": 7, "motivacion": "descanso", "intensidad": 1, "restricciones": [], "previos": []},
+    "espera": ["EXP01", "EXP08"],
+    "prueba": "El caso base. Presupuesto por persona bajo y niños pequeños dejan solo destinos nacionales de playa."
+  },
+  {
+    "id": "P02",
+    "titulo": "Luna de miel",
+    "notas": "Pareja, se casan en octubre. Viaje en noviembre, 8 días. Presupuesto 6.000 los dos, quieren algo especial, playa y tranquilidad, sin niños alrededor.",
+    "perfil": {"adultos": 2, "ninos": [], "presupuesto_total": 6000, "flexible": true, "mes": 11, "dias": 8, "motivacion": "romantico", "intensidad": 1, "restricciones": [], "previos": []},
+    "espera": ["EXP28", "EXP24"],
+    "prueba": "Presupuesto alto y sin niños abre el catálogo de larga distancia. Noviembre descarta Bali y abre Maldivas."
+  },
+  {
+    "id": "P03",
+    "titulo": "Escapada barata de pareja joven",
+    "notas": "Pareja de 28, 900 euros los dos como mucho. Un puente de marzo, 4 días. Ciudad, comer bien, no les importa el hotel.",
+    "perfil": {"adultos": 2, "ninos": [], "presupuesto_total": 900, "flexible": false, "mes": 3, "dias": 4, "motivacion": "cultura", "intensidad": 2, "restricciones": [], "previos": []},
+    "espera": ["EXP07", "EXP09"],
+    "prueba": "Presupuesto muy ajustado. Solo sobreviven las dos opciones más baratas del catálogo."
+  },
+  {
+    "id": "P04",
+    "titulo": "Jubilados con movilidad reducida",
+    "notas": "Matrimonio jubilado, ella con problemas de rodilla, no puede con cuestas ni caminatas largas. 3.000 los dos, mayo, ocho días. Les gusta la cultura y comer bien.",
+    "perfil": {"adultos": 2, "ninos": [], "presupuesto_total": 3000, "flexible": false, "mes": 5, "dias": 8, "motivacion": "cultura", "intensidad": 1, "restricciones": ["movilidad reducida"], "previos": []},
+    "espera": ["EXP17", "EXP10"],
+    "prueba": "La restricción de movilidad debe descartar Lisboa, Madeira, Picos, Croacia e Islandia aunque encajen en precio y fechas."
+  },
+  {
+    "id": "P05",
+    "titulo": "Grupo de amigos",
+    "notas": "Cuatro amigos de 30, julio, cinco días. Unos 800 cada uno. Quieren ambiente, salir de noche, playa o ciudad les da igual.",
+    "perfil": {"adultos": 4, "ninos": [], "presupuesto_total": 3200, "flexible": false, "mes": 7, "dias": 5, "motivacion": "aventura", "intensidad": 3, "restricciones": [], "previos": []},
+    "espera": ["EXP02", "EXP15"],
+    "prueba": "Sin niños se abre Ibiza, que en cualquier perfil familiar queda descartada."
+  },
+  {
+    "id": "P06",
+    "titulo": "Familia que pide Riviera Maya con un bebé",
+    "notas": "Familia con un niño de 2 y otro de 6. Tienen 8.000 y quieren la Riviera Maya en julio, dicen que un amigo suyo fue y les encantó. Diez días.",
+    "perfil": {"adultos": 2, "ninos": [2, 6], "presupuesto_total": 8000, "flexible": true, "mes": 7, "dias": 10, "motivacion": "descanso", "intensidad": 1, "restricciones": [], "previos": []},
+    "espera": ["EXP14", "EXP17"],
+    "prueba": "El caso más importante. El cliente pide explícitamente un destino que la regla dura de vuelo con menores de 6 años prohíbe, y que además está fuera de temporada. El sistema debe negarse y explicar por qué."
+  },
+  {
+    "id": "P07",
+    "titulo": "Presupuesto imposible para lo que piden",
+    "notas": "Pareja, quieren Maldivas en agosto. Tienen 1.400 los dos. Una semana.",
+    "perfil": {"adultos": 2, "ninos": [], "presupuesto_total": 1400, "flexible": false, "mes": 8, "dias": 7, "motivacion": "romantico", "intensidad": 1, "restricciones": [], "previos": []},
+    "espera": ["EXP01"],
+    "prueba": "Doble incumplimiento: precio y temporada. El sistema debe decir cuánto se pasan y ofrecer alternativa, no devolver una pantalla vacía."
+  },
+  {
+    "id": "P08",
+    "titulo": "Repetidor que ya ha visto lo obvio",
+    "notas": "Pareja de 40 y pico que viaja mucho. Ya han estado en Roma, París, Lisboa y Praga. Septiembre, una semana, 2.500 los dos. Quieren algo que no hayan visto.",
+    "perfil": {"adultos": 2, "ninos": [], "presupuesto_total": 2500, "flexible": false, "mes": 9, "dias": 7, "motivacion": "cultura", "intensidad": 2, "restricciones": [], "previos": ["EXP10", "EXP11", "EXP09", "EXP15"]},
+    "espera": ["EXP13", "EXP17"],
+    "prueba": "El historial no descarta pero sí reordena. Ninguna de las cuatro visitadas debe aparecer."
+  },
+  {
+    "id": "P09",
+    "titulo": "Tensión declarada entre los dos",
+    "notas": "Familia con un hijo de 10. Ella quiere playa y descansar, él dice que en la playa se aburre a los dos días y quiere ver cosas. 4.000 en total, julio, ocho días.",
+    "perfil": {"adultos": 2, "ninos": [10], "presupuesto_total": 4000, "flexible": false, "mes": 7, "dias": 8, "motivacion": "descanso", "intensidad": 2, "restricciones": [], "previos": [], "tension": "playa contra necesidad de actividad"},
+    "espera": ["EXP14", "EXP17"],
+    "prueba": "El caso estrella de la demo. El sistema debe elegir destinos que resuelven la contradicción (playa con cultura al lado) y decirlo en el argumento."
+  },
+  {
+    "id": "P10",
+    "titulo": "Cultural en pleno agosto",
+    "notas": "Pareja de 35, agosto, cinco días, unos 2.000. Están pensando en Roma o Sevilla, les gusta el arte.",
+    "perfil": {"adultos": 2, "ninos": [], "presupuesto_total": 2000, "flexible": false, "mes": 8, "dias": 5, "motivacion": "cultura", "intensidad": 2, "restricciones": [], "previos": []},
+    "espera": ["EXP15", "EXP12"],
+    "prueba": "El cliente pide dos destinos que el catálogo desaconseja en agosto por calor y masificación. El sistema sabe más que el cliente y debe justificarlo."
+  }
+]
