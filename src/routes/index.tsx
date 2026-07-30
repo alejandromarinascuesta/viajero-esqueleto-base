@@ -50,10 +50,10 @@ function Index() {
             <NuevaRecomendacion />
           </TabsContent>
 
-          <TabsContent
-            value="criterio"
-            className="min-h-[16rem] rounded-lg border border-dashed border-border"
-          />
+          <TabsContent value="criterio" className="pt-4">
+            <CriterioComercial />
+          </TabsContent>
+
         </Tabs>
       </main>
     </div>
