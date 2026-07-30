@@ -12,7 +12,9 @@ deliberado: primero el criterio, después las pruebas, y solo al final el códig
 | `03_ingesta_y_unificacion.md` | Cómo cinco fuentes dispersas acaban en una ficha unificada, y dónde están los puntos críticos |
 | `04_arquitectura.md` | Componentes y herramientas, hoy y en producción, con el diagrama de flujo |
 | `05_guion_construccion.md` | El plan de construcción por pasos |
-| `06_instrucciones_modelo.md` | Las dos instrucciones del modelo de lenguaje y la verificación que las respalda |
+| `06_instrucciones_modelo.md` | Las instrucciones del modelo de lenguaje y la verificación que las respalda |
+| `07_despliegue_independiente.md` | Cómo desplegar fuera de Lovable y qué variables hacen falta |
+| `08_que_compro_y_que_construyo.md` | Estudio de lo que ya existe en el mercado y dónde queda el hueco |
 | `arquitectura_flujo.mermaid` | El diagrama, en formato editable |
 
 ## data/ — los datos de partida
