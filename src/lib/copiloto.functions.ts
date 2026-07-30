@@ -54,15 +54,66 @@ export type PerfilExtraido = {
 export const extraerPerfil = createServerFn({ method: "POST" })
   .inputValidator((data: { notas: string }) => data)
   .handler(async ({ data }) => {
+    const { extraerPerfilDeterminista, cobertura } = await import("@/lib/recomendador/extraccion");
     const { pedirJson } = await import("@/lib/ia.server");
+
+    // SUELO: siempre se ejecuta, no necesita red ni clave y da el mismo
+    // resultado ante la misma entrada.
+    const base = extraerPerfilDeterminista(data.notas);
+
+    // MEJORA: el modelo solo rellena lo que las reglas no han sabido deducir.
+    // Las cifras que ya se han extraido no se tocan: el modelo no decide
+    // presupuestos ni edades.
     const r = await pedirJson<PerfilExtraido>(INSTRUCCION_EXTRAER, data.notas);
+    const perfil: PerfilExtraido = { ...base };
+    const completados: string[] = [];
+
+    if (r.datos) {
+      const rellenar = <K extends keyof PerfilExtraido>(campo: K) => {
+        const actual = perfil[campo];
+        const propuesto = r.datos?.[campo];
+        const vacio =
+          actual === null || actual === undefined || (Array.isArray(actual) && actual.length === 0);
+        if (vacio && propuesto !== null && propuesto !== undefined) {
+          perfil[campo] = propuesto;
+          completados.push(String(campo));
+        }
+      };
+      (
+        [
+          "adultos",
+          "ninos",
+          "presupuesto_total",
+          "presupuesto_es_por_persona",
+          "flexible",
+          "mes",
+          "dias",
+          "motivacion",
+          "intensidad",
+          "restricciones",
+          "destinos_mencionados",
+          "tension",
+        ] as const
+      ).forEach(rellenar);
+
+      perfil.literales = { ...(r.datos.literales ?? {}), ...base.literales };
+      perfil.no_consta = (
+        ["adultos", "presupuesto_total", "mes", "dias", "motivacion"] as const
+      ).filter((c) => perfil[c] === null || perfil[c] === undefined);
+    }
+
     return {
-      perfil: r.datos,
+      perfil,
       uso: r.uso,
+      origen: {
+        determinista: cobertura(base),
+        completadosPorModelo: completados,
+        modeloDisponible: r.uso.ok,
+      },
       // El error más caro posible: leer "3.500" como por persona cuando era el
       // total de una familia de cuatro multiplica el presupuesto por cuatro.
       requiereConfirmarPresupuesto:
-        r.datos?.presupuesto_total != null && r.datos.presupuesto_es_por_persona == null,
+        perfil.presupuesto_total != null && perfil.presupuesto_es_por_persona == null,
     };
   });
 

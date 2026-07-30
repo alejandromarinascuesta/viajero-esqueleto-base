@@ -152,11 +152,41 @@ export const consultarCopiloto = createServerFn({ method: "POST" })
       `CONTEXTO:\n${contexto}\n\nPREGUNTA DEL AGENTE:\n${data.pregunta}`,
       0.2,
     );
+    if (r.datos?.respuesta) return { respuesta: r.datos.respuesta, uso: r.uso, origen: "modelo" };
 
-    return {
-      respuesta:
-        r.datos?.respuesta ??
-        "No he podido consultar los datos ahora mismo. La recomendación sigue funcionando: rellena el perfil y pulsa «Recomendar».",
-      uso: r.uso,
-    };
+    // Sin modelo, el copiloto sigue respondiendo: busca el destino en el
+    // catálogo y contesta con las señales que ya están en la base. Es el mismo
+    // principio que en la extracción — determinista como suelo.
+    const norm = (x: string) =>
+      x
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    const pregunta = norm(data.pregunta);
+    const encontrado = (experiencias.data ?? []).find((e) => pregunta.includes(norm(e.destino)));
+
+    if (!encontrado) {
+      return {
+        respuesta:
+          "No he identificado ningún destino del catálogo en tu pregunta. Prueba con el nombre tal cual aparece en la pestaña de señales.",
+        uso: r.uso,
+        origen: "determinista",
+      };
+    }
+
+    const suyas = (senales.data ?? []).filter(
+      (x) => x.destino_id === encontrado.id && x.estado === "ok",
+    );
+    const interes = suyas.find((x) => x.metrica === "tendencia_interes_pct")?.valor;
+    const temperatura = suyas.find((x) => x.metrica === "temperatura_media")?.valor;
+
+    const partes = [
+      `${encontrado.destino}: desde ${encontrado.precio_desde_pp} € por persona, ${encontrado.noches} noches, temporada ${encontrado.temporada_agencia}.`,
+      interes != null
+        ? `El interés ha ${Number(interes) >= 0 ? "subido" : "bajado"} un ${Math.abs(Number(interes))} % en los últimos 28 días.`
+        : "Todavía no hay señal de interés ingerida para este destino.",
+      temperatura != null ? `Temperatura media de referencia: ${temperatura} °C.` : null,
+    ].filter(Boolean);
+
+    return { respuesta: partes.join(" "), uso: r.uso, origen: "determinista" };
   });
