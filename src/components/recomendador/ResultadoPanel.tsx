@@ -1,3 +1,7 @@
+import { useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { Propuesta, ResultadoRecomendacion } from "@/lib/recomendador/tipos";
 
 const euros = new Intl.NumberFormat("es-ES", {
@@ -6,7 +10,18 @@ const euros = new Intl.NumberFormat("es-ES", {
   maximumFractionDigits: 0,
 });
 
-function Tarjeta({ propuesta, alerta }: { propuesta: Propuesta; alerta: boolean }) {
+function Tarjeta({
+  propuesta,
+  alerta,
+  onDescartar,
+}: {
+  propuesta: Propuesta;
+  alerta: boolean;
+  onDescartar: (motivo: string) => void;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const [motivo, setMotivo] = useState("");
+
   return (
     <article className="rounded-md border border-border p-4">
       <div className="flex items-start justify-between gap-4">
@@ -16,7 +31,7 @@ function Tarjeta({ propuesta, alerta }: { propuesta: Propuesta; alerta: boolean 
         </div>
         {alerta ? (
           <span className="shrink-0 rounded border border-border px-2 py-0.5 text-xs text-muted-foreground">
-            Incumple reglas duras
+            Incumple reglas relajables
           </span>
         ) : null}
       </div>
@@ -37,8 +52,8 @@ function Tarjeta({ propuesta, alerta }: { propuesta: Propuesta; alerta: boolean 
       </dl>
 
       <ul className="mt-3 space-y-1 text-sm">
-        {propuesta.motivos.map((motivo) => (
-          <li key={motivo}>{motivo}</li>
+        {propuesta.motivos.map((motivoFicha) => (
+          <li key={motivoFicha}>{motivoFicha}</li>
         ))}
       </ul>
 
@@ -49,6 +64,38 @@ function Tarjeta({ propuesta, alerta }: { propuesta: Propuesta; alerta: boolean 
           ))}
         </ul>
       ) : null}
+
+      <div className="mt-3 border-t border-border pt-3">
+        {abierto ? (
+          <form
+            className="flex items-center gap-2"
+            onSubmit={(evento) => {
+              evento.preventDefault();
+              if (!motivo.trim()) return;
+              onDescartar(motivo.trim());
+              setAbierto(false);
+              setMotivo("");
+            }}
+          >
+            <Input
+              autoFocus
+              placeholder="Motivo del descarte"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+            />
+            <Button type="submit" size="sm" variant="secondary">
+              Confirmar
+            </Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setAbierto(false)}>
+              Cancelar
+            </Button>
+          </form>
+        ) : (
+          <Button type="button" size="sm" variant="outline" onClick={() => setAbierto(true)}>
+            Descartar
+          </Button>
+        )}
+      </div>
     </article>
   );
 }
@@ -57,20 +104,31 @@ export function ResultadoPanel({
   resultado,
   cargando,
   error,
+  excluidos,
+  onDescartar,
+  onReiniciar,
 }: {
   resultado: ResultadoRecomendacion | null;
   cargando: boolean;
   error: string | null;
+  excluidos: string[];
+  onDescartar: (id: string, motivo: string) => void;
+  onReiniciar: () => void;
 }) {
   return (
     <section className="rounded-md border border-border p-4">
-      <h2 className="text-sm font-medium">Resultado</h2>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-sm font-medium">Resultado</h2>
+        {excluidos.length > 0 ? (
+          <Button type="button" size="sm" variant="ghost" onClick={onReiniciar}>
+            Recuperar {excluidos.length} descartada(s)
+          </Button>
+        ) : null}
+      </div>
 
       {error ? <p className="mt-3 text-sm text-muted-foreground">{error}</p> : null}
 
-      {cargando ? (
-        <p className="mt-3 text-sm text-muted-foreground">Calculando…</p>
-      ) : null}
+      {cargando ? <p className="mt-3 text-sm text-muted-foreground">Calculando…</p> : null}
 
       {!cargando && !error && !resultado ? (
         <p className="mt-3 text-sm text-muted-foreground">
@@ -78,18 +136,29 @@ export function ResultadoPanel({
         </p>
       ) : null}
 
-      {resultado ? (
+      {resultado && !cargando ? (
         <div className="mt-3 space-y-3">
           <p className="text-xs text-muted-foreground">
             {resultado.candidatas} experiencias evaluadas · {resultado.supervivientes} superan las
             reglas duras
           </p>
 
+          {resultado.mensaje ? (
+            <p className="rounded-md border border-border p-3 text-sm">{resultado.mensaje}</p>
+          ) : null}
+
           {resultado.modo === "sin_supervivientes" ? (
-            <p className="rounded-md border border-border p-3 text-sm">
-              Ninguna experiencia supera las reglas duras. Se muestran las dos que menos
-              incumplen. Afina la búsqueda: revisa presupuesto, fechas o días disponibles.
+            <p className="text-sm text-muted-foreground">
+              Afina la búsqueda: revisa presupuesto, fechas o días disponibles.
             </p>
+          ) : null}
+
+          {resultado.avisos.length > 0 ? (
+            <ul className="space-y-1 text-xs text-muted-foreground">
+              {resultado.avisos.map((aviso) => (
+                <li key={aviso}>Aviso: {aviso}</li>
+              ))}
+            </ul>
           ) : null}
 
           {resultado.propuestas.map((propuesta) => (
@@ -97,6 +166,7 @@ export function ResultadoPanel({
               key={propuesta.id}
               propuesta={propuesta}
               alerta={resultado.modo === "sin_supervivientes"}
+              onDescartar={(motivo) => onDescartar(propuesta.id, motivo)}
             />
           ))}
         </div>
