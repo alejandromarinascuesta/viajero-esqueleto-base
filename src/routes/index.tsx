@@ -44,10 +44,10 @@ function Index() {
             <TabsTrigger value="nueva">Nueva recomendación</TabsTrigger>
             <TabsTrigger value="criterio">Criterio comercial</TabsTrigger>
           </TabsList>
-          <TabsContent
-            value="nueva"
-            className="min-h-[16rem] rounded-lg border border-dashed border-border"
-          />
+          <TabsContent value="nueva" className="pt-4">
+            <NuevaRecomendacion />
+          </TabsContent>
+
           <TabsContent
             value="criterio"
             className="min-h-[16rem] rounded-lg border border-dashed border-border"
