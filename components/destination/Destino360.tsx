@@ -21,20 +21,32 @@ export default function Destino360({
   onSeleccionar: (id: string) => void;
   onAbrirCopiloto: (id: string) => void;
 }) {
-  const [clima, setClima] = useState<Clima | null>(null);
-  const [cargandoClima, setCargandoClima] = useState(true);
+  // El estado de carga se DERIVA de si lo que hay guardado corresponde al
+  // destino abierto. Asi no hace falta un segundo estado que mantener en
+  // sincronia, y no se puede quedar colgado en «cargando».
+  const [climaDe, setClimaDe] = useState<{ id: string; datos: Clima | null } | null>(null);
+  const cargandoClima = climaDe?.id !== destino.id;
+  const clima = climaDe?.id === destino.id ? climaDe.datos : null;
 
   useEffect(() => {
-    let vivo = true;
-    setCargandoClima(true);
-    fetch(`/api/weather?destinationId=${encodeURIComponent(destino.id)}`)
-      .then((r) => r.json())
-      .then((d) => vivo && setClima(d))
-      .catch(() => vivo && setClima(null))
-      .finally(() => vivo && setCargandoClima(false));
-    return () => {
-      vivo = false;
-    };
+    const control = new AbortController();
+
+    async function cargarClima(id: string) {
+      try {
+        const r = await fetch(`/api/weather?destinationId=${encodeURIComponent(id)}`, {
+          signal: control.signal,
+        });
+        const d = (await r.json()) as Clima;
+        if (!control.signal.aborted) setClimaDe({ id, datos: d });
+      } catch {
+        // Si la consulta falla o se cancela al cambiar de destino, la tarjeta
+        // muestra «sin dato». No se inventa una temperatura.
+        if (!control.signal.aborted) setClimaDe({ id, datos: null });
+      }
+    }
+
+    void cargarClima(destino.id);
+    return () => control.abort();
   }, [destino.id]);
 
   const interes = destino.senales.find((s) => s.metrica === "tendencia_interes_pct" && s.estado === "ok")?.valor ?? null;
