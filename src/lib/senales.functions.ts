@@ -34,6 +34,7 @@ export type FichaUnificada = {
   // De las fuentes externas
   temperaturaMedia: number | null;
   tendenciaInteres: number | null;
+  cuotaReservas: number | null;
   frescura: { fuente: string; obtenido: string | null; estado: string }[];
   fuentesFaltantes: string[];
 };
@@ -70,7 +71,7 @@ export const listarFichasUnificadas = createServerFn({ method: "GET" })
       porDestino.set(s.destino_id, lista as typeof senales.data);
     }
 
-    const FUENTES_ESPERADAS = ["clima", "interes"];
+    const FUENTES_ESPERADAS = ["clima", "interes", "reservas"];
 
     return (experiencias.data ?? []).map((e) => {
       const suyas = porDestino.get(e.id) ?? [];
@@ -91,6 +92,7 @@ export const listarFichasUnificadas = createServerFn({ method: "GET" })
         cupo: e.cupo,
         temperaturaMedia: buscar("temperatura_media") as number | null,
         tendenciaInteres: buscar("tendencia_interes_pct") as number | null,
+        cuotaReservas: buscar("cuota_reservas") as number | null,
         frescura: suyas.map((s) => ({
           fuente: s.fuente,
           obtenido: s.obtenido_en,

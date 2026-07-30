@@ -52,6 +52,7 @@ const FUENTES = [
 
 export function Senales() {
   const [mes, setMes] = useState(new Date().getMonth() + 1);
+  const [orden, setOrden] = useState<"interes" | "reservas">("interes");
   const cargar = useServerFn(listarFichasUnificadas);
   const ingerir = useServerFn(ingerirSenales);
   const cliente = useQueryClient();
@@ -69,31 +70,52 @@ export function Senales() {
   const filas = fichas.data ?? [];
   const conClima = filas.filter((f) => f.temperaturaMedia !== null).length;
   const conInteres = filas.filter((f) => f.tendenciaInteres !== null).length;
+  const conReservas = filas.filter((f) => f.cuotaReservas !== null).length;
 
-  const conSenal = filas.filter((f) => f.tendenciaInteres !== null);
-  const top5 = [...conSenal]
-    .sort((a, b) => (b.tendenciaInteres ?? 0) - (a.tendenciaInteres ?? 0))
-    .slice(0, 5);
-  const maxAbs = Math.max(1, ...top5.map((f) => Math.abs(f.tendenciaInteres ?? 0)));
+  const metrica = orden === "reservas" ? "cuotaReservas" : "tendenciaInteres";
+  const conSenal = filas.filter((f) => f[metrica] !== null);
+  const top5 = [...conSenal].sort((a, b) => (b[metrica] ?? 0) - (a[metrica] ?? 0)).slice(0, 5);
+  const maxAbs = Math.max(1, ...top5.map((f) => Math.abs(f[metrica] ?? 0)));
+  const unidad = orden === "reservas" ? "" : " %";
 
   return (
     <div className="space-y-4">
       <section className="rounded-md border border-border p-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-sm font-medium">Los 5 destinos que más suben</h2>
-          <span className="text-xs text-muted-foreground">
-            interés de los últimos 3 meses frente a los 3 anteriores
-          </span>
+          <h2 className="text-sm font-medium">Los 5 destinos más demandados</h2>
+          <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
+            {(["interes", "reservas"] as const).map((o) => (
+              <button
+                key={o}
+                type="button"
+                onClick={() => setOrden(o)}
+                className={
+                  orden === o
+                    ? "rounded px-2 py-1 text-xs bg-muted"
+                    : "rounded px-2 py-1 text-xs text-muted-foreground"
+                }
+              >
+                {o === "interes" ? "por interés" : "por reservas"}
+              </button>
+            ))}
+          </div>
         </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {orden === "interes"
+            ? "Atención sobre el destino: vistas de página de los últimos 3 meses frente a los 3 anteriores."
+            : "Intención consumada: cuota de reservas reales desde Madrid en los sistemas de Amadeus."}
+        </p>
 
         {top5.length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">
-            Todavía no hay señal ingerida. Pulsa «Refrescar fuentes» más abajo.
+            {orden === "reservas"
+              ? "No hay datos de reservas. Requiere las credenciales de Amadeus; sin ellas el resto del panel funciona igual."
+              : "Todavía no hay señal ingerida. Pulsa «Refrescar fuentes» más abajo."}
           </p>
         ) : (
           <ol className="mt-3 space-y-2">
             {top5.map((f, i) => {
-              const valor = f.tendenciaInteres ?? 0;
+              const valor = f[metrica] ?? 0;
               const ancho = Math.round((Math.abs(valor) / maxAbs) * 100);
               return (
                 <li key={f.id} className="flex items-center gap-3">
@@ -110,8 +132,9 @@ export function Senales() {
                     />
                   </span>
                   <span className="w-16 shrink-0 text-right text-sm">
-                    {valor > 0 ? "+" : ""}
-                    {valor} %
+                    {orden === "interes" && valor > 0 ? "+" : ""}
+                    {valor}
+                    {unidad}
                   </span>
                   <span className="w-20 shrink-0 text-right text-xs text-muted-foreground">
                     {f.precioDesdePp} €
@@ -219,6 +242,7 @@ export function Senales() {
                   <th className="px-4 py-2 text-right font-normal">Margen</th>
                   <th className="px-4 py-2 text-right font-normal">Temp. media</th>
                   <th className="px-4 py-2 text-right font-normal">Interés 3m</th>
+                  <th className="px-4 py-2 text-right font-normal">Reservas</th>
                   <th className="px-4 py-2 font-normal">Sin dato</th>
                 </tr>
               </thead>
@@ -245,6 +269,13 @@ export function Senales() {
                           {f.tendenciaInteres > 0 ? "+" : ""}
                           {f.tendenciaInteres} %
                         </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      {f.cuotaReservas !== null ? (
+                        f.cuotaReservas
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}

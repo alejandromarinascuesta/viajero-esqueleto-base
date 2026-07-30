@@ -37,6 +37,10 @@ Y opcionalmente, para el modelo de lenguaje:
 
 | Variable | Para qué |
 |---|---|
+| `AMADEUS_CLIENT_ID` | credenciales de Amadeus para la señal de reservas |
+| `AMADEUS_CLIENT_SECRET` | idem, **secreta** |
+| `AMADEUS_PERIODO` | periodo a consultar, por defecto `2017-08` (el entorno de pruebas publica periodos históricos concretos) |
+| `AMADEUS_ORIGEN` | ciudad de origen, por defecto `MAD` |
 | `IA_API_KEY` | clave propia de cualquier proveedor compatible con OpenAI |
 | `IA_URL` | endpoint de chat completions, si no es OpenAI |
 | `IA_MODELO` | identificador del modelo |

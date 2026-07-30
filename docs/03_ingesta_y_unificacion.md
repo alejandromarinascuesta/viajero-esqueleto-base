@@ -92,6 +92,41 @@ Todos implementan la misma interfaz: `obtener() → normalizar() → escribir()`
 
 ---
 
+### 3.6 Reservas reales — *externa, oficial, con clave*
+- **Origen**: Amadeus, destinos más reservados desde una ciudad de origen
+- **Qué devuelve**: la cuota de reservas efectivas hechas en los sistemas de
+  Amadeus, no una estimación
+- **Frecuencia**: mensual
+- **Si falla**: la señal se marca `no_disponible` con el motivo exacto visible
+  en la interfaz. El resto del panel funciona igual
+- **Por qué esta fuente y no scrapear un comparador**: un scraper de un portal
+  de reservas intentaría aproximar este mismo dato incumpliendo términos de
+  servicio, necesitando proxies de pago y rompiéndose cuando alguien cambie una
+  clase de CSS. Aquí está servido oficialmente
+- **Lo que aporta que ninguna otra da**: *interés es atención, reserva es
+  intención consumada*. Wikipedia dice quién mira; Amadeus dice quién compra.
+  Cruzar las dos es la lectura de negocio que sirve — un destino con mucho
+  interés y pocas reservas es una oportunidad de conversión; con muchas
+  reservas y poco interés, un producto que se vende solo
+- **Límite reconocido**: son reservas de vuelo, no de paquete, y el entorno de
+  pruebas publica periodos históricos concretos
+
+## 3.bis Por qué no hay scrapers en este sistema
+
+Se consideró extraer datos de comparadores, reseñas, redes sociales y portales
+de reserva. Se descartó, y la decisión es deliberada:
+
+1. **Términos de servicio.** Esos portales lo prohíben expresamente. Un sistema
+   que una consultora entrega a un cliente no puede apoyarse en eso.
+2. **Fragilidad.** Un scraper se rompe cuando cambia el HTML, sin avisar y en el
+   peor momento.
+3. **Coherencia con la decisión de producto.** La señal de demanda se compra
+   porque ya existe; lo que no se compra es el criterio. Construir scrapers
+   contradiría el propio alcance priorizado.
+
+Las cinco fuentes elegidas son todas oficiales: dos sin clave (clima e interés)
+y las demás con credenciales propias del cliente.
+
 ## 4. Política de frescura y degradación
 
 Cada señal tiene una caducidad, y el sistema **nunca miente sobre lo que no sabe**:
@@ -99,7 +134,8 @@ Cada señal tiene una caducidad, y el sistema **nunca miente sobre lo que no sab
 | Fuente | Caduca a | Al caducar |
 |---|---|---|
 | Catálogo | — | Bloquea (sin catálogo no hay producto) |
-| Búsquedas | 14 días | El peso de demanda se reduce a la mitad; a los 30 días, a cero |
+| Interés | 14 días | El peso de demanda se reduce a la mitad; a los 30 días, a cero |
+| Reservas | 45 días | Se sigue usando; es un dato de ciclo mensual |
 | Clima | 1 año | Se reintenta; se sigue usando el valor viejo |
 | Vuelos | 3 días | Cae a banda estática del catálogo |
 | Calendario | 1 año | Se sigue usando |
