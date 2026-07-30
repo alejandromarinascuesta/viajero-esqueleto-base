@@ -7,25 +7,25 @@ corre en Vercel, Cloudflare, Netlify o un servidor propio.
 Lovable se usa como editor y como host de conveniencia, no como dependencia.
 Esto importa en la entrevista: la portabilidad no es una promesa, se comprueba.
 
-## El objetivo de compilación se elige con una variable
+## El objetivo de compilación se elige por configuración, no por código
 
 La configuración de Lovable fija nitro en **Cloudflare** por defecto. Para
-Vercel basta con una variable de entorno, sin tocar una línea de código:
+Vercel basta con una variable de entorno de compilación, que ya viene puesta en
+`vercel.json`:
 
-```
-NITRO_PRESET=vercel
+```json
+{ "buildCommand": "NITRO_PRESET=vercel npm run build", "framework": null }
 ```
 
 Con ella, la compilación genera `.vercel/output`, que es la estructura nativa de
 Vercel (Build Output API v3). Sin ella, genera un Worker de Cloudflare. **El
-mismo repositorio sirve para los dos hosts a la vez**, porque el objetivo es
-configuración y no código.
+mismo repositorio sirve para los dos hosts a la vez** y `vercel.json` no afecta
+a Lovable, que lo ignora.
 
 ## Variables de entorno
 
 | Variable | Para qué | Secreta |
 |---|---|---|
-| `NITRO_PRESET=vercel` | objetivo de compilación | no |
 | `SUPABASE_URL` | base de datos, lado servidor | no |
 | `SUPABASE_SERVICE_ROLE_KEY` | acceso de servidor, salta RLS | **sí** |
 
@@ -55,8 +55,8 @@ redacción del argumento y la extracción de notas.
 
 1. **Base de datos**: ejecutar `data/seed_catalogo.sql` en un proyecto Postgres
    nuevo. Crea las seis tablas y carga las 30 experiencias.
-2. **Importar el repositorio** en el host. Framework: ninguno o "Other" — la
-   salida ya viene en el formato nativo, así que no hay que fijar directorio.
+2. **Importar el repositorio** en el host. En Vercel no hay que configurar
+   nada: `vercel.json` ya fija el comando de compilación y el framework.
 3. **Configurar las variables** de la tabla de arriba.
 4. Desplegar. Sin pasos manuales.
 
