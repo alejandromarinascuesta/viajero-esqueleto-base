@@ -8,8 +8,40 @@
 // Si el modelo falla, la función devuelve null y quien llama degrada a un
 // camino determinista. Nunca se inventa un valor para tapar un hueco.
 
-const GATEWAY = process.env.LOVABLE_AI_URL ?? "https://ai.gateway.lovable.dev/v1/chat/completions";
-const MODELO = process.env.LOVABLE_AI_MODEL ?? "google/gemini-2.5-flash";
+// El proveedor del modelo es intercambiable por diseño: cualquier API
+// compatible con OpenAI sirve. Sin esto, el producto quedaría atado al host.
+//
+//   IA_URL     endpoint de chat completions (opcional)
+//   IA_MODELO  identificador del modelo (opcional)
+//   IA_API_KEY clave propia (OpenAI, Anthropic vía proxy, Groq, etc.)
+//
+// Si no hay IA_API_KEY, se usa la pasarela del host (LOVABLE_API_KEY). Si no
+// hay ninguna de las dos, las funciones devuelven null y quien llama degrada a
+// un camino determinista.
+
+type Proveedor = { url: string; modelo: string; clave: string; nombre: string } | null;
+
+function proveedor(): Proveedor {
+  const propia = process.env.IA_API_KEY;
+  if (propia) {
+    return {
+      url: process.env.IA_URL ?? "https://api.openai.com/v1/chat/completions",
+      modelo: process.env.IA_MODELO ?? "gpt-5-mini",
+      clave: propia,
+      nombre: "propio",
+    };
+  }
+  const host = process.env.LOVABLE_API_KEY;
+  if (host) {
+    return {
+      url: process.env.IA_URL ?? "https://ai.gateway.lovable.dev/v1/chat/completions",
+      modelo: process.env.IA_MODELO ?? "google/gemini-2.5-flash",
+      clave: host,
+      nombre: "pasarela del host",
+    };
+  }
+  return null;
+}
 
 export type UsoModelo = {
   ok: boolean;
@@ -47,26 +79,29 @@ export async function pedirJson<T>(
   temperatura = 0,
 ): Promise<RespuestaModelo<T>> {
   const arranque = Date.now();
+  const p = proveedor();
   const base: UsoModelo = {
     ok: false,
     ms: 0,
     tokensEntrada: null,
     tokensSalida: null,
-    modelo: MODELO,
+    modelo: p?.modelo ?? "sin proveedor",
     error: null,
   };
 
-  const clave = process.env.LOVABLE_API_KEY;
-  if (!clave) {
-    return { datos: null, uso: { ...base, ms: 0, error: "sin LOVABLE_API_KEY" } };
+  if (!p) {
+    return {
+      datos: null,
+      uso: { ...base, error: "no hay clave de modelo configurada (IA_API_KEY o LOVABLE_API_KEY)" },
+    };
   }
 
   try {
-    const respuesta = await fetch(GATEWAY, {
+    const respuesta = await fetch(p.url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${clave}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${p.clave}` },
       body: JSON.stringify({
-        model: MODELO,
+        model: p.modelo,
         temperature: temperatura,
         messages: [
           { role: "system", content: instruccion },
