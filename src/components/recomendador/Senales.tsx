@@ -4,8 +4,17 @@ import { useServerFn } from "@tanstack/react-start";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { accionRecomendada, pulso } from "@/lib/recomendador/temperatura";
 import { ingerirSenales, listarFichasUnificadas } from "@/lib/senales.functions";
+import type { FichaUnificada } from "@/lib/senales.functions";
 
 const MESES = [
   "enero",
@@ -23,42 +32,38 @@ const MESES = [
 ];
 
 const FUENTES = [
-  {
-    id: "catalogo",
-    nombre: "Catálogo de la agencia",
-    detalle: "interna · estructurada · manual",
-    clave: false,
-  },
+  { id: "catalogo", nombre: "Catálogo de la agencia", detalle: "interna · manual", activa: true },
   {
     id: "interes",
     nombre: "Interés por destino",
-    detalle: "Wikipedia · vistas diarias · 28 días frente a los 28 anteriores",
-    clave: false,
+    detalle: "Wikipedia · vistas diarias",
+    activa: true,
   },
+  { id: "clima", nombre: "Clima", detalle: "Open-Meteo · histórico", activa: true },
   {
     id: "reservas",
     nombre: "Reservas reales",
-    detalle: "Amadeus · el entorno de pruebas solo publica periodos históricos",
-    clave: true,
-  },
-  {
-    id: "clima",
-    nombre: "Clima",
-    detalle: "Open-Meteo · archivo histórico · estable",
-    clave: false,
+    detalle: "Amadeus · solo periodos históricos en pruebas",
+    activa: false,
   },
   {
     id: "vuelos",
     nombre: "Precio de vuelo",
-    detalle: "Amadeus · diseñado, requiere clave",
-    clave: true,
+    detalle: "Amadeus · requiere producción",
+    activa: false,
   },
-  { id: "calendario", nombre: "Calendario escolar", detalle: "estática · diseñada", clave: true },
+  { id: "calendario", nombre: "Calendario escolar", detalle: "estática · diseñada", activa: false },
 ];
+
+const euros = new Intl.NumberFormat("es-ES", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
+});
 
 export function Senales() {
   const [mes, setMes] = useState(new Date().getMonth() + 1);
-  const [orden, setOrden] = useState<"interes" | "reservas">("interes");
+  const [abierta, setAbierta] = useState<FichaUnificada | null>(null);
   const cargar = useServerFn(listarFichasUnificadas);
   const ingerir = useServerFn(ingerirSenales);
   const cliente = useQueryClient();
@@ -74,143 +79,68 @@ export function Senales() {
   });
 
   const filas = fichas.data ?? [];
-  const conClima = filas.filter((f) => f.temperaturaMedia !== null).length;
-  const conInteres = filas.filter((f) => f.tendenciaInteres !== null).length;
-  const conReservas = filas.filter((f) => f.cuotaReservas !== null).length;
-
-  const metrica = orden === "reservas" ? "cuotaReservas" : "tendenciaInteres";
-  const conSenal = filas.filter((f) => f[metrica] !== null);
-  const top5 = [...conSenal].sort((a, b) => (b[metrica] ?? 0) - (a[metrica] ?? 0)).slice(0, 5);
-  const maxAbs = Math.max(1, ...top5.map((f) => Math.abs(f[metrica] ?? 0)));
-  const unidad = orden === "reservas" ? "" : " %";
+  const conSenal = filas.filter((f) => f.tendenciaInteres !== null);
+  const suben = conSenal.filter((f) => (f.tendenciaInteres ?? 0) >= 8).length;
+  const bajan = conSenal.filter((f) => (f.tendenciaInteres ?? 0) <= -8).length;
+  const ordenadas = [...conSenal].sort(
+    (a, b) => (b.tendenciaInteres ?? 0) - (a.tendenciaInteres ?? 0),
+  );
+  const sinSenal = filas.filter((f) => f.tendenciaInteres === null);
+  const maxAbs = Math.max(1, ...conSenal.map((f) => Math.abs(f.tendenciaInteres ?? 0)));
 
   return (
     <div className="space-y-4">
-      <section className="rounded-md border border-border p-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-sm font-medium">Los 5 destinos más demandados</h2>
-          <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
-            {(["interes", "reservas"] as const).map((o) => (
-              <button
-                key={o}
-                type="button"
-                onClick={() => setOrden(o)}
-                className={
-                  orden === o
-                    ? "rounded px-2 py-1 text-xs bg-muted"
-                    : "rounded px-2 py-1 text-xs text-muted-foreground"
-                }
-              >
-                {o === "interes" ? "por interés" : "por reservas"}
-              </button>
-            ))}
-          </div>
-        </div>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {orden === "interes"
-            ? "Atención sobre el destino: vistas de página de los últimos 28 días frente a los 28 anteriores. Dato de anteayer."
-            : "Intención consumada: cuota de reservas reales desde Madrid en los sistemas de Amadeus."}
-        </p>
-
-        {top5.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">
-            {orden === "reservas"
-              ? "Fuente diseñada pero no activa: el entorno de pruebas de Amadeus solo publica periodos históricos, y una señal de demanda con datos de hace años no es una señal de demanda. En producción, con el contrato de la agencia, devuelve el mes en curso."
-              : "Todavía no hay señal ingerida. Pulsa «Refrescar fuentes» más abajo."}
-          </p>
-        ) : (
-          <ol className="mt-3 space-y-2">
-            {top5.map((f, i) => {
-              const valor = f[metrica] ?? 0;
-              const ancho = Math.round((Math.abs(valor) / maxAbs) * 100);
-              return (
-                <li key={f.id} className="flex items-center gap-3">
-                  <span className="w-5 shrink-0 text-xs text-muted-foreground">{i + 1}</span>
-                  <span className="w-36 shrink-0 truncate text-sm">{f.destino}</span>
-                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                    <span
-                      className={
-                        valor >= 0
-                          ? "block h-full bg-foreground/70"
-                          : "block h-full bg-muted-foreground/40"
-                      }
-                      style={{ width: `${ancho}%` }}
-                    />
-                  </span>
-                  <span className="w-16 shrink-0 text-right text-sm">
-                    {orden === "interes" && valor > 0 ? "+" : ""}
-                    {valor}
-                    {unidad}
-                  </span>
-                  <span className="w-20 shrink-0 text-right text-xs text-muted-foreground">
-                    {f.precioDesdePp} €
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
-        )}
-
-        <p className="mt-3 text-xs text-muted-foreground">
-          Esto ordena qué promover al mercado, no qué proponer a un cliente concreto. Son dos
-          decisiones distintas: la primera es de la dirección, la segunda del agente. El panel de
-          criterio comercial es la bisagra entre las dos.
-        </p>
-      </section>
-
+      {/* Cabecera: estado de un vistazo */}
       <section className="rounded-md border border-border p-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="mes-senales">Mes de referencia</Label>
-            <select
-              id="mes-senales"
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-              value={mes}
-              onChange={(e) => setMes(Number(e.target.value))}
-            >
-              {MESES.map((m, i) => (
-                <option key={m} value={i + 1}>
-                  {i + 1} · {m}
-                </option>
-              ))}
-            </select>
+          <div className="flex flex-wrap items-center gap-6">
+            <Dato valor={String(filas.length)} etiqueta="destinos" />
+            <Dato valor={`🔥 ${suben}`} etiqueta="suben" />
+            <Dato valor={`🥶 ${bajan}`} etiqueta="bajan" />
+            <Dato valor={`${conSenal.length}/${filas.length}`} etiqueta="con señal" />
           </div>
-          <Button type="button" onClick={() => refrescar.mutate()} disabled={refrescar.isPending}>
-            {refrescar.isPending ? "Ingiriendo…" : "Refrescar fuentes"}
-          </Button>
+          <div className="flex items-end gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="mes-senales" className="text-xs">
+                Mes
+              </Label>
+              <select
+                id="mes-senales"
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+                value={mes}
+                onChange={(e) => setMes(Number(e.target.value))}
+              >
+                {MESES.map((m, i) => (
+                  <option key={m} value={i + 1}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Button type="button" onClick={() => refrescar.mutate()} disabled={refrescar.isPending}>
+              {refrescar.isPending ? "Ingiriendo…" : "Refrescar fuentes"}
+            </Button>
+          </div>
         </div>
 
-        <p className="mt-3 text-xs text-muted-foreground">
-          La ingesta es en lote y está desacoplada del consumo: el motor nunca llama a una fuente
-          externa durante una recomendación, solo lee esta ficha ya cocinada.
+        <div className="mt-4 flex flex-wrap gap-2">
+          {FUENTES.map((f) => (
+            <span
+              key={f.id}
+              className="rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground"
+              title={f.detalle}
+            >
+              {f.activa ? "●" : "○"} {f.nombre}
+            </span>
+          ))}
+        </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          ● activa · ○ diseñada, no conectada. La ingesta es en lote: el motor nunca llama a una
+          fuente externa durante una recomendación.
         </p>
 
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {FUENTES.map((f) => {
-            const cubiertos =
-              f.id === "clima"
-                ? conClima
-                : f.id === "interes"
-                  ? conInteres
-                  : f.id === "catalogo"
-                    ? filas.length
-                    : 0;
-            return (
-              <div key={f.id} className="rounded-md border border-border p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-sm">{f.nombre}</span>
-                  <Badge variant="outline" className="shrink-0 text-[10px]">
-                    {f.clave ? "diseñada" : `${cubiertos}/${filas.length}`}
-                  </Badge>
-                </div>
-                <p className="mt-1 text-[11px] text-muted-foreground">{f.detalle}</p>
-              </div>
-            );
-          })}
-        </div>
-
         {refrescar.data ? (
-          <ul className="mt-3 space-y-0.5 text-[11px] text-muted-foreground">
+          <ul className="mt-2 space-y-0.5 text-[11px] text-muted-foreground">
             {refrescar.data.resumen.map((r) => (
               <li key={r.fuente}>
                 {r.fuente}: {r.ok} con dato, {r.fallos} sin dato · {r.ms} ms
@@ -218,84 +148,214 @@ export function Senales() {
             ))}
           </ul>
         ) : null}
-        {refrescar.error ? (
-          <p className="mt-3 text-xs text-muted-foreground">
-            La ingesta ha fallado. Las señales anteriores siguen en uso y las que falten se marcan
-            como no disponibles: nunca se sustituyen por un valor inventado.
-          </p>
-        ) : null}
       </section>
 
-      <section className="rounded-md border border-border">
-        <div className="border-b border-border p-4">
-          <h2 className="text-sm font-medium">Ficha unificada de destino</h2>
+      {/* Ranking */}
+      {ordenadas.length > 0 ? (
+        <section className="rounded-md border border-border p-4">
+          <h2 className="text-sm font-medium">Los 5 que más suben</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Una fila por destino y mes. Lo que aporta el catálogo, lo que aportan las fuentes
-            externas, y qué falta.
+            Interés de los últimos 28 días frente a los 28 anteriores. Esto ordena qué promover al
+            mercado, no qué proponer a un cliente concreto.
           </p>
+          <ol className="mt-3 space-y-2">
+            {ordenadas.slice(0, 5).map((f, i) => {
+              const p = pulso(f.tendenciaInteres);
+              return (
+                <li key={f.id} className="flex items-center gap-3">
+                  <span className="w-4 shrink-0 text-xs text-muted-foreground">{i + 1}</span>
+                  <span className="w-6 shrink-0 text-base leading-none">{p.icono}</span>
+                  <span className="w-36 shrink-0 truncate text-sm">{f.destino}</span>
+                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                    <span
+                      className="block h-full bg-foreground/70"
+                      style={{
+                        width: `${Math.round((Math.abs(f.tendenciaInteres ?? 0) / maxAbs) * 100)}%`,
+                      }}
+                    />
+                  </span>
+                  <span className="w-16 shrink-0 text-right text-sm tabular-nums">
+                    {(f.tendenciaInteres ?? 0) > 0 ? "+" : ""}
+                    {f.tendenciaInteres} %
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      ) : null}
+
+      {/* Tarjetas por destino */}
+      <section className="space-y-2">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-sm font-medium">Catálogo por demanda</h2>
+          <span className="text-xs text-muted-foreground">
+            pulsa un destino para ver qué hacer con él
+          </span>
         </div>
 
         {fichas.isPending ? (
-          <p className="p-4 text-sm text-muted-foreground">Cargando…</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                  <th className="px-4 py-2 font-normal">Destino</th>
-                  <th className="px-4 py-2 font-normal">Tipo</th>
-                  <th className="px-4 py-2 text-right font-normal">Desde</th>
-                  <th className="px-4 py-2 text-right font-normal">Margen</th>
-                  <th className="px-4 py-2 text-right font-normal">Temp. media</th>
-                  <th className="px-4 py-2 text-right font-normal">Interés 3m</th>
-                  <th className="px-4 py-2 text-right font-normal">Reservas</th>
-                  <th className="px-4 py-2 font-normal">Sin dato</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filas.map((f) => (
-                  <tr key={f.id} className="border-b border-border/60">
-                    <td className="px-4 py-2">
-                      <span>{f.destino}</span>
-                      <span className="block text-[11px] text-muted-foreground">{f.pais}</span>
-                    </td>
-                    <td className="px-4 py-2 text-xs text-muted-foreground">{f.tipo}</td>
-                    <td className="px-4 py-2 text-right">{f.precioDesdePp} €</td>
-                    <td className="px-4 py-2 text-right text-muted-foreground">{f.margenPct} %</td>
-                    <td className="px-4 py-2 text-right">
-                      {f.temperaturaMedia !== null ? (
-                        `${f.temperaturaMedia} °C`
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      {f.tendenciaInteres !== null ? (
-                        <span>
-                          {f.tendenciaInteres > 0 ? "+" : ""}
-                          {f.tendenciaInteres} %
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-right">
-                      {f.cuotaReservas !== null ? (
-                        f.cuotaReservas
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2 text-[11px] text-muted-foreground">
-                      {f.fuentesFaltantes.length ? f.fuentesFaltantes.join(", ") : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+          <p className="rounded-md border border-border p-4 text-sm text-muted-foreground">
+            Cargando…
+          </p>
+        ) : null}
+
+        {[...ordenadas, ...sinSenal].map((f) => {
+          const p = pulso(f.tendenciaInteres);
+          const accion = accionRecomendada(f, mes);
+          return (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setAbierta(f)}
+              className="flex w-full items-center gap-4 rounded-md border border-border p-3 text-left transition-colors hover:border-foreground/40"
+            >
+              <span className="w-8 shrink-0 text-center text-xl leading-none">{p.icono}</span>
+              <span className="w-44 shrink-0">
+                <span className="block truncate text-sm">{f.destino}</span>
+                <span className="block text-[11px] text-muted-foreground">
+                  {f.pais} · {f.tipo}
+                </span>
+              </span>
+              <span className="w-24 shrink-0 text-sm tabular-nums">
+                {f.tendenciaInteres !== null ? (
+                  <>
+                    {f.tendenciaInteres > 0 ? "+" : ""}
+                    {f.tendenciaInteres} %
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">sin señal</span>
+                )}
+                <span className="block text-[11px] text-muted-foreground">{p.etiqueta}</span>
+              </span>
+              <span className="hidden flex-1 sm:block">
+                <span className="block truncate text-sm">{accion.titulo}</span>
+                <span className="block truncate text-[11px] text-muted-foreground">
+                  {accion.detalle}
+                </span>
+              </span>
+              <span className="w-24 shrink-0 text-right">
+                <span className="block text-sm tabular-nums">{euros.format(f.precioDesdePp)}</span>
+                <span className="block text-[11px] text-muted-foreground">
+                  {f.temperaturaMedia !== null ? `${f.temperaturaMedia} °C` : "—"}
+                </span>
+              </span>
+            </button>
+          );
+        })}
       </section>
+
+      <DetalleDestino ficha={abierta} mes={mes} onCerrar={() => setAbierta(null)} />
+    </div>
+  );
+}
+
+function Dato({ valor, etiqueta }: { valor: string; etiqueta: string }) {
+  return (
+    <div>
+      <div className="text-xl">{valor}</div>
+      <div className="text-[11px] text-muted-foreground">{etiqueta}</div>
+    </div>
+  );
+}
+
+function DetalleDestino({
+  ficha,
+  mes,
+  onCerrar,
+}: {
+  ficha: FichaUnificada | null;
+  mes: number;
+  onCerrar: () => void;
+}) {
+  return (
+    <Dialog open={ficha !== null} onOpenChange={(v) => (!v ? onCerrar() : undefined)}>
+      <DialogContent className="max-w-lg">
+        {ficha ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <span>{pulso(ficha.tendenciaInteres).icono}</span>
+                <span>{ficha.destino}</span>
+              </DialogTitle>
+              <DialogDescription>
+                {ficha.nombre} · {ficha.pais}
+              </DialogDescription>
+            </DialogHeader>
+
+            {(() => {
+              const a = accionRecomendada(ficha, mes);
+              return (
+                <div className="rounded-md border border-border p-3">
+                  <p className="text-sm font-medium">{a.titulo}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{a.detalle}</p>
+                </div>
+              );
+            })()}
+
+            <dl className="grid grid-cols-3 gap-3 text-sm">
+              <Campo k="Desde" v={euros.format(ficha.precioDesdePp)} />
+              <Campo k="Noches" v={String(ficha.noches)} />
+              <Campo k="Cupo" v={`${ficha.cupo} plazas`} />
+              <Campo k="Margen" v={`${ficha.margenPct} %`} />
+              <Campo k="Vuelo" v={`${ficha.horasVuelo} h`} />
+              <Campo k="Temporada" v={ficha.temporada} />
+            </dl>
+
+            <div>
+              <p className="text-xs font-medium">Señales externas</p>
+              <dl className="mt-1 grid grid-cols-3 gap-3 text-sm">
+                <Campo
+                  k="Interés 28d"
+                  v={
+                    ficha.tendenciaInteres !== null
+                      ? `${ficha.tendenciaInteres > 0 ? "+" : ""}${ficha.tendenciaInteres} %`
+                      : "sin dato"
+                  }
+                />
+                <Campo
+                  k="Temperatura"
+                  v={ficha.temperaturaMedia !== null ? `${ficha.temperaturaMedia} °C` : "sin dato"}
+                />
+                <Campo
+                  k="Reservas"
+                  v={ficha.cuotaReservas !== null ? String(ficha.cuotaReservas) : "sin dato"}
+                />
+              </dl>
+            </div>
+
+            {ficha.frescura.length > 0 ? (
+              <div>
+                <p className="text-xs font-medium">Procedencia</p>
+                <ul className="mt-1 space-y-0.5 text-[11px] text-muted-foreground">
+                  {ficha.frescura.map((s) => (
+                    <li key={s.fuente}>
+                      {s.fuente}: {s.estado}
+                      {s.obtenido ? ` · ${new Date(s.obtenido).toLocaleString("es-ES")}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {ficha.fuentesFaltantes.length > 0 ? (
+              <Badge variant="outline" className="w-fit text-[10px]">
+                sin dato de: {ficha.fuentesFaltantes.join(", ")} · no se sustituye por un valor
+                inventado
+              </Badge>
+            ) : null}
+          </>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Campo({ k, v }: { k: string; v: string }) {
+  return (
+    <div>
+      <dt className="text-xs text-muted-foreground">{k}</dt>
+      <dd>{v}</dd>
     </div>
   );
 }
