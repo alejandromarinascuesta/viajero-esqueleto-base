@@ -7,6 +7,7 @@ deliberado: primero el criterio, después las pruebas, y solo al final el códig
 
 | Archivo | Qué contiene |
 |---|---|
+| **`09_ENTREGABLE_mvp_y_poc.md`** | **El entregable. Los cinco bloques del MVP y los dos de la prueba de concepto, en el orden que pide el brief** |
 | `01_vision_de_producto.md` | Problema, propuesta de valor, alcance priorizado, flujo de usuario, decisiones y trade-offs |
 | `02_fichas_y_reglas.md` | El modelo de datos y las reglas duras, campo por campo, con el porqué de cada umbral |
 | `03_ingesta_y_unificacion.md` | Cómo cinco fuentes dispersas acaban en una ficha unificada, y dónde están los puntos críticos |
