@@ -65,8 +65,8 @@ Todos implementan la misma interfaz: `obtener() → normalizar() → escribir()`
 ### 3.2 Búsquedas — *externa, serie temporal semanal*
 - **Origen**: Google Trends. Consulta `viajar a {destino}` con `geo=ES`, ventana `today 3-m`
 - **Por qué esa consulta y no el destino a secas**: "Bali" también lo busca quien ve un documental. "viajar a Bali" sesga hacia intención de viaje
-- **Normalización**: media de las últimas 4 semanas contra las 4 anteriores → índice de tendencia
-- **Frecuencia**: semanal. Diaria es ruido
+- **Normalización**: media de los últimos 28 días contra los 28 anteriores → índice de tendencia. La ventana de 28 días cancela el efecto del día de la semana
+- **Frecuencia**: diaria. Wikipedia publica cada día con 1-2 días de retraso
 - **Si falla**: se usa la última lectura y se marca `obsoleta`. El peso de demanda se reduce proporcionalmente a la antigüedad
 - **Límite reconocido**: mide interés, no intención de compra
 
@@ -97,6 +97,10 @@ Todos implementan la misma interfaz: `obtener() → normalizar() → escribir()`
 - **Qué devuelve**: la cuota de reservas efectivas hechas en los sistemas de
   Amadeus, no una estimación
 - **Frecuencia**: mensual
+- **Estado actual: diseñada pero no activa.** El entorno de pruebas solo publica
+  periodos históricos, y una señal de demanda con datos de hace años no es una
+  señal de demanda: es una ilustración. Se deja implementada y documentada como
+  el camino de producción, no encendida en la demo
 - **Si falla**: la señal se marca `no_disponible` con el motivo exacto visible
   en la interfaz. El resto del panel funciona igual
 - **Por qué esta fuente y no scrapear un comparador**: un scraper de un portal

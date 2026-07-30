@@ -102,14 +102,14 @@ export function Senales() {
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
           {orden === "interes"
-            ? "Atención sobre el destino: vistas de página de los últimos 3 meses frente a los 3 anteriores."
+            ? "Atención sobre el destino: vistas de página de los últimos 28 días frente a los 28 anteriores. Dato de anteayer."
             : "Intención consumada: cuota de reservas reales desde Madrid en los sistemas de Amadeus."}
         </p>
 
         {top5.length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">
             {orden === "reservas"
-              ? "No hay datos de reservas. Requiere las credenciales de Amadeus; sin ellas el resto del panel funciona igual."
+              ? "Fuente diseñada pero no activa: el entorno de pruebas de Amadeus solo publica periodos históricos, y una señal de demanda con datos de hace años no es una señal de demanda. En producción, con el contrato de la agencia, devuelve el mes en curso."
               : "Todavía no hay señal ingerida. Pulsa «Refrescar fuentes» más abajo."}
           </p>
         ) : (

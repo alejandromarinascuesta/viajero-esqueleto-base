@@ -28,12 +28,6 @@ export type ResumenConector = {
 
 type Destino = { id: string; destino: string; lat: number; lon: number; iata: string | null };
 
-const mesesAtras = (n: number) => {
-  const d = new Date();
-  d.setUTCDate(1);
-  d.setUTCMonth(d.getUTCMonth() - n);
-  return d;
-};
 const periodoDe = (d: Date) =>
   `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 
@@ -93,14 +87,27 @@ async function conectorClima(destinos: Destino[], mes: number): Promise<FilaSena
  * Mide lo mismo que Trends —atención sobre un destino— y comparte su misma
  * limitación, que hay que reconocer: es interés, no intención de compra.
  *
- * Normalización: media de los 3 últimos meses frente a los 3 anteriores. El
- * valor guardado es la variación porcentual, que es lo accionable.
+ * Granularidad DIARIA, no mensual. Wikipedia publica el dato de cada día con
+ * uno o dos días de retraso, así que agregarlo por meses tiraría a la basura la
+ * única fuente realmente actual que tiene el sistema.
+ *
+ * Normalización: media de los últimos 28 días frente a los 28 anteriores. El
+ * valor guardado es la variación porcentual, que es lo accionable. La ventana
+ * de 28 días evita el ruido del día de la semana.
  */
 async function conectorInteres(destinos: Destino[], mes: number): Promise<FilaSenal[]> {
   const fmt = (d: Date) =>
-    `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}0100`;
-  const desde = fmt(mesesAtras(6));
-  const hasta = fmt(mesesAtras(0));
+    `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(
+      d.getUTCDate(),
+    ).padStart(2, "0")}`;
+  const diasAtras = (n: number) => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - n);
+    return d;
+  };
+  // Wikipedia publica con 1-2 dias de retraso: se descartan los 2 ultimos dias.
+  const hasta = fmt(diasAtras(2));
+  const desde = fmt(diasAtras(58));
   // Mismo periodo que el resto de fuentes, para que la ficha unificada cuadre.
   const periodo = `${new Date().getUTCFullYear()}-${String(mes).padStart(2, "0")}`;
 
@@ -119,15 +126,16 @@ async function conectorInteres(destinos: Destino[], mes: number): Promise<FilaSe
         const titulo = encodeURIComponent(d.destino.replace(/ /g, "_"));
         const url =
           `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/es.wikipedia/` +
-          `all-access/user/${titulo}/monthly/${desde}/${hasta}`;
+          `all-access/user/${titulo}/daily/${desde}/${hasta}`;
         const r = await fetch(url, { headers: { "User-Agent": "recomendador-agencia/1.0" } });
         if (!r.ok) return base;
         const j = (await r.json()) as { items?: { timestamp: string; views: number }[] };
         const serie = (j.items ?? []).map((i) => i.views);
-        if (serie.length < 4) return base;
+        // Sin dos ventanas completas no hay comparacion honesta que hacer.
+        if (serie.length < 40) return base;
 
-        const recientes = serie.slice(-3);
-        const previos = serie.slice(-6, -3);
+        const recientes = serie.slice(-28);
+        const previos = serie.slice(-56, -28);
         const media = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
         const anterior = media(previos);
         if (anterior === 0) return base;
@@ -136,7 +144,12 @@ async function conectorInteres(destinos: Destino[], mes: number): Promise<FilaSe
         return {
           ...base,
           valor: Math.round(variacion * 10) / 10,
-          valor_bruto: { serie, meses: serie.length },
+          valor_bruto: {
+            dias: serie.length,
+            media_28d: Math.round(media(recientes)),
+            media_28d_previos: Math.round(anterior),
+            hasta: (j.items ?? []).at(-1)?.timestamp ?? null,
+          },
           estado: "ok",
         };
       } catch {
