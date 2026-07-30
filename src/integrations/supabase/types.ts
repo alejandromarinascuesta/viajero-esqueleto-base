@@ -14,7 +14,241 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      descartes: {
+        Row: {
+          creado_en: string | null
+          destino_id: string | null
+          id: number
+          motivo_agente: string | null
+          recomendacion_id: number | null
+        }
+        Insert: {
+          creado_en?: string | null
+          destino_id?: string | null
+          id?: number
+          motivo_agente?: string | null
+          recomendacion_id?: number | null
+        }
+        Update: {
+          creado_en?: string | null
+          destino_id?: string | null
+          id?: number
+          motivo_agente?: string | null
+          recomendacion_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "descartes_destino_id_fkey"
+            columns: ["destino_id"]
+            isOneToOne: false
+            referencedRelation: "experiencias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "descartes_recomendacion_id_fkey"
+            columns: ["recomendacion_id"]
+            isOneToOne: false
+            referencedRelation: "recomendaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      experiencias: {
+        Row: {
+          apto_ninos: string
+          creado_en: string | null
+          cupo: number
+          destino: string
+          horas_vuelo: number
+          id: string
+          intensidad: number
+          lat: number
+          lon: number
+          margen_pct: number
+          motivo_1: string | null
+          motivo_2: string | null
+          motivo_3: string | null
+          no_recomendado_si: string | null
+          noches: number
+          nombre: string
+          pais: string
+          precio_desde_pp: number
+          temporada_agencia: string
+          tipo: string
+          visado: string
+        }
+        Insert: {
+          apto_ninos: string
+          creado_en?: string | null
+          cupo: number
+          destino: string
+          horas_vuelo: number
+          id: string
+          intensidad: number
+          lat: number
+          lon: number
+          margen_pct: number
+          motivo_1?: string | null
+          motivo_2?: string | null
+          motivo_3?: string | null
+          no_recomendado_si?: string | null
+          noches: number
+          nombre: string
+          pais: string
+          precio_desde_pp: number
+          temporada_agencia: string
+          tipo: string
+          visado: string
+        }
+        Update: {
+          apto_ninos?: string
+          creado_en?: string | null
+          cupo?: number
+          destino?: string
+          horas_vuelo?: number
+          id?: string
+          intensidad?: number
+          lat?: number
+          lon?: number
+          margen_pct?: number
+          motivo_1?: string | null
+          motivo_2?: string | null
+          motivo_3?: string | null
+          no_recomendado_si?: string | null
+          noches?: number
+          nombre?: string
+          pais?: string
+          precio_desde_pp?: number
+          temporada_agencia?: string
+          tipo?: string
+          visado?: string
+        }
+        Relationships: []
+      }
+      pesos: {
+        Row: {
+          clave: string
+          editado_en: string | null
+          valor: number
+        }
+        Insert: {
+          clave: string
+          editado_en?: string | null
+          valor: number
+        }
+        Update: {
+          clave?: string
+          editado_en?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
+      recomendaciones: {
+        Row: {
+          candidatas: number
+          creado_en: string | null
+          id: number
+          perfil: Json
+          propuestas: Json
+          supervivientes: number
+          traza: Json | null
+        }
+        Insert: {
+          candidatas: number
+          creado_en?: string | null
+          id?: number
+          perfil: Json
+          propuestas: Json
+          supervivientes: number
+          traza?: Json | null
+        }
+        Update: {
+          candidatas?: number
+          creado_en?: string | null
+          id?: number
+          perfil?: Json
+          propuestas?: Json
+          supervivientes?: number
+          traza?: Json | null
+        }
+        Relationships: []
+      }
+      senales: {
+        Row: {
+          destino_id: string
+          estado: string
+          fuente: string
+          id: number
+          metrica: string
+          obtenido_en: string
+          periodo: string
+          valor: number | null
+          valor_bruto: Json | null
+        }
+        Insert: {
+          destino_id: string
+          estado?: string
+          fuente: string
+          id?: number
+          metrica: string
+          obtenido_en?: string
+          periodo: string
+          valor?: number | null
+          valor_bruto?: Json | null
+        }
+        Update: {
+          destino_id?: string
+          estado?: string
+          fuente?: string
+          id?: number
+          metrica?: string
+          obtenido_en?: string
+          periodo?: string
+          valor?: number | null
+          valor_bruto?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "senales_destino_id_fkey"
+            columns: ["destino_id"]
+            isOneToOne: false
+            referencedRelation: "experiencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vetos: {
+        Row: {
+          activo: boolean | null
+          destino_id: string | null
+          id: number
+          mes: number | null
+          motivo: string | null
+        }
+        Insert: {
+          activo?: boolean | null
+          destino_id?: string | null
+          id?: number
+          mes?: number | null
+          motivo?: string | null
+        }
+        Update: {
+          activo?: boolean | null
+          destino_id?: string | null
+          id?: number
+          mes?: number | null
+          motivo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vetos_destino_id_fkey"
+            columns: ["destino_id"]
+            isOneToOne: false
+            referencedRelation: "experiencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
