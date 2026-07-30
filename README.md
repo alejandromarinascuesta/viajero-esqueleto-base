@@ -126,8 +126,12 @@ y el argumento cae a los motivos del catálogo.
 
 ## Despliegue en Vercel
 
-Importar el repositorio. No hace falta `vercel.json` ni configuración especial: sin variables arranca en
-modo de última observación real y lo indica en la interfaz.
+Importar el repositorio. Sin variables de entorno arranca en modo de última observación real y lo indica
+en la interfaz.
+
+`vercel.json` declara el framework de forma explícita. Hace falta porque este proyecto sustituyó a una
+aplicación Vite en el mismo repositorio, y Vercel conserva la detección de framework del primer despliegue:
+sin declararlo, sigue buscando una carpeta `dist` que Next.js no genera.
 
 ## API
 
