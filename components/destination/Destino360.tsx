@@ -6,6 +6,20 @@ import type { DestinoConScore } from "@/components/layout/Shell";
 import { Anillo, Kpi, Panel, Vacio } from "@/components/ui";
 import { accionRecomendada, pulso } from "@/lib/pulso";
 
+/** Cada fuente con su cadencia real. La frescura no es uniforme, y decirlo vale
+ *  mas que fingir que todo es de hace una hora. */
+const FUENTE: Record<string, { nombre: string; cadencia: string }> = {
+  clima: { nombre: "Clima · Open-Meteo", cadencia: "archivo histórico · estable" },
+  interes: { nombre: "Interés · Wikimedia", cadencia: "vistas diarias · 28 días vs 28" },
+  divisa: { nombre: "Divisa · Banco Central Europeo", cadencia: "cada día laborable" },
+  ine: { nombre: "Viajeros · INE", cadencia: "mensual · dos meses de retraso" },
+  vuelos: { nombre: "Precio de vuelo · Amadeus", cadencia: "diaria · requiere producción" },
+  reservas: { nombre: "Reservas · Amadeus", cadencia: "mensual · requiere producción" },
+  eventos: { nombre: "Eventos · Ticketmaster", cadencia: "diaria · requiere clave" },
+  calendario: { nombre: "Calendario escolar", cadencia: "anual" },
+  catalogo: { nombre: "Catálogo de la agencia", cadencia: "interna · manual" },
+};
+
 type Clima = { estado: string; temperatura: number | null; fuente: string; observadoEn?: string | null; mensaje?: string };
 
 export default function Destino360({
@@ -180,10 +194,20 @@ export default function Destino360({
               <ul className="space-y-2 text-[11px]">
                 {destino.senales.map((s) => (
                   <li key={`${s.fuente}-${s.metrica}`} className="flex items-baseline justify-between gap-3">
-                    <span className="text-[var(--muted)]">{s.fuente} · {s.metrica}</span>
-                    <span style={{ color: s.estado === "ok" ? "var(--green)" : "var(--dim)" }}>
-                      {s.estado === "ok" ? "dato real" : "sin dato"}
-                      {s.obtenidoEn ? ` · ${new Date(s.obtenidoEn).toLocaleDateString("es-ES")}` : ""}
+                    <span className="min-w-0 text-[var(--muted)]">
+                      {FUENTE[s.fuente]?.nombre ?? s.fuente}
+                      <span className="block text-[10px] text-[var(--dim)]">
+                        {FUENTE[s.fuente]?.cadencia ?? s.metrica}
+                      </span>
+                    </span>
+                    <span
+                      className="shrink-0 text-right"
+                      style={{ color: s.estado === "ok" ? "var(--green)" : "var(--dim)" }}
+                    >
+                      {s.estado === "ok" ? String(s.valor) : "sin dato"}
+                      <span className="block text-[10px] text-[var(--dim)]">
+                        {s.obtenidoEn ? new Date(s.obtenidoEn).toLocaleDateString("es-ES") : "—"}
+                      </span>
                     </span>
                   </li>
                 ))}

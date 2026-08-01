@@ -56,6 +56,12 @@ function Campo({ etiqueta, id, ayuda, children }: { etiqueta: string; id: string
 
 export default function Copiloto({ destinoSugerido }: { destinoSugerido: string }) {
   const [modo, setModo] = useState<"guiado" | "notas">("guiado");
+  // Con que entrada se lanzo la ultima consulta. Sin esto, descartar despues de
+  // usar las notas recalculaba con los valores del formulario.
+  const [ultimaEntrada, setUltimaEntrada] = useState<{ formulario: boolean; texto: string }>({
+    formulario: true,
+    texto: "",
+  });
   const [notas, setNotas] = useState("");
   const [form, setForm] = useState({
     adultos: 2,
@@ -100,6 +106,7 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
     if (!usarFormulario && !texto.trim()) return;
     setCargando(true);
     setError(null);
+    setUltimaEntrada({ formulario: usarFormulario, texto });
     try {
       const r = await fetch("/api/ai", {
         method: "POST",
@@ -120,7 +127,6 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
     }
   }
 
-  const [motivoDe, setMotivoDe] = useState<string | null>(null);
   const [motivo, setMotivo] = useState("");
 
   async function descartar(id: string, texto: string) {
@@ -138,9 +144,8 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
 
     const fuera = [...excluidos, id];
     setExcluidos(fuera);
-    setMotivoDe(null);
     setMotivo("");
-    await enviar(notas, fuera);
+    await enviar(ultimaEntrada.texto, fuera, ultimaEntrada.formulario);
   }
 
   const perfil = respuesta?.perfilExtraido;
@@ -418,36 +423,34 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
                           : `Sin redacción verificada${arg?.motivo ? ` (${arg.motivo})` : ""}. Se muestran los motivos del catálogo.`}
                       </p>
 
-                      {motivoDe === p.id ? (
-                        <form
-                          className="mt-3 flex gap-2"
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            if (motivo.trim()) void descartar(p.id, motivo.trim());
+                      <div className="mt-3 flex gap-2 border-t pt-3" style={{ borderColor: "var(--line)" }}>
+                        <label className="sr-only" htmlFor={`motivo-${p.id}`}>
+                          Motivo del descarte, opcional
+                        </label>
+                        <input
+                          id={`motivo-${p.id}`}
+                          className="field text-[12px]"
+                          placeholder="¿Por qué no encaja? (opcional)"
+                          value={motivo}
+                          onChange={(e) => setMotivo(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              void descartar(p.id, motivo.trim() || "sin motivo indicado");
+                            }
                           }}
-                        >
-                          <label className="sr-only" htmlFor={`motivo-${p.id}`}>Motivo del descarte</label>
-                          <input
-                            id={`motivo-${p.id}`}
-                            className="field text-[12px]"
-                            placeholder="¿Por qué no encaja?"
-                            value={motivo}
-                            onChange={(e) => setMotivo(e.target.value)}
-                            autoFocus
-                          />
-                          <button type="submit" className="btn btn-ghost shrink-0 px-3 py-1.5 text-[11px]">
-                            Descartar
-                          </button>
-                        </form>
-                      ) : (
+                          disabled={cargando}
+                        />
                         <button
                           type="button"
-                          className="btn btn-ghost mt-3 px-3 py-1.5 text-[11px]"
-                          onClick={() => { setMotivoDe(p.id); setMotivo(""); }}
+                          className="btn btn-ghost shrink-0 px-3 py-1.5 text-[11px]"
+                          disabled={cargando}
+                          onClick={() => descartar(p.id, motivo.trim() || "sin motivo indicado")}
                         >
-                          Descartar y recalcular
+                          {cargando ? "Recalculando…" : "Descartar"}
                         </button>
-                      )}
+                      </div>
+
                     </article>
                   );
                 })}

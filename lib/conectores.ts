@@ -13,7 +13,7 @@ import type { Destino } from "@/types";
  */
 
 export type FilaSenal = {
-  fuente: "clima" | "interes" | "divisa";
+  fuente: "clima" | "interes" | "divisa" | "ine";
   destino_id: string;
   periodo: string;
   metrica: string;
@@ -259,4 +259,112 @@ export async function conectorDivisa(destinos: Destino[], mes: number): Promise<
   } catch (e) {
     return destinos.map((d) => base(d, e instanceof Error ? e.message : "fallo de red"));
   }
+}
+
+/**
+ * Demanda consumada nacional — INE, Encuesta de Ocupacion Hotelica.
+ *
+ * Por que importa: hasta ahora la unica senal de demanda era el interes, que
+ * mide ATENCION. Esto mide gente que efectivamente durmio en el destino. Es la
+ * diferencia entre quien mira y quien va.
+ *
+ * Limitaciones que hay que reconocer:
+ *  - Solo cubre Espana. Para los destinos internacionales no hay equivalente
+ *    gratuito con esta granularidad.
+ *  - Se publica con dos meses de retraso. No es tiempo real y la interfaz lo
+ *    marca como «ultimo dato oficial», no como «en directo».
+ *
+ * El identificador de tabla es configurable (INE_TABLA) porque el INE
+ * reorganiza su catalogo: si cambia, se ajusta una variable de entorno y no el
+ * codigo.
+ */
+const PROVINCIA_INE: Record<string, { codigo: string; nombre: string }> = {
+  EXP01: { codigo: "07", nombre: "Illes Balears" },
+  EXP02: { codigo: "07", nombre: "Illes Balears" },
+  EXP03: { codigo: "38", nombre: "Santa Cruz de Tenerife" },
+  EXP04: { codigo: "35", nombre: "Las Palmas" },
+  EXP05: { codigo: "20", nombre: "Gipuzkoa" },
+  EXP06: { codigo: "33", nombre: "Asturias" },
+  EXP07: { codigo: "41", nombre: "Sevilla" },
+  EXP08: { codigo: "29", nombre: "Málaga" },
+};
+
+type SerieIne = {
+  Nombre?: string;
+  Data?: { Anyo?: number; FK_Periodo?: number; Valor?: number | null }[];
+};
+
+export async function conectorIne(destinos: Destino[], mes: number): Promise<FilaSenal[]> {
+  const periodo = periodoDe(mes);
+  const base = (d: Destino, motivo: string): FilaSenal => ({
+    fuente: "ine", destino_id: d.id, periodo, metrica: "variacion_viajeros_pct",
+    valor: null, valor_bruto: { motivo }, estado: "no_disponible",
+  });
+
+  const nacionales = destinos.filter((d) => PROVINCIA_INE[d.id]);
+  if (nacionales.length === 0) return destinos.map((d) => base(d, "destino no nacional"));
+
+  const tabla = process.env.INE_TABLA ?? "2074";
+  let series: SerieIne[] = [];
+  try {
+    // nult=26 trae dos anos completos, suficiente para comparar interanual.
+    const r = await conReintento(
+      `https://servicios.ine.es/wstempus/js/ES/DATOS_TABLA/${tabla}?nult=26&det=2&tip=AM`,
+    );
+    if (!r) return destinos.map((d) => base(d, "INE: sin respuesta tras reintentos"));
+    if (!r.ok) return destinos.map((d) => base(d, `INE: respuesta ${r.status}`));
+    const j = (await r.json()) as SerieIne[] | { Data?: SerieIne[] };
+    series = Array.isArray(j) ? j : (j.Data ?? []);
+    if (series.length === 0) return destinos.map((d) => base(d, `INE: tabla ${tabla} sin series`));
+  } catch (e) {
+    return destinos.map((d) => base(d, e instanceof Error ? e.message : "INE: fallo de red"));
+  }
+
+  const norm = (x: string) => x.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+  return destinos.map((d) => {
+    const prov = PROVINCIA_INE[d.id];
+    if (!prov) return base(d, "destino no nacional");
+
+    // Se busca la serie de viajeros de esa provincia por nombre, que es lo
+    // estable entre reorganizaciones del catalogo.
+    const serie = series.find(
+      (s) =>
+        s.Nombre &&
+        norm(s.Nombre).includes(norm(prov.nombre)) &&
+        norm(s.Nombre).includes("viajero"),
+    );
+    if (!serie?.Data?.length) return base(d, `INE: sin serie de viajeros para ${prov.nombre}`);
+
+    const observaciones = serie.Data.filter(
+      (x): x is { Anyo: number; FK_Periodo: number; Valor: number } =>
+        typeof x.Valor === "number" && typeof x.Anyo === "number" && typeof x.FK_Periodo === "number",
+    ).sort((a, b) => a.Anyo - b.Anyo || a.FK_Periodo - b.FK_Periodo);
+
+    const ultimo = observaciones.at(-1);
+    if (!ultimo) return base(d, `INE: serie vacia para ${prov.nombre}`);
+    // Interanual: mismo mes del ano anterior. Es lo unico comparable en una
+    // serie con estacionalidad tan marcada como el turismo.
+    const anterior = observaciones.find(
+      (x) => x.Anyo === ultimo.Anyo - 1 && x.FK_Periodo === ultimo.FK_Periodo,
+    );
+    if (!anterior || anterior.Valor === 0) {
+      return base(d, `INE: sin mismo mes del ano anterior para ${prov.nombre}`);
+    }
+
+    return {
+      fuente: "ine",
+      destino_id: d.id,
+      periodo,
+      metrica: "variacion_viajeros_pct",
+      valor: Math.round(((ultimo.Valor - anterior.Valor) / anterior.Valor) * 1000) / 10,
+      valor_bruto: {
+        provincia: prov.nombre,
+        ultimo: { anio: ultimo.Anyo, mes: ultimo.FK_Periodo, viajeros: ultimo.Valor },
+        interanual: { anio: anterior.Anyo, viajeros: anterior.Valor },
+        publicacion: "INE · Encuesta de Ocupación Hotelera · dos meses de retraso",
+      },
+      estado: "ok",
+    };
+  });
 }

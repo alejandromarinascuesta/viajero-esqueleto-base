@@ -3,6 +3,7 @@ import { cargarDestinos } from "@/lib/data";
 import {
   conectorClima,
   conectorDivisa,
+  conectorIne,
   conectorInteres,
   type FilaSenal,
   type ResumenFuente,
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
     ["clima", "Open-Meteo · archivo histórico · sin clave", () => conectorClima(destinos, mes)],
     ["interes", "Wikimedia · vistas diarias · sin clave", () => conectorInteres(destinos, mes)],
     ["divisa", "Banco Central Europeo · tipos de referencia · sin clave", () => conectorDivisa(destinos, mes)],
+    ["ine", "INE · viajeros por provincia · solo España · último dato oficial", () => conectorIne(destinos, mes)],
   ] as const) {
     const inicio = Date.now();
     const r = await ejecutar();
