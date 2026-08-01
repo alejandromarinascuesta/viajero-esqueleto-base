@@ -5,17 +5,20 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy, Download, ExternalLink, Film, LoaderCircle, Pause, Play, Save, Send, Sparkles } from "lucide-react";
+import { Check, Copy, Download, ExternalLink, Film, LoaderCircle, Mic, MicOff, Pause, Play, Save, Send, Sparkles } from "lucide-react";
 import type { DestinoConScore } from "@/components/layout/Shell";
 import { Panel, Vacio } from "@/components/ui";
 import type { ActivoVisual, PlanContenido } from "@/types";
-import { renderizarVideoWebM } from "@/lib/video-browser";
+import { contenedorDisponible, renderizarVideo } from "@/lib/video-browser";
 import { AUDIENCIAS_CONTENIDO, OBJETIVOS_CONTENIDO } from "@/lib/content";
+
+type FicheroVideo = { blob: Blob; url: string; extension: string };
 
 type RespuestaContenido = {
   plan?: PlanContenido;
   activos?: ActivoVisual[];
-  media?: { estado: string; fuente: string; licencia: string };
+  media?: { estado: string; fuente: string; licencia: string; videos?: number; fotos?: number };
+  voz?: { disponible: boolean };
   modelo?: { ok: boolean; modelo: string; tokensEntrada: number | null; tokensSalida: number | null };
   error?: { code: string; message: string };
 };
@@ -47,11 +50,14 @@ export default function ContentStudio({
   const [escena, setEscena] = useState(0);
   const [progreso, setProgreso] = useState(0);
   const [renderizando, setRenderizando] = useState(false);
-  const [video, setVideo] = useState<{ blob: Blob; url: string } | null>(null);
+  const [video, setVideo] = useState<FicheroVideo | null>(null);
+  const [medios, setMedios] = useState<{ fuente: string; videos: number; fotos: number } | null>(null);
+  const [vozDisponible, setVozDisponible] = useState(false);
+  const [usarVoz, setUsarVoz] = useState(true);
   const [consentimiento, setConsentimiento] = useState(false);
   const [publicando, setPublicando] = useState(false);
   const [guardados, setGuardados] = useState<PlanContenido[]>([]);
-  const videoRef = useRef<{ blob: Blob; url: string } | null>(null);
+  const videoRef = useRef<FicheroVideo | null>(null);
 
   useEffect(() => {
     const reloj = window.setTimeout(() => {
@@ -89,25 +95,53 @@ export default function ContentStudio({
       const datos = (await r.json()) as RespuestaContenido;
       if (!r.ok || !datos.plan) throw new Error(datos.error?.message ?? "No se ha podido generar el contenido.");
       setPlan(datos.plan); setActivos(datos.activos ?? []); setReproduciendo(true);
-      setMensaje(datos.activos?.length ? "Guion y material visual preparados." : "Guion preparado. Wikimedia no devolvió imágenes y el vídeo usará dirección de arte de marca.");
+      setVozDisponible(Boolean(datos.voz?.disponible));
+      setMedios(datos.media ? { fuente: datos.media.fuente, videos: datos.media.videos ?? 0, fotos: datos.media.fotos ?? 0 } : null);
+      setMensaje(
+        datos.activos?.length
+          ? `Guion listo y ${datos.media?.videos ?? 0} clips verticales traídos de ${datos.media?.fuente ?? "el banco"}.`
+          : "Guion preparado. El banco no devolvió material para este destino y la pieza saldrá con dirección de arte de marca.",
+      );
     } catch (e) { setMensaje(e instanceof Error ? e.message : "No se ha podido generar el contenido."); }
     finally { setCargando(false); }
   }
 
+  /** Pide la locución. Si falla, la pieza se genera igual con la cama musical. */
+  async function pedirLocucion(actual: PlanContenido): Promise<ArrayBuffer | null> {
+    if (!usarVoz || !vozDisponible) return null;
+    try {
+      const r = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locuciones: actual.escenas.map((e) => e.locucion), duracion: actual.duracion }),
+      });
+      if (!r.ok) return null;
+      return await r.arrayBuffer();
+    } catch { return null; }
+  }
+
   async function crearVideo(descargar: boolean) {
     if (!plan) throw new Error("Genera primero la pieza creativa.");
-    setRenderizando(true); setProgreso(0); setMensaje("Renderizando el vídeo vertical en tu navegador…");
+    setRenderizando(true); setProgreso(0);
+    setMensaje(usarVoz && vozDisponible ? "Grabando la locución…" : "Montando el vídeo vertical…");
     try {
-      const blob = await renderizarVideoWebM(plan, activos, setProgreso);
+      const locucion = await pedirLocucion(plan);
+      setMensaje("Montando el vídeo vertical en tu navegador…");
+      const resultado = await renderizarVideo(plan, activos, locucion, setProgreso);
       if (video?.url) URL.revokeObjectURL(video.url);
-      const url = URL.createObjectURL(blob);
-      setVideo({ blob, url });
-      setMensaje("Vídeo 9:16 generado. Ya puedes descargarlo o enviarlo a TikTok.");
+      const url = URL.createObjectURL(resultado.blob);
+      setVideo({ blob: resultado.blob, url, extension: resultado.extension });
+      setMensaje(
+        `Vídeo 9:16 en ${resultado.extension.toUpperCase()} listo${locucion ? " con locución" : " con cama musical"}. ` +
+        (resultado.extension === "webm" ? "Este navegador no graba MP4: para publicar, conviértelo o usa Chrome." : "Ya se puede subir a TikTok o Instagram."),
+      );
       if (descargar) {
         const a = document.createElement("a");
-        a.href = url; a.download = `${plan.destino.toLowerCase().replace(/\s+/g, "-")}-vertical.webm`; a.click();
+        a.href = url;
+        a.download = `${plan.destino.toLowerCase().replace(/\s+/g, "-")}-vertical.${resultado.extension}`;
+        a.click();
       }
-      return blob;
+      return resultado.blob;
     } finally { setRenderizando(false); }
   }
 
@@ -125,13 +159,13 @@ export default function ContentStudio({
       const blob = video?.blob ?? await crearVideo(false);
       const init = await fetch("/api/tiktok", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "initialize", size: blob.size, mime: "video/webm" }),
+        body: JSON.stringify({ action: "initialize", size: blob.size, mime: video?.extension === "webm" ? "video/webm" : "video/mp4" }),
       });
       const datos = (await init.json()) as { publishId?: string; uploadUrl?: string; error?: { code: string; message: string } };
       if (!init.ok || !datos.uploadUrl) throw new Error(datos.error?.message ?? "TikTok no ha iniciado el envío.");
       const subida = await fetch(datos.uploadUrl, {
         method: "PUT",
-        headers: { "Content-Type": "video/webm", "Content-Length": String(blob.size), "Content-Range": `bytes 0-${blob.size - 1}/${blob.size}` },
+        headers: { "Content-Type": video?.extension === "webm" ? "video/webm" : "video/mp4", "Content-Length": String(blob.size), "Content-Range": `bytes 0-${blob.size - 1}/${blob.size}` },
         body: blob,
       });
       if (!subida.ok && subida.status !== 206) throw new Error("TikTok no ha completado la subida.");
@@ -190,6 +224,29 @@ export default function ContentStudio({
                 <option value="fotos">Varias fotografías con movimiento</option>
               </select>
             </label>
+            {plan ? (
+              <div className="subpanel p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-2 text-[11px]">
+                    {usarVoz && vozDisponible ? <Mic size={13} className="text-[var(--green)]" /> : <MicOff size={13} className="text-[var(--dim)]" />}
+                    <b>Locución</b>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-ghost px-2.5 py-1 text-[10px]"
+                    disabled={!vozDisponible}
+                    onClick={() => setUsarVoz(!usarVoz)}
+                  >
+                    {!vozDisponible ? "No configurada" : usarVoz ? "Activada" : "Desactivada"}
+                  </button>
+                </div>
+                <p className="mt-1.5 text-[10px] leading-relaxed text-[var(--dim)]">
+                  {vozDisponible
+                    ? "Voz en español sobre la cama musical. Lee el guion verificado, no añade nada."
+                    : "Falta la clave de síntesis de voz. La pieza sale con música y rótulos."}
+                </p>
+              </div>
+            ) : null}
             <button type="button" className="btn btn-primary w-full" disabled={cargando || !audiencia.trim() || !objetivo.trim()} onClick={generar}>
               {cargando ? <LoaderCircle size={15} className="mr-2 inline animate-spin" /> : <Sparkles size={15} className="mr-2 inline" />}
               {cargando ? "Analizando señales y creando…" : "Generar campaña vertical"}
@@ -215,6 +272,7 @@ export default function ContentStudio({
                     </>
                   )}
                 </div>
+                <p className="mt-2 text-center text-[9px] text-[var(--dim)]">Se exporta en {(contenedorDisponible()?.extension ?? "webm").toUpperCase()} · 720×1280 · {plan.duracion} s</p>
                 {renderizando ? <div className="mt-3"><div className="bar"><i style={{ width: `${progreso}%` }} /></div><p className="mt-1 text-center text-[10px] text-[var(--dim)]">Renderizando {progreso}% · dura {plan.duracion} segundos</p></div> : null}
               </div>
 
@@ -232,7 +290,7 @@ export default function ContentStudio({
                   <div className="flex items-center gap-2"><Film size={15} className="text-[var(--green)]"/><b className="text-[13px]">Publicación social</b></div>
                   <label className="mt-3 flex items-start gap-2 text-[11px] leading-relaxed text-[var(--muted)]"><input type="checkbox" checked={consentimiento} onChange={(e) => setConsentimiento(e.target.checked)} className="mt-0.5"/>Confirmo que he revisado el vídeo y autorizo expresamente su envío a mi cuenta de TikTok.</label>
                   <button type="button" className="btn btn-primary mt-3 w-full" disabled={!consentimiento || publicando || renderizando} onClick={publicarTikTok}>{publicando ? <LoaderCircle size={14} className="mr-1.5 inline animate-spin"/> : <Send size={14} className="mr-1.5 inline"/>}Publicar en TikTok</button>
-                  <p className="mt-2 text-[10px] leading-relaxed text-[var(--dim)]">Incluye una cama sonora original. Se envía como borrador: TikTok notificará al creador para cambiar el audio, revisar y completar la publicación.</p>
+                  <p className="mt-2 text-[10px] leading-relaxed text-[var(--dim)]">Cama sonora original generada por la plataforma{usarVoz && vozDisponible ? " y locución sintética" : ""}. Se envía como borrador: TikTok notifica al creador para revisar, cambiar el audio si quiere y completar la publicación.</p>
                 </div>
               </div>
             </div>
@@ -242,7 +300,7 @@ export default function ContentStudio({
 
       {mensaje ? <div className="subpanel flex items-center gap-2 px-4 py-3 text-[12px]"><Check size={14} className="shrink-0 text-[var(--green)]"/>{mensaje}</div> : null}
 
-      {activos.length ? <Panel titulo={`Material audiovisual · ${activos.filter((a) => a.tipo === "video").length} vídeos · ${activos.filter((a) => a.tipo === "imagen").length} imágenes de respaldo`}><div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-6">{activos.slice(0,6).map((a) => <a key={a.id} href={a.paginaFuente} target="_blank" rel="noreferrer" className="group relative overflow-hidden rounded-xl border" style={{ borderColor: "var(--line)" }}>{a.tipo === "video" ? <video src={a.url} poster={a.miniatura} muted playsInline preload="metadata" className="aspect-[4/3] w-full object-cover"/> : <img src={a.miniatura} alt={a.titulo} className="aspect-[4/3] w-full object-cover"/>}{a.tipo === "video" ? <span className="absolute left-2 top-2 rounded-md bg-black/70 px-2 py-1 text-[8px] font-black tracking-[.1em] text-white">VÍDEO</span> : null}<span className="block p-2 text-[9px] leading-relaxed text-[var(--dim)]">{a.licencia} · {a.autor.slice(0,55)} <ExternalLink size={9} className="inline"/></span></a>)}</div></Panel> : null}
+      {activos.length ? <Panel titulo={`Material audiovisual · ${activos.filter((a) => a.tipo === "video").length} vídeos · ${activos.filter((a) => a.tipo === "imagen").length} imágenes`} extra={medios ? <span className="pill pill-line">{medios.fuente.toUpperCase()}</span> : null}><div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-6">{activos.slice(0,6).map((a) => <a key={a.id} href={a.paginaFuente} target="_blank" rel="noreferrer" className="group relative overflow-hidden rounded-xl border" style={{ borderColor: "var(--line)" }}>{a.tipo === "video" ? <video src={a.url} poster={a.miniatura} muted loop playsInline preload="metadata" onMouseEnter={(e) => void e.currentTarget.play().catch(() => undefined)} onMouseLeave={(e) => e.currentTarget.pause()} className="aspect-[9/16] w-full object-cover"/> : <img src={a.miniatura} alt={a.titulo} className="aspect-[9/16] w-full object-cover"/>}{a.tipo === "video" ? <span className="absolute left-2 top-2 rounded-md bg-black/70 px-2 py-1 text-[8px] font-black tracking-[.1em] text-white">VÍDEO</span> : null}<span className="block p-2 text-[9px] leading-relaxed text-[var(--dim)]">{a.licencia} · {a.autor.slice(0,55)} <ExternalLink size={9} className="inline"/></span></a>)}</div></Panel> : null}
 
       {guardados.length ? <Panel titulo={`Biblioteca de campañas · ${guardados.length}`}><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{guardados.slice(0,8).map((p) => <button type="button" key={p.creadoEn} className="subpanel p-3 text-left" onClick={() => { setPlan(p); setDestinoId(p.destinoId); setEscena(0); setVideo(null); }}><span className="text-[9px] text-[var(--dim)]">{new Date(p.creadoEn).toLocaleDateString("es-ES")}</span><b className="mt-1 block text-[13px]">{p.destino}</b><span className="mt-1 block text-[10px] text-[var(--muted)]">{p.concepto}</span></button>)}</div></Panel> : null}
     </div>

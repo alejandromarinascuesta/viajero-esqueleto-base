@@ -2,9 +2,33 @@ import { NextResponse } from "next/server";
 import { cargarDestinos } from "@/lib/data";
 import { EntradaContenido, generarPlanContenido } from "@/lib/content";
 import { buscarActivosCommons } from "@/lib/media";
+import { buscarActivosPexels, hayPexels } from "@/lib/pexels";
+import { hayLocucion } from "@/lib/locucion";
+import type { ActivoVisual } from "@/types";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
+
+/**
+ * Pexels es la fuente principal porque es un banco comercial con clips
+ * verticales. Commons queda como respaldo: si no hay clave, o si Pexels no
+ * devuelve nada para ese destino, la pieza se sigue generando. Lo que no se
+ * hace nunca es rellenar con material de otro destino.
+ */
+async function buscarActivos(destino: Parameters<typeof buscarActivosCommons>[0]) {
+  if (hayPexels()) {
+    const activos = await buscarActivosPexels(destino);
+    if (activos.length) return { activos, fuente: "Pexels" };
+  }
+  const respaldo = await buscarActivosCommons(destino);
+  return { activos: respaldo, fuente: hayPexels() ? "Wikimedia Commons (respaldo)" : "Wikimedia Commons" };
+}
+
+/** Alterna vídeo y foto sin perder ninguno de los dos. */
+function intercalar(videos: ActivoVisual[], fotos: ActivoVisual[]) {
+  const total = Math.max(videos.length, fotos.length);
+  return Array.from({ length: total }, (_, i) => [videos[i], fotos[i]]).flat().filter(Boolean) as ActivoVisual[];
+}
 
 export async function POST(request: Request) {
   let cuerpo: unknown;
@@ -23,25 +47,29 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: { code: "DESTINATION_NOT_FOUND", message: "Destino no encontrado" } }, { status: 404 });
   }
 
-  const [{ plan, uso }, activosEncontrados] = await Promise.all([
+  const [{ plan, uso }, { activos: encontrados, fuente }] = await Promise.all([
     generarPlanContenido(destino, entrada.data),
-    buscarActivosCommons(destino),
+    buscarActivos(destino),
   ]);
-  const videos = activosEncontrados.filter((a) => a.tipo === "video");
-  const fotos = activosEncontrados.filter((a) => a.tipo === "imagen");
-  const activos = entrada.data.visualMix === "fotos"
-    ? fotos
-    : entrada.data.visualMix === "mixto"
-      ? Array.from({ length: Math.max(videos.length, fotos.length) }, (_, i) => [videos[i], fotos[i]]).flat().filter(Boolean)
-      : [...videos, ...fotos];
+
+  const videos = encontrados.filter((a) => a.tipo === "video");
+  const fotos = encontrados.filter((a) => a.tipo === "imagen");
+  const activos =
+    entrada.data.visualMix === "fotos" ? (fotos.length ? fotos : encontrados)
+    : entrada.data.visualMix === "mixto" ? intercalar(videos, fotos)
+    : [...videos, ...fotos];
+
   return NextResponse.json({
     plan,
     activos,
     media: {
-      fuente: "Wikimedia Commons",
-      licencia: "Cada activo conserva autor, licencia y enlace de atribución.",
+      fuente,
+      licencia: "Cada activo conserva autor, licencia y enlace de origen.",
       estado: activos.length ? "live" : "unavailable",
+      videos: videos.length,
+      fotos: fotos.length,
     },
+    voz: { disponible: hayLocucion() },
     modelo: uso,
   });
 }
