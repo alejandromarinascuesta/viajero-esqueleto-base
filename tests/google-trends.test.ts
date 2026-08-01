@@ -14,13 +14,16 @@ test("Google Trends no inventa momentum con una serie insuficiente", () => {
 
 test("sin clave el conector omite la consulta y no crea filas ficticias", async () => {
   const anterior = process.env.SERPAPI_API_KEY;
+  const aliasAnterior = process.env.SerpAPI;
   delete process.env.SERPAPI_API_KEY;
+  delete process.env.SerpAPI;
   try {
     const resultado = await conectorGoogleTrends([]);
     assert.equal(resultado.consultas, 0);
     assert.deepEqual(resultado.filas, []);
-    assert.ok(resultado.omitido?.includes("SERPAPI_API_KEY"));
+    assert.ok(resultado.omitido?.includes("SerpAPI"));
   } finally {
     if (anterior) process.env.SERPAPI_API_KEY = anterior;
+    if (aliasAnterior) process.env.SerpAPI = aliasAnterior;
   }
 });

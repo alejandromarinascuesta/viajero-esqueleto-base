@@ -76,13 +76,15 @@ function filaSinDato(destino: Destino, motivo: string, periodo: string): FilaSen
  * Sin clave no inventa datos ni borra la última observación real guardada.
  */
 export async function conectorGoogleTrends(destinos: Destino[]): Promise<ResultadoGoogleTrends> {
-  const clave = process.env.SERPAPI_API_KEY;
+  // `SERPAPI_API_KEY` es el nombre estándar. `SerpAPI` se mantiene como alias
+  // por compatibilidad con la variable ya configurada en este despliegue.
+  const clave = process.env.SERPAPI_API_KEY ?? process.env.SerpAPI;
   if (!clave) {
     return {
       filas: [],
       consultas: 0,
       proveedor: "SerpApi / Google Trends",
-      omitido: "SERPAPI_API_KEY no configurada",
+      omitido: "SERPAPI_API_KEY o SerpAPI no configurada",
     };
   }
 
