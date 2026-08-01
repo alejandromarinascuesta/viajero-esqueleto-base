@@ -2,12 +2,30 @@ import { z } from "zod";
 import { pedirJson, type UsoModelo } from "@/lib/ai";
 import type { Destino, PlanContenido } from "@/types";
 
+export const AUDIENCIAS_CONTENIDO = [
+  "Parejas de 30 a 45 años",
+  "Familias con niños",
+  "Viajeros premium",
+  "Jóvenes de 20 a 30 años",
+  "Mayores de 55 años",
+  "Grupos de amigos",
+] as const;
+
+export const OBJETIVOS_CONTENIDO = [
+  "Generar solicitudes de presupuesto",
+  "Inspirar y aumentar notoriedad",
+  "Promocionar una oferta concreta",
+  "Captar nuevos seguidores",
+  "Reactivar clientes de la agencia",
+] as const;
+
 export const EntradaContenido = z.object({
   destinationId: z.string().min(1).max(40),
-  audience: z.string().trim().min(3).max(100),
-  objective: z.string().trim().min(3).max(120),
+  audience: z.enum(AUDIENCIAS_CONTENIDO),
+  objective: z.enum(OBJETIVOS_CONTENIDO),
   tone: z.enum(["inspirador", "premium", "familiar", "aventurero"]),
   duration: z.union([z.literal(15), z.literal(30)]),
+  visualMix: z.enum(["video", "mixto", "fotos"]),
 });
 
 const SalidaModelo = z.object({
@@ -71,6 +89,7 @@ export function contenidoFallback(
     objetivo: entrada.objective,
     tono: entrada.tone,
     duracion: entrada.duration,
+    mezclaVisual: entrada.visualMix,
     escenas,
     caption: `${destino.destino} puede ser tu próximo viaje. ${motivos.slice(0, 2).join(". ")}. Pide una propuesta adaptada a ti.`,
     cta: "Pide tu propuesta",
@@ -118,6 +137,7 @@ export async function generarPlanContenido(
       objetivo: entrada.objective,
       tono: entrada.tone,
       duracion: entrada.duration,
+      mezclaVisual: entrada.visualMix,
       escenas: validada.data.escenas.map((e) => ({
         titulo: e.titulo,
         textoPantalla: e.texto_pantalla,

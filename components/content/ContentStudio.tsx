@@ -10,6 +10,7 @@ import type { DestinoConScore } from "@/components/layout/Shell";
 import { Panel, Vacio } from "@/components/ui";
 import type { ActivoVisual, PlanContenido } from "@/types";
 import { renderizarVideoWebM } from "@/lib/video-browser";
+import { AUDIENCIAS_CONTENIDO, OBJETIVOS_CONTENIDO } from "@/lib/content";
 
 type RespuestaContenido = {
   plan?: PlanContenido;
@@ -31,10 +32,11 @@ export default function ContentStudio({
   onSeleccionar: (id: string) => void;
 }) {
   const [destinoId, setDestinoId] = useState(destinoSugerido || destinos[0]?.id || "");
-  const [audiencia, setAudiencia] = useState("Parejas de 30 a 45 años que buscan una escapada visual");
+  const [audiencia, setAudiencia] = useState<(typeof AUDIENCIAS_CONTENIDO)[number]>("Parejas de 30 a 45 años");
   const [objetivo, setObjetivo] = useState("Generar solicitudes de presupuesto");
   const [tono, setTono] = useState<"inspirador" | "premium" | "familiar" | "aventurero">("inspirador");
   const [duracion, setDuracion] = useState<15 | 30>(15);
+  const [mezclaVisual, setMezclaVisual] = useState<"video" | "mixto" | "fotos">("video");
   const [plan, setPlan] = useState<PlanContenido | null>(null);
   const [activos, setActivos] = useState<ActivoVisual[]>([]);
   const [cargando, setCargando] = useState(false);
@@ -69,7 +71,7 @@ export default function ContentStudio({
   }, [reproduciendo, plan]);
 
   const destino = useMemo(() => destinos.find((d) => d.id === destinoId) ?? destinos[0], [destinos, destinoId]);
-  const imagen = activos[escena % Math.max(1, activos.length)]?.miniatura;
+  const activoVisual = activos[escena % Math.max(1, activos.length)];
 
   async function generar() {
     if (!destino) return;
@@ -80,7 +82,7 @@ export default function ContentStudio({
       const r = await fetch("/api/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ destinationId: destino.id, audience: audiencia, objective: objetivo, tone: tono, duration: duracion }),
+        body: JSON.stringify({ destinationId: destino.id, audience: audiencia, objective: objetivo, tone: tono, duration: duracion, visualMix: mezclaVisual }),
       });
       const datos = (await r.json()) as RespuestaContenido;
       if (!r.ok || !datos.plan) throw new Error(datos.error?.message ?? "No se ha podido generar el contenido.");
@@ -158,10 +160,14 @@ export default function ContentStudio({
               </select>
             </label>
             <label className="block text-[11px] text-[var(--muted)]">Audiencia
-              <input className="field mt-1.5" value={audiencia} maxLength={100} onChange={(e) => setAudiencia(e.target.value)} />
+              <select className="field mt-1.5" value={audiencia} onChange={(e) => setAudiencia(e.target.value as typeof audiencia)}>
+                {AUDIENCIAS_CONTENIDO.map((opcion) => <option key={opcion} value={opcion}>{opcion}</option>)}
+              </select>
             </label>
             <label className="block text-[11px] text-[var(--muted)]">Objetivo
-              <input className="field mt-1.5" value={objetivo} maxLength={120} onChange={(e) => setObjetivo(e.target.value)} />
+              <select className="field mt-1.5" value={objetivo} onChange={(e) => setObjetivo(e.target.value)}>
+                {OBJETIVOS_CONTENIDO.map((opcion) => <option key={opcion} value={opcion}>{opcion}</option>)}
+              </select>
             </label>
             <div className="grid grid-cols-2 gap-3">
               <label className="block text-[11px] text-[var(--muted)]">Tono
@@ -175,6 +181,13 @@ export default function ContentStudio({
                 </select>
               </label>
             </div>
+            <label className="block text-[11px] text-[var(--muted)]">Material audiovisual
+              <select className="field mt-1.5" value={mezclaVisual} onChange={(e) => setMezclaVisual(e.target.value as typeof mezclaVisual)}>
+                <option value="video">Varios clips de vídeo cortos</option>
+                <option value="mixto">Clips de vídeo y fotografías</option>
+                <option value="fotos">Varias fotografías con movimiento</option>
+              </select>
+            </label>
             <button type="button" className="btn btn-primary w-full" disabled={cargando || !audiencia.trim() || !objetivo.trim()} onClick={generar}>
               {cargando ? <LoaderCircle size={15} className="mr-2 inline animate-spin" /> : <Sparkles size={15} className="mr-2 inline" />}
               {cargando ? "Analizando señales y creando…" : "Generar campaña vertical"}
@@ -190,7 +203,9 @@ export default function ContentStudio({
                 <div className="relative aspect-[9/16] overflow-hidden rounded-[24px] border" style={{ borderColor: "var(--line-strong)", background: "linear-gradient(160deg,#173d32,#07100f)" }}>
                   {video ? <video src={video.url} controls playsInline className="h-full w-full object-cover" /> : (
                     <>
-                      {imagen ? <img src={imagen} alt="" className="absolute inset-0 h-full w-full object-cover" /> : null}
+                      {activoVisual?.tipo === "video" ? (
+                        <video key={activoVisual.id} src={activoVisual.url} poster={activoVisual.miniatura} autoPlay loop muted playsInline className="absolute inset-0 h-full w-full object-cover" />
+                      ) : activoVisual ? <img src={activoVisual.miniatura} alt="" className="absolute inset-0 h-full w-full object-cover" /> : null}
                       <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.1) 40%,rgba(0,0,0,.9))" }} />
                       <div className="absolute left-4 top-4 text-[8px] font-black tracking-[.12em] text-[var(--green)]">TRAVEL INTELLIGENCE</div>
                       <div className="absolute inset-x-4 bottom-14"><b className="block text-[24px] leading-tight">{plan.escenas[escena]?.textoPantalla}</b><span className="mt-2 block text-[11px] leading-relaxed text-white/80">{plan.escenas[escena]?.locucion}</span></div>
@@ -225,7 +240,7 @@ export default function ContentStudio({
 
       {mensaje ? <div className="subpanel flex items-center gap-2 px-4 py-3 text-[12px]"><Check size={14} className="shrink-0 text-[var(--green)]"/>{mensaje}</div> : null}
 
-      {activos.length ? <Panel titulo={`Material visual · ${activos.length} activos con licencia`}><div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-6">{activos.slice(0,6).map((a) => <a key={a.id} href={a.paginaFuente} target="_blank" rel="noreferrer" className="group overflow-hidden rounded-xl border" style={{ borderColor: "var(--line)" }}><img src={a.miniatura} alt={a.titulo} className="aspect-[4/3] w-full object-cover"/><span className="block p-2 text-[9px] leading-relaxed text-[var(--dim)]">{a.licencia} · {a.autor.slice(0,55)} <ExternalLink size={9} className="inline"/></span></a>)}</div></Panel> : null}
+      {activos.length ? <Panel titulo={`Material audiovisual · ${activos.filter((a) => a.tipo === "video").length} vídeos · ${activos.filter((a) => a.tipo === "imagen").length} imágenes de respaldo`}><div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-6">{activos.slice(0,6).map((a) => <a key={a.id} href={a.paginaFuente} target="_blank" rel="noreferrer" className="group relative overflow-hidden rounded-xl border" style={{ borderColor: "var(--line)" }}>{a.tipo === "video" ? <video src={a.url} poster={a.miniatura} muted playsInline preload="metadata" className="aspect-[4/3] w-full object-cover"/> : <img src={a.miniatura} alt={a.titulo} className="aspect-[4/3] w-full object-cover"/>}{a.tipo === "video" ? <span className="absolute left-2 top-2 rounded-md bg-black/70 px-2 py-1 text-[8px] font-black tracking-[.1em] text-white">VÍDEO</span> : null}<span className="block p-2 text-[9px] leading-relaxed text-[var(--dim)]">{a.licencia} · {a.autor.slice(0,55)} <ExternalLink size={9} className="inline"/></span></a>)}</div></Panel> : null}
 
       {guardados.length ? <Panel titulo={`Biblioteca de campañas · ${guardados.length}`}><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{guardados.slice(0,8).map((p) => <button type="button" key={p.creadoEn} className="subpanel p-3 text-left" onClick={() => { setPlan(p); setDestinoId(p.destinoId); setEscena(0); setVideo(null); }}><span className="text-[9px] text-[var(--dim)]">{new Date(p.creadoEn).toLocaleDateString("es-ES")}</span><b className="mt-1 block text-[13px]">{p.destino}</b><span className="mt-1 block text-[10px] text-[var(--muted)]">{p.concepto}</span></button>)}</div></Panel> : null}
     </div>

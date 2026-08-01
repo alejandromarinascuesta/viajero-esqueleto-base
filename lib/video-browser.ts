@@ -13,14 +13,50 @@ function cargarImagen(url: string): Promise<HTMLImageElement | null> {
   });
 }
 
-function portada(ctx: CanvasRenderingContext2D, imagen: HTMLImageElement, progreso: number) {
-  const escalaBase = Math.max(ANCHO / imagen.width, ALTO / imagen.height);
+type RecursoVisual = { tipo: "imagen"; elemento: HTMLImageElement } | { tipo: "video"; elemento: HTMLVideoElement };
+
+function cargarVideo(url: string): Promise<HTMLVideoElement | null> {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    const reloj = window.setTimeout(() => resolve(null), 10_000);
+    video.crossOrigin = "anonymous";
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.preload = "auto";
+    video.onloadeddata = () => {
+      window.clearTimeout(reloj);
+      void video.play().catch(() => undefined);
+      resolve(video);
+    };
+    video.onerror = () => { window.clearTimeout(reloj); resolve(null); };
+    video.src = url;
+    video.load();
+  });
+}
+
+async function cargarRecurso(activo: ActivoVisual): Promise<RecursoVisual | null> {
+  if (activo.tipo === "video") {
+    const video = await cargarVideo(activo.url);
+    if (video) return { tipo: "video", elemento: video };
+    const respaldo = await cargarImagen(activo.miniatura);
+    return respaldo ? { tipo: "imagen", elemento: respaldo } : null;
+  }
+  const imagen = await cargarImagen(activo.url);
+  return imagen ? { tipo: "imagen", elemento: imagen } : null;
+}
+
+function portada(ctx: CanvasRenderingContext2D, recurso: RecursoVisual, progreso: number) {
+  const ancho = recurso.tipo === "video" ? recurso.elemento.videoWidth : recurso.elemento.naturalWidth;
+  const alto = recurso.tipo === "video" ? recurso.elemento.videoHeight : recurso.elemento.naturalHeight;
+  if (!ancho || !alto) return;
+  const escalaBase = Math.max(ANCHO / ancho, ALTO / alto);
   const escala = escalaBase * (1.02 + progreso * 0.09);
-  const w = imagen.width * escala;
-  const h = imagen.height * escala;
+  const w = ancho * escala;
+  const h = alto * escala;
   const x = (ANCHO - w) / 2 - progreso * 16;
   const y = (ALTO - h) / 2 - progreso * 10;
-  ctx.drawImage(imagen, x, y, w, h);
+  ctx.drawImage(recurso.elemento, x, y, w, h);
 }
 
 function lineas(ctx: CanvasRenderingContext2D, texto: string, max: number) {
@@ -76,7 +112,7 @@ export async function renderizarVideoWebM(
   canvas.height = ALTO;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("No se ha podido preparar el lienzo de vídeo.");
-  const imagenes = await Promise.all(activos.slice(0, plan.escenas.length).map((a) => cargarImagen(a.url)));
+  const recursos = await Promise.all(activos.slice(0, plan.escenas.length).map(cargarRecurso));
   const stream = canvas.captureStream(FPS);
   // Cama sonora original y generativa: evita material protegido y hace que el
   // fichero exportado sea audiovisual incluso sin contratar un proveedor TTS.
@@ -117,13 +153,13 @@ export async function renderizarVideoWebM(
       const posicion = total * plan.escenas.length;
       const indice = Math.min(plan.escenas.length - 1, Math.floor(posicion));
       const dentro = posicion - indice;
-      const imagen = imagenes[indice % Math.max(1, imagenes.length)] ?? null;
+      const recurso = recursos[indice % Math.max(1, recursos.length)] ?? null;
       const gradiente = ctx.createLinearGradient(0, 0, ANCHO, ALTO);
       gradiente.addColorStop(0, indice % 2 ? "#102b25" : "#173d32");
       gradiente.addColorStop(1, "#07100f");
       ctx.fillStyle = gradiente;
       ctx.fillRect(0, 0, ANCHO, ALTO);
-      if (imagen) portada(ctx, imagen, dentro);
+      if (recurso) portada(ctx, recurso, dentro);
       const sombra = ctx.createLinearGradient(0, 300, 0, ALTO);
       sombra.addColorStop(0, "rgba(0,0,0,.05)");
       sombra.addColorStop(.55, "rgba(0,0,0,.25)");
@@ -138,6 +174,13 @@ export async function renderizarVideoWebM(
   });
   recorder.stop();
   streamFinal.getTracks().forEach((track) => track.stop());
+  recursos.forEach((recurso) => {
+    if (recurso?.tipo === "video") {
+      recurso.elemento.pause();
+      recurso.elemento.removeAttribute("src");
+      recurso.elemento.load();
+    }
+  });
   osciladores.forEach((oscilador) => { try { oscilador.disconnect(); } catch { /* ya detenido */ } });
   const blob = await final;
   await audio.close();

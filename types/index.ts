@@ -145,6 +145,7 @@ export type PlanContenido = {
   objetivo: string;
   tono: string;
   duracion: 15 | 30;
+  mezclaVisual: "video" | "mixto" | "fotos";
   escenas: EscenaContenido[];
   caption: string;
   cta: string;

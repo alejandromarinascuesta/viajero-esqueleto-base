@@ -23,10 +23,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: { code: "DESTINATION_NOT_FOUND", message: "Destino no encontrado" } }, { status: 404 });
   }
 
-  const [{ plan, uso }, activos] = await Promise.all([
+  const [{ plan, uso }, activosEncontrados] = await Promise.all([
     generarPlanContenido(destino, entrada.data),
     buscarActivosCommons(destino),
   ]);
+  const videos = activosEncontrados.filter((a) => a.tipo === "video");
+  const fotos = activosEncontrados.filter((a) => a.tipo === "imagen");
+  const activos = entrada.data.visualMix === "fotos"
+    ? fotos
+    : entrada.data.visualMix === "mixto"
+      ? Array.from({ length: Math.max(videos.length, fotos.length) }, (_, i) => [videos[i], fotos[i]]).flat().filter(Boolean)
+      : [...videos, ...fotos];
   return NextResponse.json({
     plan,
     activos,
