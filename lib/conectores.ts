@@ -120,6 +120,23 @@ export async function conectorInteres(destinos: Destino[], mes: number): Promise
   const desde = fmt(dias(58));
   const periodo = periodoDe(mes);
 
+  /** Una edicion de Wikipedia. Devuelve null si no hay serie utilizable. */
+  async function serieDe(edicion: string, titulo: string) {
+    const r = await conReintento(
+      `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/${edicion}/` +
+        `all-access/user/${encodeURIComponent(titulo.replace(/ /g, "_"))}/daily/${desde}/${hasta}`,
+      { headers: { "User-Agent": "travel-intelligence/1.0 (caso practico)" } },
+    );
+    if (!r || !r.ok) return { serie: null as number[] | null, motivo: `${edicion}: ${r ? r.status : "sin respuesta"}` };
+    const j = (await r.json()) as { items?: { timestamp: string; views: number }[] };
+    const serie = (j.items ?? []).map((i) => i.views);
+    if (serie.length < 40) return { serie: null, motivo: `${edicion}: solo ${serie.length} dias` };
+    // Con muy pocas visitas al dia el porcentaje es ruido, no senal.
+    const media = serie.reduce((a, b) => a + b, 0) / serie.length;
+    if (media < 30) return { serie: null, motivo: `${edicion}: trafico demasiado bajo (${Math.round(media)}/dia)` };
+    return { serie, motivo: "" };
+  }
+
   return enTandas(destinos, async (d): Promise<FilaSenal> => {
     const base: FilaSenal = {
       fuente: "interes", destino_id: d.id, periodo, metrica: "tendencia_interes_pct",
@@ -127,23 +144,24 @@ export async function conectorInteres(destinos: Destino[], mes: number): Promise
     };
     const titulo = d.wiki ?? d.destino;
     try {
-      const r = await conReintento(
-        `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/es.wikipedia/` +
-          `all-access/user/${encodeURIComponent(titulo.replace(/ /g, "_"))}/daily/${desde}/${hasta}`,
-        { headers: { "User-Agent": "travel-intelligence/1.0 (caso practico)" } },
-      );
-      if (!r) return { ...base, valor_bruto: { motivo: "sin respuesta tras reintentos" } };
-      if (!r.ok) {
-        return {
-          ...base,
-          valor_bruto: {
-            motivo: r.status === 404 ? `no existe el articulo «${titulo}»` : `respuesta ${r.status}`,
-          },
-        };
+      // Espanol primero porque el mercado emisor es Espana. Si el articulo tiene
+      // poco trafico —pasa con destinos lejanos como Zanzibar o Maldivas— se cae
+      // a la edicion inglesa, que para esos destinos es mucho mas solida.
+      let edicion = "es.wikipedia";
+      const primero = await serieDe(edicion, titulo);
+      let serie = primero.serie;
+      if (!serie) {
+        edicion = "en.wikipedia";
+        const alterno = await serieDe(edicion, titulo);
+        if (alterno.serie) {
+          serie = alterno.serie;
+        } else {
+          return {
+            ...base,
+            valor_bruto: { motivo: `${primero.motivo} · ${alterno.motivo}`, articulo: titulo },
+          };
+        }
       }
-      const j = (await r.json()) as { items?: { timestamp: string; views: number }[] };
-      const serie = (j.items ?? []).map((i) => i.views);
-      if (serie.length < 40) return { ...base, valor_bruto: { motivo: `solo ${serie.length} dias de serie` } };
 
       const media = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
       const recientes = media(serie.slice(-28));
@@ -155,10 +173,10 @@ export async function conectorInteres(destinos: Destino[], mes: number): Promise
         valor: Math.round(((recientes - previos) / previos) * 1000) / 10,
         valor_bruto: {
           articulo: titulo,
+          edicion,
           dias: serie.length,
           media_28d: Math.round(recientes),
           media_28d_previos: Math.round(previos),
-          hasta: (j.items ?? []).at(-1)?.timestamp ?? null,
         },
         estado: "ok",
       };

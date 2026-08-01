@@ -6,9 +6,20 @@ import { Panel, Vacio } from "@/components/ui";
 import type { Recomendacion } from "@/types";
 
 type Argumento = { id: string; argumento: string[]; camposCitados: string[]; verificado: boolean; motivo: string | null };
+type Conversion = {
+  id: string;
+  probabilidad: number;
+  base: number;
+  ajustes: { nombre: string; factor: number; porque: string }[];
+  empirica: boolean;
+  observaciones: number;
+  explicacion: string;
+};
+
 type Respuesta = {
   modo: string;
   recomendacionId?: number | null;
+  conversiones?: Conversion[];
   mensaje?: string;
   resultado?: Recomendacion;
   argumentos?: Argumento[];
@@ -28,23 +39,76 @@ const EJEMPLOS = [
 
 const euros = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const RESTRICCIONES = ["movilidad reducida", "no vuelos largos", "presupuesto ajustado"];
+
+function Campo({ etiqueta, id, ayuda, children }: { etiqueta: string; id: string; ayuda?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1.5 block text-[11px] text-[var(--dim)]">
+        {etiqueta}
+      </label>
+      {children}
+      {ayuda ? <span className="mt-1 block text-[10px] text-[var(--dim)]">{ayuda}</span> : null}
+    </div>
+  );
+}
+
 export default function Copiloto({ destinoSugerido }: { destinoSugerido: string }) {
+  const [modo, setModo] = useState<"guiado" | "notas">("guiado");
   const [notas, setNotas] = useState("");
+  const [form, setForm] = useState({
+    adultos: 2,
+    ninos: "" as string,
+    presupuestoTotal: 3500,
+    presupuestoFlexible: false,
+    mes: new Date().getMonth() + 1,
+    dias: 7,
+    motivacion: "descanso" as "descanso" | "cultura" | "aventura" | "romantico" | "celebracion",
+    intensidad: 2,
+    restricciones: [] as string[],
+    tensionDeclarada: "",
+  });
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [respuesta, setRespuesta] = useState<Respuesta | null>(null);
   const [excluidos, setExcluidos] = useState<string[]>([]);
   const [tecnico, setTecnico] = useState(false);
 
-  async function enviar(texto: string, fuera: string[] = []) {
-    if (!texto.trim() || cargando) return;
+  function perfilDelFormulario() {
+    return {
+      adultos: form.adultos,
+      edadesNinos: form.ninos
+        .split(/[^0-9]+/)
+        .filter(Boolean)
+        .map(Number)
+        .filter((n) => n >= 0 && n <= 17),
+      presupuestoTotal: form.presupuestoTotal,
+      presupuestoFlexible: form.presupuestoFlexible,
+      mes: form.mes,
+      dias: form.dias,
+      motivacion: form.motivacion,
+      intensidad: form.intensidad,
+      restricciones: form.restricciones,
+      destinosVisitados: [],
+      tensionDeclarada: form.tensionDeclarada,
+    };
+  }
+
+  async function enviar(texto: string, fuera: string[] = [], usarFormulario = modo === "guiado") {
+    if (cargando) return;
+    if (!usarFormulario && !texto.trim()) return;
     setCargando(true);
     setError(null);
     try {
       const r = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notas: texto, excluidos: fuera }),
+        body: JSON.stringify(
+          usarFormulario
+            ? { perfil: perfilDelFormulario(), excluidos: fuera }
+            : { notas: texto, excluidos: fuera },
+        ),
       });
       const d = (await r.json()) as Respuesta & { error?: { message: string } };
       if (!r.ok) throw new Error(d.error?.message ?? "No se ha podido calcular la propuesta.");
@@ -84,46 +148,171 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_26rem]">
       <div className="space-y-4">
-        <Panel titulo="Cuenta lo que te ha dicho el cliente">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              setExcluidos([]);
-              void enviar(notas);
-            }}
-          >
-            <label htmlFor="notas" className="sr-only">Notas de la llamada</label>
-            <textarea
-              id="notas"
-              className="field min-h-[110px] resize-y"
-              placeholder={`Con tus palabras. Por ejemplo: ${EJEMPLOS[0]}`}
-              value={notas}
-              onChange={(e) => setNotas(e.target.value)}
-              maxLength={2000}
-            />
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-              <span className="text-[11px] text-[var(--dim)]">
-                La extracción del perfil funciona sin modelo de lenguaje: son reglas, no una IA adivinando.
-              </span>
-              <button type="submit" className="btn btn-primary" disabled={cargando || notas.trim().length < 3}>
-                <Send size={14} className="mr-1.5 inline" aria-hidden />
-                {cargando ? "Calculando…" : "Preparar propuesta"}
-              </button>
+        <Panel
+          titulo="Datos del cliente"
+          extra={
+            <div className="flex gap-1 rounded-xl p-1" style={{ border: "1px solid var(--line)" }}>
+              {(["guiado", "notas"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setModo(m)}
+                  aria-pressed={modo === m}
+                  className="rounded-lg px-3 py-1.5 text-[11px] font-semibold"
+                  style={{
+                    background: modo === m ? "rgba(141,245,189,.1)" : "transparent",
+                    color: modo === m ? "var(--green)" : "#70897e",
+                  }}
+                >
+                  {m === "guiado" ? "Formulario" : "Notas libres"}
+                </button>
+              ))}
             </div>
-          </form>
+          }
+        >
+          {modo === "guiado" ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setExcluidos([]);
+                void enviar("", [], true);
+              }}
+            >
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Campo etiqueta="Adultos" id="f-adultos">
+                  <input id="f-adultos" type="number" min={1} max={12} className="field"
+                    value={form.adultos}
+                    onChange={(e) => setForm({ ...form, adultos: Number(e.target.value) })} />
+                </Campo>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            {EJEMPLOS.map((e, i) => (
-              <button
-                key={i}
-                type="button"
-                className="btn btn-ghost px-3 py-1.5 text-[11px]"
-                onClick={() => { setNotas(e); setExcluidos([]); void enviar(e); }}
-              >
-                Ejemplo {i + 1}
-              </button>
-            ))}
-          </div>
+                <Campo etiqueta="Edades de los niños" id="f-ninos" ayuda="separadas por comas">
+                  <input id="f-ninos" className="field" placeholder="5, 8"
+                    value={form.ninos}
+                    onChange={(e) => setForm({ ...form, ninos: e.target.value })} />
+                </Campo>
+
+                <Campo etiqueta="Presupuesto total (€)" id="f-presu">
+                  <input id="f-presu" type="number" min={100} step={100} className="field"
+                    value={form.presupuestoTotal}
+                    onChange={(e) => setForm({ ...form, presupuestoTotal: Number(e.target.value) })} />
+                </Campo>
+
+                <Campo etiqueta="Mes del viaje" id="f-mes">
+                  <select id="f-mes" className="field" value={form.mes}
+                    onChange={(e) => setForm({ ...form, mes: Number(e.target.value) })}>
+                    {MESES.map((m, i) => (
+                      <option key={m} value={i + 1}>{m}</option>
+                    ))}
+                  </select>
+                </Campo>
+
+                <Campo etiqueta="Días disponibles" id="f-dias">
+                  <input id="f-dias" type="number" min={1} max={60} className="field"
+                    value={form.dias}
+                    onChange={(e) => setForm({ ...form, dias: Number(e.target.value) })} />
+                </Campo>
+
+                <Campo etiqueta="Motivación" id="f-motiv">
+                  <select id="f-motiv" className="field" value={form.motivacion}
+                    onChange={(e) => setForm({ ...form, motivacion: e.target.value as typeof form.motivacion })}>
+                    <option value="descanso">Descanso</option>
+                    <option value="cultura">Cultura</option>
+                    <option value="aventura">Aventura</option>
+                    <option value="romantico">Romántico</option>
+                    <option value="celebracion">Celebración</option>
+                  </select>
+                </Campo>
+
+                <Campo etiqueta="Intensidad" id="f-int" ayuda="1 tumbado · 5 mochila y ruta">
+                  <input id="f-int" type="range" min={1} max={5} step={1} className="w-full"
+                    style={{ accentColor: "var(--green)" }}
+                    value={form.intensidad}
+                    onChange={(e) => setForm({ ...form, intensidad: Number(e.target.value) })} />
+                </Campo>
+
+                <div className="sm:col-span-2 lg:col-span-2">
+                  <span className="mb-2 block text-[11px] text-[var(--dim)]">Restricciones</span>
+                  <div className="flex flex-wrap gap-2">
+                    {RESTRICCIONES.map((r) => {
+                      const on = form.restricciones.includes(r);
+                      return (
+                        <button key={r} type="button" aria-pressed={on}
+                          className="btn btn-ghost px-3 py-1.5 text-[11px]"
+                          style={on ? { borderColor: "var(--line-strong)", color: "var(--green)" } : undefined}
+                          onClick={() =>
+                            setForm({
+                              ...form,
+                              restricciones: on
+                                ? form.restricciones.filter((x) => x !== r)
+                                : [...form.restricciones, r],
+                            })
+                          }>
+                          {r}
+                        </button>
+                      );
+                    })}
+                    <button type="button" aria-pressed={form.presupuestoFlexible}
+                      className="btn btn-ghost px-3 py-1.5 text-[11px]"
+                      style={form.presupuestoFlexible ? { borderColor: "var(--line-strong)", color: "var(--green)" } : undefined}
+                      onClick={() => setForm({ ...form, presupuestoFlexible: !form.presupuestoFlexible })}>
+                      presupuesto flexible
+                    </button>
+                  </div>
+                </div>
+
+                <Campo etiqueta="Tensión declarada" id="f-tension" ayuda="lo que un desplegable no captura">
+                  <input id="f-tension" className="field" placeholder="ella quiere playa, él se aburre"
+                    value={form.tensionDeclarada}
+                    onChange={(e) => setForm({ ...form, tensionDeclarada: e.target.value })} />
+                </Campo>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <span className="text-[11px] text-[var(--dim)]">
+                  El formulario se salta la extracción: menos tokens, menos latencia y cero ambigüedad.
+                </span>
+                <button type="submit" className="btn btn-primary" disabled={cargando}>
+                  <Send size={14} className="mr-1.5 inline" aria-hidden />
+                  {cargando ? "Calculando…" : "Preparar propuesta"}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setExcluidos([]);
+                void enviar(notas, [], false);
+              }}
+            >
+              <label htmlFor="notas" className="sr-only">Notas de la llamada</label>
+              <textarea
+                id="notas"
+                className="field min-h-[110px] resize-y"
+                placeholder={`Con tus palabras. Por ejemplo: ${EJEMPLOS[0]}`}
+                value={notas}
+                onChange={(e) => setNotas(e.target.value)}
+                maxLength={2000}
+              />
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <span className="text-[11px] text-[var(--dim)]">
+                  La extracción funciona sin modelo de lenguaje: son reglas, no una IA adivinando.
+                </span>
+                <button type="submit" className="btn btn-primary" disabled={cargando || notas.trim().length < 3}>
+                  <Send size={14} className="mr-1.5 inline" aria-hidden />
+                  {cargando ? "Calculando…" : "Preparar propuesta"}
+                </button>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {EJEMPLOS.map((e, i) => (
+                  <button key={i} type="button" className="btn btn-ghost px-3 py-1.5 text-[11px]"
+                    onClick={() => { setNotas(e); setExcluidos([]); void enviar(e, [], false); }}>
+                    Ejemplo {i + 1}
+                  </button>
+                ))}
+              </div>
+            </form>
+          )}
         </Panel>
 
         {error ? <Vacio mensaje={error} /> : null}
@@ -181,6 +370,47 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
                           ))}
                         </ul>
                       ) : null}
+
+                      {(() => {
+                        const c = respuesta.conversiones?.find((x) => x.id === p.id);
+                        if (!c) return null;
+                        return (
+                          <details className="mt-3 border-t pt-3" style={{ borderColor: "var(--line)" }}>
+                            <summary className="flex cursor-pointer items-baseline justify-between gap-2">
+                              <span className="text-[11px] text-[var(--dim)]">Probabilidad de cierre</span>
+                              <span className="text-[15px] tabular-nums" style={{ color: "var(--green)" }}>
+                                {Math.round(c.probabilidad * 100)}%
+                              </span>
+                            </summary>
+                            <ul className="mt-2 space-y-1 text-[11px]">
+                              <li className="flex justify-between gap-2 text-[var(--muted)]">
+                                <span>Base {c.empirica ? "empírica" : "supuesta"}</span>
+                                <span className="tabular-nums">{Math.round(c.base * 100)}%</span>
+                              </li>
+                              {c.ajustes.map((a) => (
+                                <li key={a.nombre} className="flex justify-between gap-2 text-[var(--muted)]">
+                                  <span className="min-w-0">
+                                    {a.nombre}
+                                    <span className="block text-[10px] text-[var(--dim)]">{a.porque}</span>
+                                  </span>
+                                  <span
+                                    className="shrink-0 tabular-nums"
+                                    style={{ color: a.factor >= 1 ? "var(--green)" : "var(--orange)" }}
+                                  >
+                                    ×{a.factor.toFixed(2)}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                            <p
+                              className="mt-2 text-[10px] leading-relaxed"
+                              style={{ color: c.empirica ? "var(--dim)" : "var(--orange)" }}
+                            >
+                              {c.explicacion}
+                            </p>
+                          </details>
+                        );
+                      })()}
 
                       <p className="mt-3 text-[10px] text-[var(--dim)]">
                         {arg?.verificado

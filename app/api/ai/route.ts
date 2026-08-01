@@ -6,13 +6,32 @@ import { extraerPerfilDeterminista } from "@/lib/extraccion";
 import { recomendar } from "@/lib/motor";
 import { leerCriterio } from "@/lib/criterio";
 import { verificarArgumento } from "@/lib/verificar";
+import { estimarConversion, leerHistorico } from "@/lib/conversion";
 import type { Destino, Perfil } from "@/types";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
+const PerfilDirecto = z.object({
+  adultos: z.number().int().min(1).max(12),
+  edadesNinos: z.array(z.number().int().min(0).max(17)).max(8),
+  presupuestoTotal: z.number().int().min(100).max(200000),
+  presupuestoFlexible: z.boolean(),
+  mes: z.number().int().min(1).max(12),
+  dias: z.number().int().min(1).max(60),
+  motivacion: z.enum(["descanso", "cultura", "aventura", "romantico", "celebracion"]),
+  intensidad: z.number().int().min(1).max(5),
+  restricciones: z.array(z.string().max(40)).max(6),
+  destinosVisitados: z.array(z.string().max(60)).max(20),
+  tensionDeclarada: z.string().max(300),
+});
+
 const Entrada = z.object({
-  notas: z.string().min(3).max(2000),
+  // El formulario guiado ahorra la llamada de extraccion: menos tokens, menos
+  // latencia y cero ambiguedad. Las notas libres siguen valiendo para cuando el
+  // agente prefiere escribir como habla.
+  perfil: PerfilDirecto.optional(),
+  notas: z.string().min(3).max(2000).optional(),
   excluidos: z.array(z.string()).max(30).optional(),
   campanas: z.array(z.string()).max(30).optional(),
   pesos: z
@@ -72,15 +91,39 @@ export async function POST(request: Request) {
   const parseado = Entrada.safeParse(cuerpo);
   if (!parseado.success) {
     return NextResponse.json(
-      { error: { code: "INVALID_INPUT", message: "Escribe entre 3 y 2000 caracteres." } },
+      { error: { code: "INVALID_INPUT", message: "Rellena el formulario o escribe las notas de la llamada." } },
       { status: 400 },
     );
   }
-  const { notas, excluidos = [], campanas, pesos } = parseado.data;
+  const { perfil: perfilDirecto, notas, excluidos = [], campanas, pesos } = parseado.data;
+  if (!perfilDirecto && !notas) {
+    return NextResponse.json(
+      { error: { code: "INVALID_INPUT", message: "Hace falta el perfil o las notas de la llamada." } },
+      { status: 400 },
+    );
+  }
 
-  // 1 · Extraccion determinista. Siempre funciona: sin red, sin clave y sin coste.
-  const extraido = extraerPerfilDeterminista(notas);
-  const perfil: Perfil = {
+  // 1 · Si viene del formulario guiado no hay nada que extraer. Si vienen notas,
+  // la extraccion determinista siempre funciona: sin red, sin clave y sin coste.
+  const extraido = notas
+    ? extraerPerfilDeterminista(notas)
+    : {
+        adultos: perfilDirecto!.adultos,
+        ninos: perfilDirecto!.edadesNinos,
+        presupuesto_total: perfilDirecto!.presupuestoTotal,
+        presupuesto_es_por_persona: false,
+        flexible: perfilDirecto!.presupuestoFlexible,
+        mes: perfilDirecto!.mes,
+        dias: perfilDirecto!.dias,
+        motivacion: perfilDirecto!.motivacion,
+        intensidad: perfilDirecto!.intensidad,
+        restricciones: perfilDirecto!.restricciones,
+        destinos_mencionados: [],
+        tension: perfilDirecto!.tensionDeclarada || null,
+        no_consta: [],
+        literales: {},
+      };
+  const perfil: Perfil = perfilDirecto ?? {
     adultos: extraido.adultos ?? 2,
     edadesNinos: extraido.ninos ?? [],
     presupuestoTotal: extraido.presupuesto_total ?? 0,
@@ -166,6 +209,19 @@ export async function POST(request: Request) {
     });
   }
 
+  // Probabilidad estimada de conversion por propuesta. Es un MODELO, no un dato:
+  // declara su base y sobre cuantas observaciones reales se apoya.
+  const historico = await leerHistorico();
+  const conversiones = resultado.propuestas.map((p) => {
+    const d = destinos.find((x) => x.id === p.id);
+    return {
+      id: p.id,
+      ...(d
+        ? estimarConversion(d, perfil, p.puntuacion, historico[p.id])
+        : { probabilidad: 0, base: 0, ajustes: [], empirica: false, observaciones: 0, explicacion: "" }),
+    };
+  });
+
   // El bucle: cada recomendacion y cada descarte quedan registrados. Es el
   // unico dato que ningun proveedor puede vender —que funciona en ESTA
   // agencia— y el cimiento de la v2.
@@ -178,6 +234,7 @@ export async function POST(request: Request) {
     perfil,
     resultado,
     argumentos,
+    conversiones,
     origen,
     traza: {
       ...resultado.traza,
