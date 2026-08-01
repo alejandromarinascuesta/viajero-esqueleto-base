@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MessageSquare } from "lucide-react";
+import { Clapperboard, MessageSquare } from "lucide-react";
 import type { DestinoConScore } from "@/components/layout/Shell";
 import { Anillo, Kpi, Panel, Vacio } from "@/components/ui";
 import { accionRecomendada, pulso } from "@/lib/pulso";
@@ -30,12 +30,14 @@ export default function Destino360({
   mes,
   onSeleccionar,
   onAbrirCopiloto,
+  onAbrirContenido,
 }: {
   destino: DestinoConScore;
   destinos: DestinoConScore[];
   mes: number;
   onSeleccionar: (id: string) => void;
   onAbrirCopiloto: (id: string) => void;
+  onAbrirContenido: (id: string) => void;
 }) {
   // El estado de carga se DERIVA de si lo que hay guardado corresponde al
   // destino abierto. Asi no hace falta un segundo estado que mantener en
@@ -123,6 +125,10 @@ export default function Destino360({
                 <button type="button" className="btn btn-primary" onClick={() => onAbrirCopiloto(destino.id)}>
                   <MessageSquare size={14} className="mr-1.5 inline" aria-hidden />
                   Preparar propuesta
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={() => onAbrirContenido(destino.id)}>
+                  <Clapperboard size={14} className="mr-1.5 inline" aria-hidden />
+                  Crear vídeo social
                 </button>
               </div>
             </div>

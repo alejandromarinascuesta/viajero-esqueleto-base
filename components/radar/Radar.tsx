@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowRight, Clock3, Search } from "lucide-react";
+import { ArrowRight, Clapperboard, Clock3, Search } from "lucide-react";
 import type { DestinoConScore } from "@/components/layout/Shell";
 import type { OrigenDatos } from "@/lib/data";
 import { Anillo, Kpi, Panel, Vacio } from "@/components/ui";
@@ -33,11 +33,13 @@ export default function Radar({
   origen,
   onAbrirDestino,
   onAbrirCopiloto,
+  onAbrirContenido,
 }: {
   destinos: DestinoConScore[];
   origen: OrigenDatos;
   onAbrirDestino: (id: string) => void;
   onAbrirCopiloto: (id: string) => void;
+  onAbrirContenido: (id: string) => void;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]["id"]>("todos");
@@ -99,9 +101,15 @@ export default function Radar({
               Sincronización automática · Google Trends nocturno
             </span>
             {lider ? (
-              <button type="button" className="btn btn-primary" onClick={() => onAbrirDestino(lider.id)}>
-                Analizar {lider.destino}
-              </button>
+              <>
+                <button type="button" className="btn btn-primary" onClick={() => onAbrirDestino(lider.id)}>
+                  Analizar {lider.destino}
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={() => onAbrirContenido(lider.id)}>
+                  <Clapperboard size={14} className="mr-1.5 inline" aria-hidden />
+                  Crear vídeo del líder
+                </button>
+              </>
             ) : null}
           </div>
         </div>

@@ -1,7 +1,7 @@
 # Travel Intelligence
 
 **Plataforma digital B2B de inteligencia turística.** Convierte señales de demanda en decisiones
-comerciales y en propuestas que un agente puede defender delante de un cliente.
+comerciales, propuestas que un agente puede defender y contenido vertical listo para activar.
 
 ---
 
@@ -61,7 +61,7 @@ Estados de frescura que usa la interfaz: `En directo`, `Actualizado`, `Último d
 
 ---
 
-## Las cuatro secciones
+## Las cinco secciones
 
 | Sección | Qué resuelve |
 |---|---|
@@ -69,15 +69,17 @@ Estados de frescura que usa la interfaz: `En directo`, `Actualizado`, `Último d
 | **Radar de demanda** | Pantalla de entrada: propuesta de valor, KPIs y los 15 destinos del catálogo con Google Trends automático, búsqueda, cuatro filtros y cuatro ordenaciones |
 | **Destino 360** | La ficha completa, con el desglose de cómo se calcula su score y de dónde sale cada dato |
 | **Copiloto** | De las notas de una llamada a dos propuestas argumentadas y verificadas |
+| **Content Studio** | Del destino prioritario a un guion, activos licenciados y un vídeo 9:16 real con descarga y envío a TikTok |
 | **Criterio comercial** | Los pesos, campañas y vetos que mueve la dirección. Es lo que convierte el algoritmo en plataforma |
 
 La arquitectura se explica en un panel aparte, accesible desde la barra lateral: es material de defensa, no
 una pantalla que el agente vaya a usar.
 | **Arquitectura** | Cómo se orquesta, qué cuesta cada decisión y dónde están los puntos críticos |
 
-*Campaign Studio y Biblioteca quedan fuera de esta versión de forma deliberada: son la pata de contenido
-del brief, y generarlo sin saber qué destino empujar ni a qué perfil es justo lo que ya le sale caro a la
-agencia.*
+Content Studio conserva una biblioteca local de campañas. La pieza se genera bajo demanda a partir del
+destino seleccionado en el Radar: Claude redacta sobre hechos permitidos, Wikimedia Commons aporta activos
+con atribución y el navegador renderiza un WebM vertical con una cama sonora original. Si el modelo o la
+búsqueda de activos fallan, el flujo continúa con texto verificado y dirección de arte de marca.
 
 ## El Opportunity Score
 
@@ -85,7 +87,7 @@ Fórmula explicable, determinista y auditable desde la interfaz:
 
 | Componente | Peso | Origen |
 |---|---|---|
-| Tendencia de interés | 35 % | Wikimedia Pageviews · ventanas de 28 días |
+| Tendencia de interés | 35 % | Google Trends vía SerpApi; Wikimedia Pageviews como respaldo |
 | Atractivo económico | 25 % | Catálogo de la agencia |
 | Cupo disponible | 20 % | Catálogo de la agencia |
 | Idoneidad climática | 20 % | Open-Meteo · archivo histórico |
@@ -119,7 +121,7 @@ npm run dev          # http://localhost:3000
 npm run typecheck
 npm run lint
 npm run build
-npm test             # 61 pruebas
+npm test             # 63 pruebas
 ```
 
 **Funciona sin ninguna variable de entorno.** Sin base de datos sirve la última observación real guardada
@@ -134,6 +136,7 @@ y el argumento cae a los motivos del catálogo.
 | `IA_API_KEY`, `IA_URL`, `IA_MODELO` | Redacción del argumento. Anthropic o cualquier API compatible con OpenAI: se detecta por el prefijo de la clave. También se aceptan `ANTHROPIC_API_KEY` y `OPENAI_API_KEY` |
 | `SERPAPI_API_KEY` | Importación nocturna de Google Trends para todo el catálogo. Quince destinos se agrupan en tres consultas |
 | `CRON_SECRET` | Protege la ruta de sincronización invocada por Vercel Cron |
+| `TIKTOK_ACCESS_TOKEN` | Token server-side de una cuenta autorizada para enviar el vídeo como borrador mediante la API oficial |
 
 ## Despliegue en Vercel
 
@@ -157,6 +160,9 @@ sin declararlo, sigue buscando una carpeta `dist` que Next.js no genera.
 | `POST /api/ingesta` | Ejecuta los conectores y guarda observaciones; requiere `Authorization: Bearer CRON_SECRET` |
 | `GET /api/cron/nightly` | Sincronización automática protegida: Trends, clima, Wikimedia, BCE e INE |
 | `POST /api/descarte` | Registra un descarte con su motivo |
+| `POST /api/content` | Genera el plan vertical verificado y recupera activos licenciados de Wikimedia Commons |
+| `GET /api/media-proxy` | Sirve exclusivamente imágenes de Wikimedia para el render seguro en Canvas |
+| `POST /api/tiktok` | Inicializa la subida oficial y consulta el estado sin exponer el token al navegador |
 
 ---
 
@@ -171,8 +177,10 @@ sin declararlo, sigue buscando una carpeta `dist` que Next.js no genera.
    sistema se niega y explica por qué. Descartar una opción y recalcular.
 6. **Criterio comercial** (45 s). Subir el peso del margen y ver cómo cambia el orden al instante. Vetar
    un destino y comprobar que desaparece de las recomendaciones.
-7. **Modo técnico** (30 s). Abrir la traza: qué descartó cada regla y campos citados frente a inventados.
-8. **Arquitectura** (30 s). Las cuatro capas, los cuatro trade-offs y los cinco puntos críticos.
+7. **Content Studio** (80 s). Abrir el destino elegido, generar el guion, recorrer las escenas y renderizar
+   el vídeo 9:16. Enseñar la atribución del material y el consentimiento de TikTok.
+8. **Modo técnico** (30 s). Abrir la traza: qué descartó cada regla y campos citados frente a inventados.
+9. **Arquitectura** (30 s). Las cuatro capas, los trade-offs y los puntos críticos.
 
 ## Limitaciones reconocidas
 
@@ -183,3 +191,7 @@ sin declararlo, sigue buscando una carpeta `dist` que Next.js no genera.
 - Los pesos iniciales son una hipótesis. Se corrigen con lo que se venda a partir de la v2.
 - Reservas de Amadeus: implementado en el proyecto anterior y desactivado, porque su entorno de pruebas solo
   publica periodos históricos y una señal de demanda con datos de hace años no es una señal de demanda.
+- El botón de TikTok requiere registrar el producto en TikTok for Developers, obtener el permiso
+  `video.upload` y autorizar la cuenta. El MVP lo envía como borrador: la publicación definitiva es humana.
+- La primera versión utiliza fotografía licenciada y movimiento programático. B-roll generativo, voz natural
+  y render cloud son adaptadores posteriores; no bloquean el flujo funcional actual.
