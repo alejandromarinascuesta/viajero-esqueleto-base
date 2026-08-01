@@ -59,6 +59,14 @@ test("cada ajuste viene con su nombre y su porque: nada es una caja negra", () =
   }
 });
 
+test("viajar con niños penaliza una experiencia no apta, no todos los destinos", () => {
+  const familia = { ...perfil, edadesNinos: [5] };
+  const ibiza = estimarConversion(buscar("Ibiza"), familia, 0.7).probabilidad;
+  const creta = estimarConversion(buscar("Creta"), familia, 0.7).probabilidad;
+  assert.ok(ibiza <= 0.05, `Ibiza debería quedar en probabilidad mínima: ${ibiza}`);
+  assert.ok(creta > ibiza, `Creta familiar debería convertir mejor: ${creta} frente a ${ibiza}`);
+});
+
 test("la probabilidad nunca se sale de un rango creible", () => {
   for (const d of destinos) {
     const c = estimarConversion(d, perfil, 1);

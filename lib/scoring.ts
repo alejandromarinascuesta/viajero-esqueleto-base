@@ -23,7 +23,7 @@ import { senalMasReciente, senalMomentum } from "@/lib/signals";
  */
 
 const PESOS = [
-  { clave: "momentum", etiqueta: "Momentum de búsquedas", peso: 35, origen: "Google Trends si está importado; Wikimedia como respaldo" },
+  { clave: "momentum", etiqueta: "Momentum de búsquedas", peso: 35, origen: "Google Trends automático; Wikimedia como respaldo" },
   { clave: "volumen", etiqueta: "Volumen de atención", peso: 20, origen: "Wikimedia · visitas medias al día" },
   { clave: "margen", etiqueta: "Atractivo económico", peso: 20, origen: "Catálogo de la agencia" },
   { clave: "disponibilidad", etiqueta: "Cupo disponible", peso: 15, origen: "Catálogo de la agencia" },
@@ -56,9 +56,9 @@ function componente(clave: string, d: Destino): { valor: number | null; aplica: 
       aplica: true,
       origen: elegida
         ? elegida.fuente === "trends"
-          ? `Google Trends · exportación real · ${elegida.periodo}`
+          ? `Google Trends · sincronización automática · ${elegida.periodo}`
           : `Wikimedia Pageviews · respaldo de atención · ${elegida.periodo}`
-        : "Google Trends si está importado; Wikimedia como respaldo",
+        : "Google Trends automático; Wikimedia como respaldo",
     };
   }
   if (clave === "volumen") {

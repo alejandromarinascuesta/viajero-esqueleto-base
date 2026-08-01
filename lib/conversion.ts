@@ -102,7 +102,24 @@ export function estimarConversion(
     });
   }
 
-  // 5 · Repetición: lo ya visitado convierte peor.
+  // 5 · La presencia de menores no penaliza todos los destinos por igual. La
+  // adecuación de la ficha decide: una experiencia familiar puede mejorar el
+  // encaje; una de adultos lo deja en probabilidad mínima.
+  if (perfil.edadesNinos.length > 0) {
+    const factor = destino.aptoNinos === "alto" ? 1.08 : destino.aptoNinos === "medio" ? 0.82 : 0.15;
+    ajustes.push({
+      nombre: "Adecuación para niños",
+      factor,
+      porque:
+        destino.aptoNinos === "alto"
+          ? "la experiencia está diseñada para familias"
+          : destino.aptoNinos === "medio"
+            ? "el destino admite familias, pero no está especializado"
+            : "la experiencia no es adecuada para viajar con niños",
+    });
+  }
+
+  // 6 · Repetición: lo ya visitado convierte peor.
   if (perfil.destinosVisitados.includes(destino.destino)) {
     ajustes.push({
       nombre: "Destino ya visitado",

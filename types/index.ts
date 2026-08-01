@@ -86,6 +86,9 @@ export type Perfil = {
   restricciones: string[];
   destinosVisitados: string[];
   tensionDeclarada: string;
+  /** Tope derivado de una objeción explícita a un destino del catálogo. */
+  precioMaximoReferenciaPp?: number | null;
+  destinoReferenciaPrecio?: string | null;
 };
 
 export type Propuesta = {

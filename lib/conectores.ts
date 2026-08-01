@@ -13,7 +13,7 @@ import type { Destino } from "@/types";
  */
 
 export type FilaSenal = {
-  fuente: "clima" | "interes" | "divisa" | "ine";
+  fuente: "clima" | "interes" | "divisa" | "ine" | "trends";
   destino_id: string;
   periodo: string;
   metrica: string;

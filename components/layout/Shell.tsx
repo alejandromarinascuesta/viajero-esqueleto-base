@@ -120,7 +120,6 @@ export default function Shell({
         {vista === "radar" ? (
           <Radar
             destinos={destinos}
-            mes={mes}
             origen={origen}
             onAbrirDestino={abrirDestino}
             onAbrirCopiloto={abrirCopiloto}

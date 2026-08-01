@@ -13,7 +13,7 @@ export async function GET() {
     frescura: origen.frescura,
     ingestadoEn: origen.ingestadoEn,
     destinos: destinos.length,
-    fuentes: ["Catálogo de la agencia", "Open-Meteo", "Wikimedia Pageviews"],
+    fuentes: ["Catálogo de la agencia", "Google Trends vía SerpApi", "Open-Meteo", "Wikimedia Pageviews"],
     timestamp: new Date().toISOString(),
   });
 }

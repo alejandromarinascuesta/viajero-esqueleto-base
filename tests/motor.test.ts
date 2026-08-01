@@ -65,6 +65,14 @@ test("Ibiza SI se propone a un grupo de amigos sin ninos", () => {
   assert.equal(e.relajables.length, 0);
 });
 
+test("si Ibiza se considera cara, Creta y todo destino más caro se descartan", () => {
+  const p = perfil({ precioMaximoReferenciaPp: 620, destinoReferenciaPrecio: "Ibiza" });
+  const ibiza = evaluarReglas(buscar("Ibiza"), p, 2);
+  const creta = evaluarReglas(buscar("Creta"), p, 2);
+  assert.ok(ibiza.inviolables.some((motivo) => motivo.includes("considera caro Ibiza")));
+  assert.ok(creta.inviolables.some((motivo) => motivo.includes("considera caro Ibiza")));
+});
+
 test("cuando nada cumple, solo se proponen las que incumplen reglas relajables", () => {
   const r = recomendar(destinos, perfil({ presupuestoTotal: 400, mes: 8, dias: 3 }));
   assert.ok(r.modo === "sin_supervivientes" || r.modo === "sin_opciones");
