@@ -115,3 +115,40 @@ export type Recomendacion = {
   avisos: string[];
   traza: Record<string, unknown>;
 };
+
+export type ActivoVisual = {
+  id: string;
+  titulo: string;
+  url: string;
+  miniatura: string;
+  paginaFuente: string;
+  autor: string;
+  licencia: string;
+  tipo: "imagen" | "video";
+};
+
+export type EscenaContenido = {
+  titulo: string;
+  textoPantalla: string;
+  locucion: string;
+  consultaVisual: string;
+};
+
+export type PlanContenido = {
+  modo: "live-ai" | "fallback-verificado";
+  destinoId: string;
+  destino: string;
+  creadoEn: string;
+  concepto: string;
+  hook: string;
+  audiencia: string;
+  objetivo: string;
+  tono: string;
+  duracion: 15 | 30;
+  escenas: EscenaContenido[];
+  caption: string;
+  cta: string;
+  hashtags: string[];
+  hechosUtilizados: string[];
+  advertencias: string[];
+};

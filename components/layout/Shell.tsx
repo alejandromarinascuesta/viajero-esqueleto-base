@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, Compass, MessageSquare, Network, SlidersHorizontal, X } from "lucide-react";
+import { Activity, Clapperboard, Compass, MessageSquare, Network, SlidersHorizontal, X } from "lucide-react";
 import type { Destino, Oportunidad } from "@/types";
 import type { OrigenDatos } from "@/lib/data";
 import { Frescor } from "@/components/ui";
@@ -10,6 +10,7 @@ import Destino360 from "@/components/destination/Destino360";
 import Copiloto from "@/components/copilot/Copiloto";
 import CriterioComercial from "@/components/criterio/CriterioComercial";
 import Arquitectura from "@/components/architecture/Arquitectura";
+import ContentStudio from "@/components/content/ContentStudio";
 
 export type DestinoConScore = Destino & { oportunidad: Oportunidad };
 
@@ -20,6 +21,7 @@ const VISTAS = [
   { id: "radar", nombre: "Radar de demanda", icono: Activity },
   { id: "destino", nombre: "Destino 360", icono: Compass },
   { id: "copiloto", nombre: "Copiloto", icono: MessageSquare },
+  { id: "contenido", nombre: "Content Studio", icono: Clapperboard },
   { id: "criterio", nombre: "Criterio comercial", icono: SlidersHorizontal },
 ] as const;
 
@@ -36,7 +38,9 @@ export default function Shell({
 }) {
   const [vista, setVista] = useState<Vista>("radar");
   const [verArquitectura, setVerArquitectura] = useState(false);
-  const [seleccion, setSeleccion] = useState<string>(destinos[0]?.id ?? "");
+  const [seleccion, setSeleccion] = useState<string>(
+    () => [...destinos].sort((a, b) => b.oportunidad.score - a.oportunidad.score)[0]?.id ?? "",
+  );
 
   const abrirDestino = (id: string) => {
     setSeleccion(id);
@@ -45,6 +49,10 @@ export default function Shell({
   const abrirCopiloto = (id: string) => {
     setSeleccion(id);
     setVista("copiloto");
+  };
+  const abrirContenido = (id: string) => {
+    setSeleccion(id);
+    setVista("contenido");
   };
 
   const activo = destinos.find((d) => d.id === seleccion) ?? destinos[0];
@@ -123,12 +131,14 @@ export default function Shell({
             origen={origen}
             onAbrirDestino={abrirDestino}
             onAbrirCopiloto={abrirCopiloto}
+            onAbrirContenido={abrirContenido}
           />
         ) : null}
         {vista === "destino" && activo ? (
-          <Destino360 destino={activo} destinos={destinos} mes={mes} onSeleccionar={setSeleccion} onAbrirCopiloto={abrirCopiloto} />
+          <Destino360 destino={activo} destinos={destinos} mes={mes} onSeleccionar={setSeleccion} onAbrirCopiloto={abrirCopiloto} onAbrirContenido={abrirContenido} />
         ) : null}
         {vista === "copiloto" ? <Copiloto destinoSugerido={activo?.destino ?? ""} /> : null}
+        {vista === "contenido" ? <ContentStudio destinos={destinos} destinoSugerido={activo?.id ?? ""} onSeleccionar={setSeleccion} /> : null}
         {vista === "criterio" ? <CriterioComercial destinos={destinos} /> : null}
       </main>
 

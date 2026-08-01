@@ -6,22 +6,22 @@ import { Panel } from "@/components/ui";
 const CAPAS = [
   {
     nombre: "Experiencia",
-    piezas: ["Overview", "Radar de demanda", "Destino 360", "Copiloto"],
+    piezas: ["Radar de demanda", "Destino 360", "Copiloto", "Content Studio", "Criterio comercial"],
     nota: "Lo que ve el agente y la dirección",
   },
   {
     nombre: "Producto",
-    piezas: ["Opportunity Score", "Reglas duras en dos niveles", "Pesos comerciales", "Verificación del argumento"],
+    piezas: ["Opportunity Score", "Reglas duras", "Pesos comerciales", "Guiones verificados", "Render vertical"],
     nota: "El criterio de la agencia, hecho código. Determinista",
   },
   {
     nombre: "Inteligencia",
-    piezas: ["Extracción determinista", "Modelo de lenguaje (opcional)", "Señales de demanda", "Clima"],
-    nota: "La IA solo lee texto libre y redacta. Nunca decide",
+    piezas: ["Claude_LLM", "Google Trends", "Wikimedia Commons", "Clima", "Fallbacks verificados"],
+    nota: "La IA redacta; las reglas, los datos y las licencias se controlan en código",
   },
   {
     nombre: "Plataforma",
-    piezas: ["Next.js", "Vercel", "Postgres", "Caché e ingesta en lote"],
+    piezas: ["Next.js", "Vercel", "Postgres", "Canvas/MediaRecorder", "TikTok Content Posting API"],
     nota: "Sin servidor persistente",
   },
 ];
@@ -32,6 +32,18 @@ const DECISIONES = [
     detalle:
       "Descarta el código, ordenan los pesos de la agencia y el modelo solo lee texto libre al principio y redacta al final. Mismo cliente y mismas reglas, misma respuesta.",
     coste: "Pierde flexibilidad ante matices raros que un modelo suelto captaría mejor.",
+  },
+  {
+    titulo: "Generar vídeo en el navegador",
+    detalle:
+      "El primer MVP compone 9:16 con Canvas y MediaRecorder: no necesita una granja de render ni una API de vídeo para producir un WebM real con audio original.",
+    coste: "La calidad cinematográfica y la voz natural requieren después un proveedor especializado o render cloud.",
+  },
+  {
+    titulo: "TikTok como borrador, no autopublicación ciega",
+    detalle:
+      "La plataforma inicia la subida oficial, pero el creador revisa el resultado y completa la publicación desde TikTok. El consentimiento queda delante del botón.",
+    coste: "Añade un paso humano, pero reduce riesgo de marca y cumple el flujo de autorización de TikTok.",
   },
   {
     titulo: "Dos niveles de regla dura",
@@ -58,6 +70,7 @@ const SIGUIENTES = [
   "Fuentes de demanda consumada: Amadeus en producción, INE, Dataestur, Eurostat y Aena",
   "Eventos, para explicar por qué sube un destino y no solo que sube",
   "Integración en el CRM donde el agente ya trabaja",
+  "Voz natural y B-roll generativo mediante un proveedor audiovisual intercambiable",
   "Roles, trazabilidad y retención de datos de cliente",
 ];
 
@@ -72,6 +85,15 @@ export default function Arquitectura({ origen }: { origen: OrigenDatos }) {
               Cada conector lee su fuente, la normaliza y la escribe con tres fechas: cuándo ocurre el dato,
               cuándo lo publicó la fuente y cuándo lo ingerimos. Todas las fuentes aterrizan en la misma
               forma — eso es lo que significa unificar datos dispersos.
+            </p>
+          </div>
+          <div className="subpanel p-4 lg:col-span-2">
+            <span className="pill pill-line">AL GENERAR CONTENIDO · BAJO DEMANDA</span>
+            <p className="mt-3 text-[13px] leading-relaxed text-[var(--muted)]">
+              Radar → destino prioritario → Claude redacta sobre hechos permitidos → validación → búsqueda de
+              activos licenciados en Wikimedia Commons → composición 9:16 con audio original → aprobación
+              humana → descarga o borrador en TikTok. Si el modelo falla, entra un guion determinista construido
+              con los motivos reales de la ficha.
             </p>
           </div>
           <div className="subpanel p-4">
@@ -120,6 +142,7 @@ export default function Arquitectura({ origen }: { origen: OrigenDatos }) {
             <li><b className="text-[var(--text)]">Las fuentes externas.</b> Dependen de terceros. Mitigado con ingesta en lote y última observación real.</li>
             <li><b className="text-[var(--text)]">La redacción del argumento.</b> Es donde un modelo podría inventar. Se verifica en código y, si falla, no se muestra.</li>
             <li><b className="text-[var(--text)]">La adopción.</b> Un agente veterano no usa una herramienta que le contradice sin explicarse.</li>
+            <li><b className="text-[var(--text)]">Derechos y publicación.</b> Cada activo conserva atribución y licencia; TikTok exige cuenta autorizada y revisión humana.</li>
           </ul>
         </Panel>
 
