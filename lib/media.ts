@@ -140,7 +140,10 @@ async function consultarCommons(consulta: string, tipo: "video" | "bitmap", sign
   const parametros = new URLSearchParams({
     action: "query",
     generator: "search",
-    gsrsearch: `\"${consulta}\" filetype:${tipo}`,
+    // CirrusSearch ya combina los términos por relevancia. Entrecomillar toda
+    // la consulta exigiría una frase literal y dejaría fuera títulos válidos
+    // como "Balos Beach, Crete" o "Playa de Es Trenc".
+    gsrsearch: `${consulta} filetype:${tipo}`,
     gsrnamespace: "6",
     gsrlimit: "12",
     prop: "imageinfo",
