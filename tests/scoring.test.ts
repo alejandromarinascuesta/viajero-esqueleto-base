@@ -18,14 +18,16 @@ test("el score nunca inventa: sin senal, baja la confianza", () => {
 });
 
 test("un destino con las dos senales externas tiene mas confianza que uno sin ellas", () => {
-  const conAmbas = opportunityScore(buscar("Ibiza"));      // clima e interes reales
-  const sinNinguna = opportunityScore(buscar("Praga"));    // ninguna de las dos
-  assert.ok(conAmbas.confianza > sinNinguna.confianza);
+  const conAmbas = opportunityScore(buscar("Ibiza"));
+  const peor = destinos
+    .map(opportunityScore)
+    .sort((a, b) => a.confianza - b.confianza)[0];
   assert.equal(conAmbas.confianza, 100);
+  assert.ok(conAmbas.confianza > peor.confianza);
 });
 
 test("los componentes ausentes no aportan nada al score", () => {
-  const o = opportunityScore(buscar("Praga"));
+  const o = opportunityScore(destinos.find((d) => opportunityScore(d).ausentes.length > 0)!);
   for (const c of o.componentes) {
     if (c.valor === null) assert.equal(c.aporta, 0);
   }
@@ -39,7 +41,10 @@ test("el mismo destino da siempre el mismo score: es determinista", () => {
 
 test("no tener datos NO puede subir la puntuacion", () => {
   const completo = buscar("Ibiza"); // clima e interes reales
-  const sinSenal = buscar("Bali"); // sin interes
+  const sinSenal = destinos.find(
+    (d) => !d.senales.some((s) => s.metrica === "tendencia_interes_pct" && s.estado === "ok"),
+  )!;
+  assert.ok(sinSenal, "deberia haber algun destino sin senal de interes");
   const a = opportunityScore(completo);
   const b = opportunityScore(sinSenal);
 

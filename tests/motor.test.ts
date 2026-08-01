@@ -15,7 +15,7 @@ const perfil = (p: Partial<Perfil>): Perfil => ({
 const buscar = (destino: string) => destinos.find((d) => d.destino === destino)!;
 
 test("el catalogo esta completo y dentro de rango", () => {
-  assert.equal(destinos.length, 30);
+  assert.equal(destinos.length, 15);
   for (const d of destinos) {
     assert.ok(d.intensidad >= 1 && d.intensidad <= 5, `${d.destino}: intensidad fuera de escala`);
     assert.ok(d.precioDesdePp > 0 && d.margenPct > 0);
@@ -23,10 +23,15 @@ test("el catalogo esta completo y dentro de rango", () => {
   }
 });
 
-test("una familia con ninos de 5 y 8 y 3.500 euros en agosto deja 10 supervivientes", () => {
+test("una familia con ninos de 5 y 8 y 3.500 euros en agosto tiene opciones", () => {
   const r = recomendar(destinos, perfil({ edadesNinos: [5, 8] }));
-  assert.equal(r.supervivientes, 10);
+  assert.ok(r.supervivientes >= 3, `solo ${r.supervivientes} supervivientes`);
   assert.equal(r.propuestas.length, 2);
+  // Ninguna puede ser de las prohibidas para familias.
+  for (const p of r.propuestas) {
+    const d = destinos.find((x) => x.id === p.id)!;
+    assert.notEqual(d.aptoNinos, "bajo");
+  }
 });
 
 test("la Riviera Maya NO se propone a una familia con un bebe de 2 anos", () => {

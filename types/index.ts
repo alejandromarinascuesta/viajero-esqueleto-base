@@ -68,6 +68,9 @@ export type Perfil = {
   presupuestoFlexible: boolean;
   mes: number;
   dias: number;
+  /** Fecha concreta de salida en ISO, si el cliente ya la tiene. El mes se
+   *  deriva de ella cuando existe. */
+  fechaSalida?: string | null;
   motivacion: "descanso" | "cultura" | "aventura" | "romantico" | "celebracion";
   intensidad: number;
   restricciones: string[];
@@ -77,6 +80,9 @@ export type Perfil = {
 
 export type Propuesta = {
   id: string;
+  /** Fechas concretas del viaje, calculadas con la salida y las noches. */
+  salida: string | null;
+  regreso: string | null;
   nombre: string;
   destino: string;
   precioPorPersona: number;

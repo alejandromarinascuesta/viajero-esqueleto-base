@@ -73,9 +73,13 @@ export function extraerPerfilDeterminista(notas: string): PerfilExtraido {
 
   // --- composición del grupo ---
   let adultos: number | null = null;
-  const mAdultos = t.match(/(\d+|un|dos|tres|cuatro|cinco|seis|siete|ocho)\s+adultos?/);
+  // "2 adultos", "2 padres", "somos 4", "4 personas": el agente escribe como
+  // habla, y todas estas formas aparecen de verdad en unas notas.
+  const mAdultos = t.match(
+    /(\d+|un|dos|tres|cuatro|cinco|seis|siete|ocho)\s+(?:adultos?|padres|personas|pax)|somos\s+(\d+|dos|tres|cuatro|cinco|seis)/,
+  );
   if (mAdultos) {
-    adultos = palabraONumero(mAdultos[1]);
+    adultos = palabraONumero(mAdultos[1] ?? mAdultos[2]);
     guardar("adultos", mAdultos[0]);
   } else if (DOS_ADULTOS.test(t)) {
     adultos = 2;

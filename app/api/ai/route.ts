@@ -24,6 +24,7 @@ const PerfilDirecto = z.object({
   restricciones: z.array(z.string().max(40)).max(6),
   destinosVisitados: z.array(z.string().max(60)).max(20),
   tensionDeclarada: z.string().max(300),
+  fechaSalida: z.string().max(10).nullable().optional(),
 });
 
 const Entrada = z.object({
@@ -123,7 +124,13 @@ export async function POST(request: Request) {
         no_consta: [],
         literales: {},
       };
-  const perfil: Perfil = perfilDirecto ?? {
+  // Si hay fecha concreta, el mes se deriva de ella: manda la fecha.
+  const mesDeLaFecha = perfilDirecto?.fechaSalida
+    ? Number(perfilDirecto.fechaSalida.slice(5, 7))
+    : null;
+  const perfil: Perfil = perfilDirecto
+    ? { ...perfilDirecto, mes: mesDeLaFecha && mesDeLaFecha >= 1 && mesDeLaFecha <= 12 ? mesDeLaFecha : perfilDirecto.mes }
+    : {
     adultos: extraido.adultos ?? 2,
     edadesNinos: extraido.ninos ?? [],
     presupuestoTotal: extraido.presupuesto_total ?? 0,
@@ -137,7 +144,8 @@ export async function POST(request: Request) {
     restricciones: (extraido.restricciones ?? []).filter((r) => RESTRICCIONES.includes(r)),
     destinosVisitados: [],
     tensionDeclarada: extraido.tension ?? "",
-  };
+    fechaSalida: null,
+      };
 
   if (!perfil.presupuestoTotal) {
     return NextResponse.json({

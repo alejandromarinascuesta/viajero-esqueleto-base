@@ -151,9 +151,25 @@ export function puntuar(
   );
 }
 
-function aPropuesta(d: Destino, personas: number, puntuacion: number | null, incumplimientos: string[]): Propuesta {
+function fechas(salida: string | null, noches: number) {
+  if (!salida) return { salida: null, regreso: null };
+  const ida = new Date(salida);
+  if (Number.isNaN(ida.getTime())) return { salida: null, regreso: null };
+  const vuelta = new Date(ida);
+  vuelta.setUTCDate(vuelta.getUTCDate() + noches);
+  return { salida: ida.toISOString().slice(0, 10), regreso: vuelta.toISOString().slice(0, 10) };
+}
+
+function aPropuesta(
+  d: Destino,
+  personas: number,
+  puntuacion: number | null,
+  incumplimientos: string[],
+  fechaSalida: string | null = null,
+): Propuesta {
   return {
     id: d.id,
+    ...fechas(fechaSalida, d.noches),
     nombre: d.nombre,
     destino: d.destino,
     precioPorPersona: d.precioDesdePp,
@@ -223,7 +239,7 @@ export function recomendar(
       modo: "sin_supervivientes",
       candidatas: candidatas.length,
       supervivientes: 0,
-      propuestas: relajablesSolo.map((e) => aPropuesta(e.destino, personas, null, e.relajables)),
+      propuestas: relajablesSolo.map((e) => aPropuesta(e.destino, personas, null, e.relajables, perfil.fechaSalida ?? null)),
       mensaje: "Ninguna opción cumple todo. Estas son las que menos incumplen, con lo que se pasan.",
       avisos: [],
       traza: trazaBase,
@@ -246,7 +262,7 @@ export function recomendar(
     modo: "recomendadas",
     candidatas: candidatas.length,
     supervivientes: supervivientes.length,
-    propuestas: ordenadas.map((o) => aPropuesta(o.destino, personas, o.puntuacion, [])),
+    propuestas: ordenadas.map((o) => aPropuesta(o.destino, personas, o.puntuacion, [], perfil.fechaSalida ?? null)),
     mensaje: null,
     avisos: [],
     traza: trazaBase,

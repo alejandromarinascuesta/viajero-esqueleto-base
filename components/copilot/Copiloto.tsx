@@ -39,6 +39,9 @@ const EJEMPLOS = [
 
 const euros = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
 
+const fecha = (iso: string) =>
+  new Date(iso).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+
 const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 const RESTRICCIONES = ["movilidad reducida", "no vuelos largos", "presupuesto ajustado"];
 
@@ -68,6 +71,7 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
     ninos: "" as string,
     presupuestoTotal: 3500,
     presupuestoFlexible: false,
+    fechaSalida: "",
     mes: new Date().getMonth() + 1,
     dias: 7,
     motivacion: "descanso" as "descanso" | "cultura" | "aventura" | "romantico" | "celebracion",
@@ -93,6 +97,7 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
       presupuestoFlexible: form.presupuestoFlexible,
       mes: form.mes,
       dias: form.dias,
+      fechaSalida: form.fechaSalida || null,
       motivacion: form.motivacion,
       intensidad: form.intensidad,
       restricciones: form.restricciones,
@@ -230,8 +235,14 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
                     onChange={(e) => setForm({ ...form, presupuestoTotal: Number(e.target.value) })} />
                 </Campo>
 
-                <Campo etiqueta="Mes del viaje" id="f-mes">
-                  <select id="f-mes" className="field" value={form.mes}
+                <Campo etiqueta="Fecha de salida" id="f-fecha" ayuda="si el cliente ya la tiene">
+                  <input id="f-fecha" type="date" className="field"
+                    value={form.fechaSalida}
+                    onChange={(e) => setForm({ ...form, fechaSalida: e.target.value })} />
+                </Campo>
+
+                <Campo etiqueta="Mes del viaje" id="f-mes" ayuda={form.fechaSalida ? "lo manda la fecha" : "si aún no hay fecha"}>
+                  <select id="f-mes" className="field" value={form.mes} disabled={Boolean(form.fechaSalida)}
                     onChange={(e) => setForm({ ...form, mes: Number(e.target.value) })}>
                     {MESES.map((m, i) => (
                       <option key={m} value={i + 1}>{m}</option>
@@ -394,6 +405,13 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
                           <b className="block text-[14px]">{euros.format(p.precioPorPersona)}</b>
                           <span className="block text-[10px] text-[var(--dim)]">{euros.format(p.precioTotalGrupo)} grupo</span>
                         </span>
+                      </div>
+
+                      <div className="mt-2 text-[11px] text-[var(--dim)]">
+                        {p.salida && p.regreso
+                          ? `${fecha(p.salida)} → ${fecha(p.regreso)} · ${p.noches} noches`
+                          : `${p.noches} noches`}
+                        {" · precio del paquete en el catálogo de la agencia"}
                       </div>
 
                       <ul className="mt-3 space-y-1.5 text-[12px] leading-relaxed">
