@@ -24,14 +24,18 @@ test("el catalogo conserva variedad: playa, ciudad, corto y largo radio", () => 
   }
 });
 
+const BRIEF = { objetivo: "Generar solicitudes de presupuesto", tono: "inspirador", duracion: 30 } as const;
+
 test("dos destinos no comparten angulo narrativo en el mismo momento", () => {
   const semilla = 1_754_000_000_000;
-  const angulos = new Set(["EXP01", "EXP07", "EXP13", "EXP21"].map((id) => elegirAngulo(id, semilla).id));
+  const angulos = new Set(
+    ["EXP01", "EXP07", "EXP13", "EXP21"].map((id) => elegirAngulo({ ...BRIEF, destinoId: id }, semilla).id),
+  );
   assert.ok(angulos.size > 1, "todas las campanias salian con el mismo recurso narrativo");
 });
 
-test("el angulo es uno de los declarados y es estable en el mismo minuto", () => {
-  const uno = elegirAngulo("EXP13", 1_754_000_000_000);
+test("el angulo es uno de los declarados y es estable con el mismo brief", () => {
+  const uno = elegirAngulo({ ...BRIEF, destinoId: "EXP13" }, 1_754_000_000_000);
   assert.ok(ANGULOS.some((a) => a.id === uno.id));
-  assert.equal(uno.id, elegirAngulo("EXP13", 1_754_000_000_000).id);
+  assert.equal(uno.id, elegirAngulo({ ...BRIEF, destinoId: "EXP13" }, 1_754_000_000_000).id);
 });

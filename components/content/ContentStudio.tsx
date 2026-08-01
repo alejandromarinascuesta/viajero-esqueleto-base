@@ -10,7 +10,7 @@ import type { DestinoConScore } from "@/components/layout/Shell";
 import { Panel, Vacio } from "@/components/ui";
 import type { ActivoVisual, PlanContenido } from "@/types";
 import { contenedorDisponible, renderizarVideo } from "@/lib/video-browser";
-import { AUDIENCIAS_CONTENIDO, OBJETIVOS_CONTENIDO } from "@/lib/content";
+import { OBJETIVOS_CONTENIDO } from "@/lib/content";
 
 type FicheroVideo = { blob: Blob; url: string; extension: string };
 
@@ -47,8 +47,7 @@ export default function ContentStudio({
   const [destinoId, setDestinoId] = useState(
     () => (top5.some((d) => d.id === destinoSugerido) ? destinoSugerido : top5[0]?.id || ""),
   );
-  const [audiencia, setAudiencia] = useState<(typeof AUDIENCIAS_CONTENIDO)[number]>("Parejas de 30 a 45 años");
-  const [objetivo, setObjetivo] = useState("Generar solicitudes de presupuesto");
+  const [objetivo, setObjetivo] = useState<(typeof OBJETIVOS_CONTENIDO)[number]>("Generar solicitudes de presupuesto");
   const [tono, setTono] = useState<"inspirador" | "premium" | "familiar" | "aventurero">("inspirador");
   const [duracion, setDuracion] = useState<15 | 30>(30);
   const [mezclaVisual, setMezclaVisual] = useState<"video" | "mixto" | "fotos">("video");
@@ -107,7 +106,7 @@ export default function ContentStudio({
       const r = await fetch("/api/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ destinationId: destino.id, audience: audiencia, objective: objetivo, tone: tono, duration: duracion, visualMix: mezclaVisual }),
+        body: JSON.stringify({ destinationId: destino.id, objective: objetivo, tone: tono, duration: duracion, visualMix: mezclaVisual }),
       });
       const datos = (await r.json()) as RespuestaContenido;
       if (!r.ok || !datos.plan) throw new Error(datos.error?.message ?? "No se ha podido generar el contenido.");
@@ -247,15 +246,15 @@ export default function ContentStudio({
                 así que no se puede producir contenido para él todavía.
               </p>
             ) : null}
-            <label className="block text-[11px] text-[var(--muted)]">Audiencia
-              <select className="field mt-1.5" value={audiencia} onChange={(e) => setAudiencia(e.target.value as typeof audiencia)}>
-                {AUDIENCIAS_CONTENIDO.map((opcion) => <option key={opcion} value={opcion}>{opcion}</option>)}
-              </select>
-            </label>
             <label className="block text-[11px] text-[var(--muted)]">Objetivo
-              <select className="field mt-1.5" value={objetivo} onChange={(e) => setObjetivo(e.target.value)}>
+              <select className="field mt-1.5" value={objetivo} onChange={(e) => setObjetivo(e.target.value as typeof objetivo)}>
                 {OBJETIVOS_CONTENIDO.map((opcion) => <option key={opcion} value={opcion}>{opcion}</option>)}
               </select>
+              <span className="mt-1.5 block text-[10px] leading-relaxed text-[var(--dim)]">
+                {objetivo === "Generar solicitudes de presupuesto"
+                  ? "Respuesta directa: ritmo rápido, se puede citar el precio y el cierre pide escribir."
+                  : "Marca: ritmo pausado, sin precio y con un cierre que invita en vez de pedir."}
+              </span>
             </label>
             <div className="grid grid-cols-2 gap-3">
               <label className="block text-[11px] text-[var(--muted)]">Tono
@@ -305,7 +304,7 @@ export default function ContentStudio({
                 ) : null}
               </div>
             ) : null}
-            <button type="button" className="btn btn-primary w-full" disabled={cargando || !audiencia.trim() || !objetivo.trim()} onClick={generar}>
+            <button type="button" className="btn btn-primary w-full" disabled={cargando} onClick={generar}>
               {cargando ? <LoaderCircle size={15} className="mr-2 inline animate-spin" /> : <Sparkles size={15} className="mr-2 inline" />}
               {cargando ? "Analizando señales y creando…" : "Generar campaña vertical"}
             </button>

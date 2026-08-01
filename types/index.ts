@@ -145,7 +145,6 @@ export type PlanContenido = {
   voz?: string;
   concepto: string;
   hook: string;
-  audiencia: string;
   objetivo: string;
   tono: string;
   duracion: 15 | 30;

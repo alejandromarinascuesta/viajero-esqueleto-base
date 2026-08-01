@@ -3,22 +3,30 @@ import { pedirJson, type UsoModelo } from "@/lib/ai";
 import type { Destino, PlanContenido } from "@/types";
 import { vozPara } from "@/lib/locucion";
 
-export const AUDIENCIAS_CONTENIDO = [
-  "Parejas de 30 a 45 años",
-  "Familias con niños",
-  "Viajeros premium",
-  "Jóvenes de 20 a 30 años",
-  "Mayores de 55 años",
-  "Grupos de amigos",
-] as const;
-
+/**
+ * Dos objetivos, no cinco.
+ *
+ * Los otros tres eran variantes de estos dos y producian la misma pieza con
+ * otra etiqueta. Estos si dan peliculas distintas: una pide algo al espectador
+ * y la otra no le pide nada, y eso cambia el ritmo, el cierre y hasta si se
+ * menciona el precio.
+ */
 export const OBJETIVOS_CONTENIDO = [
   "Generar solicitudes de presupuesto",
   "Inspirar y aumentar notoriedad",
-  "Promocionar una oferta concreta",
-  "Captar nuevos seguidores",
-  "Reactivar clientes de la agencia",
 ] as const;
+
+/** Direccion creativa de cada objetivo. Es lo que hace que no salga lo mismo. */
+export const DIRECCION_OBJETIVO: Record<(typeof OBJETIVOS_CONTENIDO)[number], string> = {
+  "Generar solicitudes de presupuesto":
+    "Respuesta directa. Corta al grano en la primera escena, planos rapidos, frases de menos de diez palabras. " +
+    "Puedes usar el precio orientativo y las noches si estan en los hechos permitidos. " +
+    "El cierre pide una accion concreta y el CTA es imperativo. Crea una razon para escribir hoy, sin inventar urgencia falsa ni plazas que no sepas que existen.",
+  "Inspirar y aumentar notoriedad":
+    "Marca. No pidas nada hasta el final y hazlo suave. Ritmo mas lento, planos que respiran, frases con aire. " +
+    "NO menciones precio ni numero de noches: aqui se construye deseo, no se cierra una venta. " +
+    "El cierre es una invitacion abierta, no una llamada a la accion.",
+};
 
 /**
  * Angulos narrativos. Sin esto, el modelo escribe siempre la misma pieza con el
@@ -63,16 +71,49 @@ export const ANGULOS = [
   },
 ] as const;
 
-/** Rota el angulo por destino y momento: la misma campania repetida no se repite. */
-export function elegirAngulo(destinoId: string, semilla = Date.now()) {
-  let suma = Math.floor(semilla / 60_000);
-  for (const caracter of destinoId) suma += caracter.charCodeAt(0);
-  return ANGULOS[Math.abs(suma) % ANGULOS.length];
+/**
+ * Cada objetivo tiene su propia familia de angulos, y no se solapan.
+ *
+ * No es solo para que salgan piezas distintas: es que los recursos que
+ * funcionan para pedir algo no son los que funcionan para no pedir nada. La
+ * objecion y la cuenta atras empujan a actuar; el momento y lo sensorial
+ * construyen deseo sin pedir nada.
+ */
+const FAMILIAS: Record<(typeof OBJETIVOS_CONTENIDO)[number], string[]> = {
+  "Generar solicitudes de presupuesto": ["objecion", "eleccion", "cuenta_atras", "detalle"],
+  "Inspirar y aumentar notoriedad": ["momento", "contraste", "quien_eres", "sensorial"],
+};
+
+const TONOS = ["inspirador", "premium", "familiar", "aventurero"];
+
+export type BriefAngulo = {
+  destinoId: string;
+  objetivo: (typeof OBJETIVOS_CONTENIDO)[number];
+  tono: string;
+  duracion: 15 | 30;
+};
+
+/**
+ * Elige el angulo a partir de TODO el brief.
+ *
+ * Antes dependia solo del destino, asi que cambiar el objetivo devolvia la
+ * misma pieza y parecia que los controles no hacian nada. Ahora el objetivo
+ * decide la familia, y el tono y la duracion desplazan la posicion dentro de
+ * ella una cantidad fija: cambiar cualquiera de los tres cambia el angulo
+ * siempre, no la mayoria de las veces.
+ */
+export function elegirAngulo(brief: BriefAngulo, semilla = Date.now()) {
+  const familia = FAMILIAS[brief.objetivo] ?? FAMILIAS["Generar solicitudes de presupuesto"];
+  let base = Math.floor(semilla / 600_000);
+  for (const caracter of brief.destinoId) base = (Math.imul(base, 31) + caracter.charCodeAt(0)) | 0;
+  const tono = Math.max(0, TONOS.indexOf(brief.tono));
+  const desplazamiento = tono + (brief.duracion === 15 ? 0 : 2);
+  const indice = (((base + desplazamiento) % familia.length) + familia.length) % familia.length;
+  return ANGULOS.find((a) => a.id === familia[indice]) ?? ANGULOS[0];
 }
 
 export const EntradaContenido = z.object({
   destinationId: z.string().min(1).max(40),
-  audience: z.enum(AUDIENCIAS_CONTENIDO),
   objective: z.enum(OBJETIVOS_CONTENIDO),
   tone: z.enum(["inspirador", "premium", "familiar", "aventurero"]),
   duration: z.union([z.literal(15), z.literal(30)]),
@@ -87,7 +128,10 @@ const SalidaModelo = z.object({
     texto_pantalla: z.string().min(2).max(70),
     locucion: z.string().min(3).max(120),
     consulta_visual: z.string().min(2).max(100),
-  })).min(4).max(6),
+  }).refine(
+    (e) => !seSolapan(e.texto_pantalla, e.locucion),
+    "El rótulo y la locución dicen lo mismo",
+  )).min(4).max(6),
   caption: z.string().min(20).max(600),
   cta: z.string().min(3).max(80),
   hashtags: z.array(z.string().min(2).max(35)).min(3).max(8),
@@ -102,9 +146,49 @@ CÓMO EMPIEZA: la primera escena abre SIEMPRE con una pregunta directa al espect
 
 ÁNGULO DE ESTA PIEZA: te doy uno en el contexto, en "angulo". Constrúyela entera sobre él. Dos campañas de destinos distintos no pueden sonar igual: si esta pieza podría servir cambiando el nombre del destino, está mal escrita.
 
-CÓMO SUENA: "locucion" es lo que se pronuncia en voz alta, y hay un locutor real leyéndolo con un cronómetro delante. Máximo unas quince palabras por escena. Frases cortas, verbos, español de España hablado. Nada de "descubre", "sumérgete", "experiencia única", "rincón mágico" ni lenguaje de folleto. "texto_pantalla" es el rótulo y va aún más corto que la locución: no lo repitas palabra por palabra.
+RÓTULO Y VOZ SON DOS COSAS DISTINTAS, y esto es lo más importante del encargo.
+- "texto_pantalla" es el rótulo que se LEE: máximo seis palabras, seco, sin verbo si hace falta. Es un titular.
+- "locucion" es lo que se OYE: una frase hablada, natural, de menos de quince palabras.
+- Los dos dicen lo mismo, pero NUNCA con las mismas palabras. Si el rótulo aparece dentro de la locución, está mal.
+- Se comprueba automáticamente y se rechaza la salida entera si se solapan.
+
+Ejemplos de cómo debe ser:
+  rótulo "Cuarenta playas, no una" · locución "Aquí no eliges playa el primer día. Eliges cuál te toca hoy."
+  rótulo "Agosto sin colas" · locución "La gente viene en julio. Tú puedes venir cuando ya se han ido."
+  rótulo "Dos horas de vuelo" · locución "Sales por la mañana y comes allí."
+Ejemplo de lo que está PROHIBIDO:
+  rótulo "Cuarenta playas" · locución "Cuarenta playas para elegir." (repite el rótulo)
+
+CÓMO SUENA la locución: hay un locutor real leyéndola con un cronómetro delante. Frases cortas, verbos, español de España hablado, como se lo contarías a un amigo. Nada de "descubre", "sumérgete", "experiencia única", "rincón mágico" ni lenguaje de folleto.
+
+EL OBJETIVO MANDA: te doy la dirección creativa en "direccion_objetivo". Cambia el ritmo, el cierre y si se menciona el precio. Dos piezas del mismo destino con objetivos distintos tienen que ser reconociblemente distintas.
 
 Devuelve solo JSON con: concepto, hook, escenas[{titulo,texto_pantalla,locucion,consulta_visual}], caption, cta, hashtags y hechos_utilizados. hechos_utilizados debe copiar literalmente los elementos de HECHOS_PERMITIDOS que hayas usado.`;
+
+const normalizar = (v: string) =>
+  v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+
+/**
+ * Un rotulo y una locucion que dicen lo mismo hacen que el video suene a
+ * teleprompter: se lee en pantalla y se oye a la vez, palabra por palabra. Se
+ * comprueba en codigo porque pedirselo al modelo no basta.
+ *
+ * No se exige que hablen de cosas distintas — tienen que decir lo mismo — sino
+ * que lo digan con otras palabras.
+ */
+export function seSolapan(rotulo: string, locucion: string) {
+  const a = normalizar(rotulo);
+  const b = normalizar(locucion);
+  if (!a || !b) return false;
+  if (a === b || b.includes(a) || a.includes(b)) return true;
+  const palabras = (t: string) => new Set(t.split(" ").filter((p) => p.length > 3));
+  const ra = palabras(a);
+  const rb = palabras(b);
+  if (!ra.size || !rb.size) return false;
+  let comunes = 0;
+  for (const palabra of ra) if (rb.has(palabra)) comunes += 1;
+  return comunes / Math.min(ra.size, rb.size) > 0.7;
+}
 
 function limpiarHashtag(valor: string) {
   const limpio = valor.trim().replace(/^#+/, "").replace(/[^\p{L}\p{N}_]/gu, "");
@@ -127,17 +211,29 @@ export function contenidoFallback(
   entrada: z.infer<typeof EntradaContenido>,
 ): PlanContenido {
   const motivos = destino.motivos.length ? destino.motivos : [`Experiencia de tipo ${destino.tipo}`];
+  // El respaldo tambien separa rotulo y voz: si dicen lo mismo, el video suena
+  // a teleprompter. El rotulo titula y la locucion lo cuenta.
   const aperturas = [
-    `¿Te imaginas ${destino.destino} este año?`,
-    `¿Cuánto hace que no te vas a ${destino.destino}?`,
-    `¿Y si el próximo fuera ${destino.destino}?`,
-    `¿Sabes qué se te está pasando en ${destino.destino}?`,
+    { rotulo: `${destino.destino}`, voz: `¿Te imaginas estar aquí en dos semanas?` },
+    { rotulo: `¿Cuánto hace ya?`, voz: `¿Cuánto hace que no te vas a ${destino.destino}?` },
+    { rotulo: `El próximo`, voz: `¿Y si el siguiente viaje fuera ${destino.destino}?` },
+    { rotulo: `Te lo estás perdiendo`, voz: `¿Sabes lo que te estás perdiendo en ${destino.destino}?` },
   ];
   const apertura = aperturas[Math.abs(destino.id.length + destino.destino.length) % aperturas.length];
+  const cierre = entrada.objective === "Inspirar y aumentar notoriedad"
+    ? { rotulo: destino.destino, voz: "Cuando te apetezca, aquí estamos.", cta: "Te lo enseñamos" }
+    : { rotulo: "Tu propuesta", voz: "Cuéntanos cómo quieres viajar y te la preparamos.", cta: "Pide tu propuesta" };
+
   const escenas = [
-    { titulo: destino.destino, textoPantalla: apertura, locucion: apertura, consultaVisual: `${destino.destino} viaje` },
-    ...motivos.slice(0, 3).map((m) => ({ titulo: destino.destino, textoPantalla: m, locucion: m, consultaVisual: `${destino.destino} ${m}` })),
-    { titulo: "Tu próximo viaje", textoPantalla: `Pide tu propuesta`, locucion: `Cuéntanos cómo quieres viajar y te la preparamos.`, consultaVisual: `${destino.destino} atardecer` },
+    { titulo: destino.destino, textoPantalla: apertura.rotulo, locucion: apertura.voz, consultaVisual: `${destino.destino} viaje` },
+    ...motivos.slice(0, 3).map((m) => ({
+      titulo: destino.destino,
+      // El rotulo se queda con las primeras palabras del motivo; la voz lo dice entero.
+      textoPantalla: m.split(/\s+/).slice(0, 5).join(" "),
+      locucion: m,
+      consultaVisual: `${destino.destino} ${m}`,
+    })),
+    { titulo: "Tu próximo viaje", textoPantalla: cierre.rotulo, locucion: cierre.voz, consultaVisual: `${destino.destino} atardecer` },
   ].slice(0, entrada.duration === 15 ? 4 : 5);
 
   while (escenas.length < 4) escenas.push({ ...escenas[escenas.length - 1] });
@@ -149,18 +245,20 @@ export function contenidoFallback(
     creadoEn: new Date().toISOString(),
     voz: vozPara(entrada.tone, destino.id),
     concepto: `${destino.destino}, visto desde lo que realmente vende esta experiencia`,
-    hook: apertura,
-    audiencia: entrada.audience,
+    hook: apertura.voz,
     objetivo: entrada.objective,
     tono: entrada.tone,
     duracion: entrada.duration,
     mezclaVisual: entrada.visualMix,
     escenas,
     caption: `${destino.destino} puede ser tu próximo viaje. ${motivos.slice(0, 2).join(". ")}. Pide una propuesta adaptada a ti.`,
-    cta: "Pide tu propuesta",
+    cta: cierre.cta,
     hashtags: [`#${destino.destino.replace(/\s+/g, "")}`, "#Viajes", "#TravelInspiration"],
     hechosUtilizados: motivos.slice(0, 3),
-    advertencias: ["Guion de continuidad generado únicamente con la ficha verificada del catálogo."],
+    advertencias: [
+      "Guion de continuidad generado únicamente con la ficha verificada del catálogo.",
+      "Sin modelo disponible el rótulo solo puede acortar la locución, así que en las escenas centrales dicen lo mismo. Con modelo, se exige que no.",
+    ],
   };
 }
 
@@ -169,14 +267,19 @@ export async function generarPlanContenido(
   entrada: z.infer<typeof EntradaContenido>,
 ): Promise<{ plan: PlanContenido; uso: UsoModelo }> {
   const permitidos = hechos(destino);
-  const angulo = elegirAngulo(destino.id);
+  const angulo = elegirAngulo({
+    destinoId: destino.id,
+    objetivo: entrada.objective,
+    tono: entrada.tone,
+    duracion: entrada.duration,
+  });
   const contexto = JSON.stringify({
     canal: "TikTok e Instagram Reels",
     formato: "vertical 9:16",
     duracion_segundos: entrada.duration,
     escenas_objetivo: entrada.duration === 15 ? 4 : 5,
-    audiencia: entrada.audience,
     objetivo: entrada.objective,
+    direccion_objetivo: DIRECCION_OBJETIVO[entrada.objective],
     tono: entrada.tone,
     angulo: angulo.guia,
     HECHOS_PERMITIDOS: permitidos,
@@ -204,11 +307,10 @@ export async function generarPlanContenido(
       destino: destino.destino,
       creadoEn: new Date().toISOString(),
       angulo: angulo.id,
-      voz: vozPara(entrada.tone, `${destino.id}${angulo.id}`),
+      voz: vozPara(entrada.tone, `${destino.id}${angulo.id}${entrada.objective}`),
       concepto: validada.data.concepto,
       hook: validada.data.hook,
-      audiencia: entrada.audience,
-      objetivo: entrada.objective,
+        objetivo: entrada.objective,
       tono: entrada.tone,
       duracion: entrada.duration,
       mezclaVisual: entrada.visualMix,
