@@ -56,6 +56,7 @@ export default function ContentStudio({
   const [usarVoz, setUsarVoz] = useState(true);
   const [probandoVoz, setProbandoVoz] = useState(false);
   const audioPruebaRef = useRef<HTMLAudioElement | null>(null);
+  const motivoVozRef = useRef<string | null>(null);
   const [consentimiento, setConsentimiento] = useState(false);
   const [publicando, setPublicando] = useState(false);
   const [guardados, setGuardados] = useState<PlanContenido[]>([]);
@@ -110,6 +111,7 @@ export default function ContentStudio({
 
   /** Pide la locución. Si falla, la pieza se genera igual con la cama musical. */
   async function pedirLocucion(actual: PlanContenido): Promise<ArrayBuffer | null> {
+    motivoVozRef.current = null;
     if (!usarVoz || !vozDisponible) return null;
     try {
       const r = await fetch("/api/tts", {
@@ -117,9 +119,15 @@ export default function ContentStudio({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ locuciones: actual.escenas.map((e) => e.locucion), duracion: actual.duracion }),
       });
-      if (!r.ok) return null;
+      if (!r.ok) {
+        const detalle = (await r.json().catch(() => null)) as { error?: { message?: string } } | null;
+        throw new Error(detalle?.error?.message ?? `La síntesis de voz respondió ${r.status}.`);
+      }
       return await r.arrayBuffer();
-    } catch { return null; }
+    } catch (e) {
+      motivoVozRef.current = e instanceof Error ? e.message : "No se ha podido generar la locución.";
+      return null;
+    }
   }
 
   /** Escucha la locución suelta. Sirve para separar un fallo de voz de uno de mezcla. */
@@ -128,7 +136,7 @@ export default function ContentStudio({
     setProbandoVoz(true); setMensaje(null);
     try {
       const bytes = await pedirLocucion(plan);
-      if (!bytes) throw new Error("La síntesis de voz no ha devuelto audio. Revisa la clave en el despliegue.");
+      if (!bytes) throw new Error(motivoVozRef.current ?? "La síntesis de voz no ha devuelto audio.");
       audioPruebaRef.current?.pause();
       if (audioPruebaRef.current?.src) URL.revokeObjectURL(audioPruebaRef.current.src);
       const audio = new Audio(URL.createObjectURL(new Blob([bytes], { type: "audio/mpeg" })));
@@ -152,7 +160,7 @@ export default function ContentStudio({
       const url = URL.createObjectURL(resultado.blob);
       setVideo({ blob: resultado.blob, url, extension: resultado.extension });
       setMensaje(
-        `Vídeo 9:16 en ${resultado.extension.toUpperCase()} listo${locucion ? " con locución" : " con cama musical"}. ` +
+        `Vídeo 9:16 en ${resultado.extension.toUpperCase()} listo${locucion ? " con locución" : ` sin locución${motivoVozRef.current ? ` (${motivoVozRef.current})` : ""}`}. ` +
         (resultado.extension === "webm" ? "Este navegador no graba MP4: para publicar, conviértelo o usa Chrome." : "Ya se puede subir a TikTok o Instagram."),
       );
       if (descargar) {
