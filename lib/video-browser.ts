@@ -27,34 +27,55 @@ function porProxy(url: string) {
   return `/api/media-proxy?url=${encodeURIComponent(url)}`;
 }
 
-function cargarImagen(url: string): Promise<HTMLImageElement | null> {
+function intentarImagen(src: string, espera: number): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const img = new Image();
-    const reloj = window.setTimeout(() => resolve(null), 12_000);
+    const reloj = window.setTimeout(() => resolve(null), espera);
+    img.crossOrigin = "anonymous";
     img.onload = () => { window.clearTimeout(reloj); resolve(img); };
     img.onerror = () => { window.clearTimeout(reloj); resolve(null); };
-    img.src = porProxy(url);
+    img.src = src;
   });
 }
 
-function cargarVideo(url: string): Promise<HTMLVideoElement | null> {
+/**
+ * Primero se intenta el origen directo. El CDN del banco ya manda cabeceras
+ * CORS, asi que el canvas no se contamina y ademas evita que cada byte del
+ * material pase por nuestra funcion de servidor. El proxy queda como respaldo
+ * para los origenes que no las mandan.
+ */
+async function cargarImagen(url: string): Promise<HTMLImageElement | null> {
+  return (await intentarImagen(url, 9_000)) ?? (await intentarImagen(porProxy(url), 12_000));
+}
+
+function intentarVideo(src: string, espera: number): Promise<HTMLVideoElement | null> {
   return new Promise((resolve) => {
     const video = document.createElement("video");
-    const reloj = window.setTimeout(() => resolve(null), 15_000);
+    let resuelto = false;
+    const terminar = (valor: HTMLVideoElement | null) => {
+      if (resuelto) return;
+      resuelto = true;
+      window.clearTimeout(reloj);
+      resolve(valor);
+    };
+    const reloj = window.setTimeout(() => terminar(null), espera);
+    video.crossOrigin = "anonymous";
     video.muted = true;
     video.loop = true;
     video.playsInline = true;
     video.preload = "auto";
     video.oncanplay = () => {
-      window.clearTimeout(reloj);
       void video.play().catch(() => undefined);
-      resolve(video);
+      terminar(video);
     };
-    video.onerror = () => { window.clearTimeout(reloj); resolve(null); };
-    // Por el proxy propio: si no, el canvas queda contaminado y no se exporta.
-    video.src = porProxy(url);
+    video.onerror = () => terminar(null);
+    video.src = src;
     video.load();
   });
+}
+
+async function cargarVideo(url: string): Promise<HTMLVideoElement | null> {
+  return (await intentarVideo(url, 9_000)) ?? (await intentarVideo(porProxy(url), 14_000));
 }
 
 type Recurso =
@@ -311,12 +332,18 @@ export async function renderizarVideo(
   ctx.textBaseline = "alphabetic";
 
   // Un recurso por escena; si hay menos activos que escenas, se reciclan.
-  const recursos: (Recurso | null)[] = [];
-  for (let i = 0; i < plan.escenas.length; i += 1) {
-    const activo = activos.length ? activos[i % activos.length] : undefined;
-    recursos.push(await cargarRecurso(activo));
-    progreso(Math.round(((i + 1) / plan.escenas.length) * 25));
-  }
+  // En paralelo: en secuencia, seis clips podian tardar mas de un minuto y en
+  // una demo en vivo ese minuto se nota mucho.
+  let listos = 0;
+  const recursos = await Promise.all(
+    plan.escenas.map(async (_, i) => {
+      const activo = activos.length ? activos[i % activos.length] : undefined;
+      const recurso = await cargarRecurso(activo);
+      listos += 1;
+      progreso(Math.round((listos / plan.escenas.length) * 25));
+      return recurso;
+    }),
+  );
 
   const audio = new AudioContext();
   const salida = audio.createMediaStreamDestination();
