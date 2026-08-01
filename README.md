@@ -66,7 +66,7 @@ Estados de frescura que usa la interfaz: `En directo`, `Actualizado`, `Último d
 | Sección | Qué resuelve |
 |---|---|
 | **Overview** | El estado del negocio en quince segundos: oportunidades, confianza media y estado de las fuentes |
-| **Radar de demanda** | Pantalla de entrada: propuesta de valor, KPIs, ingesta de fuentes y los 30 destinos con búsqueda, cuatro filtros y cuatro ordenaciones |
+| **Radar de demanda** | Pantalla de entrada: propuesta de valor, KPIs y los 15 destinos del catálogo con Google Trends automático, búsqueda, cuatro filtros y cuatro ordenaciones |
 | **Destino 360** | La ficha completa, con el desglose de cómo se calcula su score y de dónde sale cada dato |
 | **Copiloto** | De las notas de una llamada a dos propuestas argumentadas y verificadas |
 | **Criterio comercial** | Los pesos, campañas y vetos que mueve la dirección. Es lo que convierte el algoritmo en plataforma |
@@ -119,7 +119,7 @@ npm run dev          # http://localhost:3000
 npm run typecheck
 npm run lint
 npm run build
-npm test             # 31 pruebas
+npm test             # 61 pruebas
 ```
 
 **Funciona sin ninguna variable de entorno.** Sin base de datos sirve la última observación real guardada
@@ -132,13 +132,15 @@ y el argumento cae a los motivos del catálogo.
 |---|---|
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Histórico de observaciones en Postgres |
 | `IA_API_KEY`, `IA_URL`, `IA_MODELO` | Redacción del argumento. Anthropic o cualquier API compatible con OpenAI: se detecta por el prefijo de la clave. También se aceptan `ANTHROPIC_API_KEY` y `OPENAI_API_KEY` |
+| `SERPAPI_API_KEY` | Importación nocturna de Google Trends para todo el catálogo. Quince destinos se agrupan en tres consultas |
+| `CRON_SECRET` | Protege la ruta de sincronización invocada por Vercel Cron |
 
 ## Despliegue en Vercel
 
 Importar el repositorio. Sin variables de entorno arranca en modo de última observación real y lo indica
 en la interfaz.
 
-`vercel.json` declara el framework de forma explícita. Hace falta porque este proyecto sustituyó a una
+`vercel.json` declara el framework y una sincronización nocturna a las 02:15 UTC. Hace falta porque este proyecto sustituyó a una
 aplicación Vite en el mismo repositorio, y Vercel conserva la detección de framework del primer despliegue:
 sin declararlo, sigue buscando una carpeta `dist` que Next.js no genera.
 
@@ -147,12 +149,13 @@ sin declararlo, sigue buscando una carpeta `dist` que Next.js no genera.
 | Ruta | Qué devuelve |
 |---|---|
 | `GET /api/health` | Estado, origen de los datos y frescura |
-| `GET /api/destinations` | Los 30 destinos con su Opportunity Score |
+| `GET /api/destinations` | Los 15 destinos del catálogo con su Opportunity Score |
 | `GET /api/destinations?id=EXP14` | Un destino concreto. 404 con código `DESTINATION_NOT_FOUND` |
 | `GET /api/weather?destinationId=EXP14` | Clima en directo, o la última observación real si falla |
 | `POST /api/ai` | Notas → perfil → reglas → dos propuestas verificadas |
 | `GET`/`PUT` `/api/criterio` | Pesos, campañas y vetos de la dirección |
-| `POST /api/ingesta` | Ejecuta los conectores y guarda las observaciones |
+| `POST /api/ingesta` | Ejecuta los conectores y guarda observaciones; requiere `Authorization: Bearer CRON_SECRET` |
+| `GET /api/cron/nightly` | Sincronización automática protegida: Trends, clima, Wikimedia, BCE e INE |
 | `POST /api/descarte` | Registra un descarte con su motivo |
 
 ---

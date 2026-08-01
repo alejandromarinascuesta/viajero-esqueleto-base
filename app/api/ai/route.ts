@@ -8,6 +8,7 @@ import { leerCriterio } from "@/lib/criterio";
 import { verificarArgumento } from "@/lib/verificar";
 import { estimarConversion, leerHistorico } from "@/lib/conversion";
 import { senalMasReciente } from "@/lib/signals";
+import { detectarTopePrecioReferenciado } from "@/lib/restricciones-cliente";
 import type { Destino, Perfil } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -129,7 +130,7 @@ export async function POST(request: Request) {
   const mesDeLaFecha = perfilDirecto?.fechaSalida
     ? Number(perfilDirecto.fechaSalida.slice(5, 7))
     : null;
-  const perfil: Perfil = perfilDirecto
+  let perfil: Perfil = perfilDirecto
     ? { ...perfilDirecto, mes: mesDeLaFecha && mesDeLaFecha >= 1 && mesDeLaFecha <= 12 ? mesDeLaFecha : perfilDirecto.mes }
     : {
     adultos: extraido.adultos ?? 2,
@@ -159,6 +160,14 @@ export async function POST(request: Request) {
 
   // 2 · El motor decide. Determinista, sin IA.
   const { destinos, origen } = await cargarDestinos();
+  const topeReferenciado = notas ? detectarTopePrecioReferenciado(notas, destinos) : null;
+  if (topeReferenciado) {
+    perfil = {
+      ...perfil,
+      precioMaximoReferenciaPp: topeReferenciado.precioMaximoPp,
+      destinoReferenciaPrecio: topeReferenciado.destino,
+    };
+  }
   // El criterio comercial que ha configurado la direccion. Lo que llega en la
   // peticion solo sirve para previsualizar cambios sin guardarlos todavia.
   const criterio = await leerCriterio();

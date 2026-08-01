@@ -4,18 +4,14 @@ import { ErrorIngesta, ejecutarIngestaNocturna } from "@/lib/ingesta";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-/** Endpoint operativo. La interfaz no lo invoca: lo usa el proceso programado. */
-export async function POST(request: Request) {
+export async function GET(request: Request) {
   const secreto = process.env.CRON_SECRET;
   if (!secreto || request.headers.get("authorization") !== `Bearer ${secreto}`) {
-    return NextResponse.json(
-      { error: { code: "UNAUTHORIZED", message: "No autorizado" } },
-      { status: 401 },
-    );
+    return NextResponse.json({ error: { code: "UNAUTHORIZED", message: "No autorizado" } }, { status: 401 });
   }
-  const mes = Number(new URL(request.url).searchParams.get("mes")) || new Date().getMonth() + 1;
+
   try {
-    return NextResponse.json(await ejecutarIngestaNocturna(mes));
+    return NextResponse.json(await ejecutarIngestaNocturna(new Date().getMonth() + 1));
   } catch (error) {
     if (error instanceof ErrorIngesta) {
       return NextResponse.json(
@@ -24,7 +20,7 @@ export async function POST(request: Request) {
       );
     }
     return NextResponse.json(
-      { error: { code: "INGESTA", message: "La sincronización no ha podido completarse." } },
+      { error: { code: "INGESTA", message: "La sincronización nocturna no ha podido completarse." } },
       { status: 500 },
     );
   }

@@ -10,7 +10,7 @@ import { senalMomentum, senalesActuales } from "@/lib/signals";
 /** Cada fuente con su cadencia real. La frescura no es uniforme, y decirlo vale
  *  mas que fingir que todo es de hace una hora. */
 const FUENTE: Record<string, { nombre: string; cadencia: string }> = {
-  trends: { nombre: "Demanda · Google Trends", cadencia: "CSV real importado · 4 semanas vs 4" },
+  trends: { nombre: "Demanda · Google Trends", cadencia: "Sincronización nocturna · 4 periodos vs 4" },
   clima: { nombre: "Clima · Open-Meteo", cadencia: "archivo histórico · estable" },
   interes: { nombre: "Interés · Wikimedia", cadencia: "vistas diarias · 28 días vs 28" },
   divisa: { nombre: "Divisa · Banco Central Europeo", cadencia: "cada día laborable" },

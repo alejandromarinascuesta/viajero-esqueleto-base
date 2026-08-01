@@ -96,6 +96,14 @@ export function evaluarReglas(
     if (veto && veto.includes(norm(r))) inviolables.push(`no recomendado si ${r}`);
   }
   if (p.edadesNinos.length > 0 && norm(d.aptoNinos) === "bajo") inviolables.push("no apto para niños");
+  if (
+    p.precioMaximoReferenciaPp &&
+    d.precioDesdePp >= p.precioMaximoReferenciaPp
+  ) {
+    inviolables.push(
+      `${d.precioDesdePp} € por persona: el cliente ya considera caro ${p.destinoReferenciaPrecio ?? "un destino"} desde ${p.precioMaximoReferenciaPp} €`,
+    );
+  }
   if (d.cupo === 0) inviolables.push("sin cupo disponible");
   if (norm(d.visado) === "si" && diasHastaMes(p.mes) < 30)
     inviolables.push(`trámite de visado: quedan ${diasHastaMes(p.mes)} días`);
