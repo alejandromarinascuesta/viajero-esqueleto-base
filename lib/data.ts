@@ -62,8 +62,8 @@ export async function cargarDestinos(): Promise<{ destinos: Destino[]; origen: O
   try {
     const cabeceras = { apikey: clave, Authorization: `Bearer ${clave}` };
     const [expRes, senRes] = await Promise.all([
-      fetch(`${url}/rest/v1/experiencias?select=*`, { headers: cabeceras, next: { revalidate: 300 } }),
-      fetch(`${url}/rest/v1/senales?select=*`, { headers: cabeceras, next: { revalidate: 300 } }),
+      fetch(`${url}/rest/v1/experiencias?select=*`, { headers: cabeceras, cache: "no-store" }),
+      fetch(`${url}/rest/v1/senales?select=*`, { headers: cabeceras, cache: "no-store" }),
     ]);
     if (!expRes.ok || !senRes.ok) return desdeSnapshot();
 

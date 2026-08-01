@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cargarDestino } from "@/lib/data";
+import { senalMasReciente } from "@/lib/signals";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const guardada = destino.senales.find((s) => s.metrica === "temperatura_media" && s.estado === "ok");
+  const guardada = senalMasReciente(destino.senales, "temperatura_media");
 
   try {
     const control = new AbortController();
