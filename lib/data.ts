@@ -11,6 +11,25 @@ import type { Destino, Frescura } from "@/types";
  * y la interfaz lo dice. Nunca se genera un valor para rellenar una tarjeta.
  */
 
+/**
+ * Destinos retirados del catalogo comercial.
+ *
+ * Doce experiencias bien documentadas venden mas que quince a medias: cada una
+ * necesita motivos escritos a mano, precio ancla revisado y material visual que
+ * la represente. Estos tres se retiran por solaparse con otros que ya cubren el
+ * mismo perfil de cliente — dos playas espaniolas mas y una ciudad europea mas
+ * no aniaden decision, solo alargan la lista.
+ *
+ * Es una decision comercial, no tecnica: no se borra nada de la base de datos.
+ * Su historico de seniales se sigue guardando y devolverlos al catalogo es
+ * quitarlos de esta lista.
+ */
+export const RETIRADOS = ["Tenerife", "Praga", "Ámsterdam"];
+
+function enCatalogo(destinos: Destino[]) {
+  return destinos.filter((d) => !RETIRADOS.includes(d.destino));
+}
+
 export type OrigenDatos = {
   modo: "base-de-datos" | "ultima-observacion";
   frescura: Frescura;
@@ -25,7 +44,7 @@ const SNAPSHOT = snapshot as unknown as {
 
 function desdeSnapshot(): { destinos: Destino[]; origen: OrigenDatos } {
   return {
-    destinos: SNAPSHOT.destinos,
+    destinos: enCatalogo(SNAPSHOT.destinos),
     origen: {
       modo: "ultima-observacion",
       frescura: frescuraDe(SNAPSHOT.meta.ingestadoEn),
@@ -105,14 +124,16 @@ export async function cargarDestinos(): Promise<{ destinos: Destino[]; origen: O
         })),
     }));
 
-    const ultima = destinos
+    const catalogo = enCatalogo(destinos);
+
+    const ultima = catalogo
       .flatMap((d) => d.senales.map((s) => s.obtenidoEn))
       .filter((x): x is string => Boolean(x))
       .sort()
       .at(-1) ?? null;
 
     return {
-      destinos,
+      destinos: catalogo,
       origen: {
         modo: "base-de-datos",
         frescura: frescuraDe(ultima),

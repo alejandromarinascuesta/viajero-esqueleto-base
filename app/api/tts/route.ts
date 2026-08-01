@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { guionHablado, sintetizar, velocidadPara, vozValida } from "@/lib/locucion";
+import { guionHablado, recortarAlPresupuesto, sintetizar, velocidadPara, vozValida } from "@/lib/locucion";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   }
   const duracion = cuerpo.duracion === 15 ? 15 : 30;
 
-  const texto = guionHablado(locuciones);
+  const texto = guionHablado(recortarAlPresupuesto(locuciones, duracion));
   const resultado = await sintetizar(texto, vozValida(cuerpo.voz), velocidadPara(texto, duracion));
   if ("error" in resultado) {
     return NextResponse.json({ error: { code: "TTS_NO_DISPONIBLE", message: resultado.error } }, { status: 503 });

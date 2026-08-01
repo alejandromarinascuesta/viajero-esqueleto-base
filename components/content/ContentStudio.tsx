@@ -34,8 +34,18 @@ export default function ContentStudio({
   destinoSugerido: string;
   onSeleccionar: (id: string) => void;
 }) {
+  /**
+   * Producir contenido cuesta dinero y atención, así que solo se abre para las
+   * cinco oportunidades de arriba. Si el radar dice que el sitio donde hay que
+   * empujar es otro, la lista cambia sola: la restricción es la señal, no una
+   * preferencia de quien esté delante de la pantalla.
+   */
+  const top5 = useMemo(
+    () => [...destinos].sort((a, b) => b.oportunidad.score - a.oportunidad.score).slice(0, 5),
+    [destinos],
+  );
   const [destinoId, setDestinoId] = useState(
-    () => destinos.some((d) => d.id === destinoSugerido) ? destinoSugerido : destinos[0]?.id || "",
+    () => (top5.some((d) => d.id === destinoSugerido) ? destinoSugerido : top5[0]?.id || ""),
   );
   const [audiencia, setAudiencia] = useState<(typeof AUDIENCIAS_CONTENIDO)[number]>("Parejas de 30 a 45 años");
   const [objetivo, setObjetivo] = useState("Generar solicitudes de presupuesto");
@@ -81,7 +91,11 @@ export default function ContentStudio({
     return () => window.clearInterval(reloj);
   }, [reproduciendo, plan]);
 
-  const destino = useMemo(() => destinos.find((d) => d.id === destinoId) ?? destinos[0], [destinos, destinoId]);
+  const destino = useMemo(() => top5.find((d) => d.id === destinoId) ?? top5[0], [top5, destinoId]);
+  const fueraDelTop = useMemo(
+    () => destinos.find((d) => d.id === destinoSugerido && !top5.some((t) => t.id === d.id)),
+    [destinos, destinoSugerido, top5],
+  );
   const activoVisual = activos[escena % Math.max(1, activos.length)];
 
   async function generar() {
@@ -117,7 +131,7 @@ export default function ContentStudio({
       const r = await fetch("/api/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ locuciones: actual.escenas.map((e) => e.locucion), duracion: actual.duracion }),
+        body: JSON.stringify({ locuciones: actual.escenas.map((e) => e.locucion), duracion: actual.duracion, voz: actual.voz }),
       });
       if (!r.ok) {
         const detalle = (await r.json().catch(() => null)) as { error?: { message?: string } } | null;
@@ -220,9 +234,19 @@ export default function ContentStudio({
           <div className="space-y-4">
             <label className="block text-[11px] text-[var(--muted)]">Destino
               <select className="field mt-1.5" value={destinoId} onChange={(e) => { setDestinoId(e.target.value); onSeleccionar(e.target.value); }}>
-                {[...destinos].sort((a,b) => b.oportunidad.score - a.oportunidad.score).map((d) => <option key={d.id} value={d.id}>{d.destino} · score {d.oportunidad.score}</option>)}
+                {top5.map((d, i) => <option key={d.id} value={d.id}>{i + 1}. {d.destino} · score {d.oportunidad.score}</option>)}
               </select>
+              <span className="mt-1.5 block text-[10px] leading-relaxed text-[var(--dim)]">
+                Solo las cinco primeras oportunidades del radar. Producir contenido para un destino
+                que nadie está buscando es el gasto que la agencia ya tiene.
+              </span>
             </label>
+            {fueraDelTop ? (
+              <p className="text-[10px] leading-relaxed text-[var(--amber,#FF9868)]">
+                {fueraDelTop.destino} está en el puesto {destinos.filter((d) => d.oportunidad.score > fueraDelTop.oportunidad.score).length + 1} del radar,
+                así que no se puede producir contenido para él todavía.
+              </p>
+            ) : null}
             <label className="block text-[11px] text-[var(--muted)]">Audiencia
               <select className="field mt-1.5" value={audiencia} onChange={(e) => setAudiencia(e.target.value as typeof audiencia)}>
                 {AUDIENCIAS_CONTENIDO.map((opcion) => <option key={opcion} value={opcion}>{opcion}</option>)}

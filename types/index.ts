@@ -139,6 +139,10 @@ export type PlanContenido = {
   destinoId: string;
   destino: string;
   creadoEn: string;
+  /** Recurso narrativo de esta pieza. Rota para que dos campanias no suenen igual. */
+  angulo?: string;
+  /** Voz asignada. Va en el plan para que al re-renderizar suene igual que en la previsualizacion. */
+  voz?: string;
   concepto: string;
   hook: string;
   audiencia: string;

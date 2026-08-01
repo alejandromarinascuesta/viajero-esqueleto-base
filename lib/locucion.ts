@@ -125,12 +125,63 @@ export function guionHablado(locuciones: string[]) {
 }
 
 /**
- * Estima cuanto durara la locucion y devuelve la velocidad necesaria para que
- * quepa en la pieza. Referencia: unos 14 caracteres por segundo en espaniol a
- * ritmo publicitario.
+ * Caracteres por segundo de una locucion comoda en espaniol. Por encima de esto
+ * la voz suena atropellada, y una voz atropellada suena a maquina.
+ */
+const RITMO = 13;
+
+/**
+ * Velocidad de lectura para que el guion quepa en la pieza.
+ *
+ * El limite superior es deliberadamente bajo: antes llegaba a 1,25 y la voz
+ * salia siempre acelerada, que es la causa principal de que sonara robotica. La
+ * solucion correcta no es acelerar la voz sino acortar el texto, y de eso se
+ * encarga recortarAlPresupuesto. Un guion corto leido despacio suena a persona.
  */
 export function velocidadPara(texto: string, segundos: number) {
-  const estimados = texto.length / 14;
-  if (estimados <= segundos * 0.92) return 1;
-  return Math.min(1.25, estimados / (segundos * 0.92));
+  const estimados = texto.length / RITMO;
+  const hueco = segundos * 0.9;
+  if (estimados <= hueco * 0.75) return 0.94; // sobra sitio: se lee con calma
+  if (estimados <= hueco) return 1;
+  return Math.min(1.12, estimados / hueco);
+}
+
+/**
+ * Recorta cada linea hablada a lo que cabe en la pieza, cortando por final de
+ * frase y nunca a mitad de palabra. Lo que se ve en pantalla no se toca: solo
+ * se acorta lo que se pronuncia.
+ */
+export function recortarAlPresupuesto(locuciones: string[], segundos: number) {
+  const limpias = locuciones.map((l) => l.trim().replace(/\s+/g, " ")).filter(Boolean);
+  if (!limpias.length) return limpias;
+  const presupuesto = Math.floor(segundos * RITMO * 0.9);
+  const porLinea = Math.max(30, Math.floor(presupuesto / limpias.length));
+
+  return limpias.map((linea) => {
+    if (linea.length <= porLinea) return linea;
+    const trozo = linea.slice(0, porLinea);
+    const frase = Math.max(trozo.lastIndexOf(". "), trozo.lastIndexOf("? "), trozo.lastIndexOf("! "));
+    if (frase > porLinea * 0.5) return trozo.slice(0, frase + 1);
+    const palabra = trozo.lastIndexOf(" ");
+    return `${palabra > 0 ? trozo.slice(0, palabra) : trozo}.`;
+  });
+}
+
+/**
+ * Reparte las voces disponibles para que dos piezas seguidas no suenen iguales.
+ * El tono marca el registro y la semilla — el destino — desempata dentro de el,
+ * asi que la misma campania siempre suena igual pero dos destinos distintos no.
+ */
+const REGISTRO: Record<string, Voz[]> = {
+  inspirador: ["nova", "shimmer", "alloy"],
+  premium: ["onyx", "echo", "fable"],
+  familiar: ["shimmer", "nova", "alloy"],
+  aventurero: ["fable", "echo", "onyx"],
+};
+
+export function vozPara(tono: string, semilla: string): Voz {
+  const opciones = REGISTRO[tono] ?? REGISTRO.inspirador;
+  let suma = 0;
+  for (const caracter of semilla) suma = (suma + caracter.charCodeAt(0)) % 9973;
+  return opciones[suma % opciones.length];
 }
