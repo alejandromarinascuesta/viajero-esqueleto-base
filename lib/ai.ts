@@ -23,10 +23,13 @@ type Proveedor = { familia: "anthropic" | "openai"; url: string; modelo: string;
  * entorno, no tocar codigo: la IA esta en los bordes del sistema, no dentro.
  */
 function proveedor(): Proveedor | null {
-  // Se acepta el nombre propio del proyecto y tambien los canonicos de cada
-  // proveedor, para que la clave funcione se llame como se llame.
+  // Se acepta el nombre propio del proyecto, el que usa esta instalacion y los
+  // canonicos de cada proveedor, para que la clave funcione se llame como se
+  // llame en el entorno de despliegue.
   const clave =
     process.env.IA_API_KEY ??
+    process.env.Claude_LLM ??
+    process.env.CLAUDE_LLM ??
     process.env.ANTHROPIC_API_KEY ??
     process.env.OPENAI_API_KEY;
   if (!clave) return null;
