@@ -84,6 +84,14 @@ body {
 }
 .field:focus-visible { border-color: var(--line-strong); }
 
+/* Las opciones de un <select> las pinta el sistema, no la hoja de estilos del
+   documento: sin esto salen con texto claro sobre fondo blanco. */
+select.field option,
+select option {
+  background: #0e1c19;
+  color: var(--text);
+}
+
 .bar { height: 5px; background: rgba(255, 255, 255, 0.06); border-radius: 5px; overflow: hidden; }
 .bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--green-2), var(--green)); border-radius: 5px; }
 

@@ -47,6 +47,10 @@ const NUMEROS: Record<string, number> = {
   quince: 15,
 };
 
+/** Formas de decir «van dos adultos» que aparecen de verdad en unas notas. */
+const DOS_ADULTOS =
+  /\bpareja\b|\bmatrimonio\b|\bluna de miel\b|\bse casan\b|\blos dos\b|\blos padres\b|padre[,\s]+(?:e |y )?madre|madre[,\s]+(?:e |y )?padre|chico y chica|novios|\bfamilia\b/;
+
 const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
 /** "3.500" -> 3500 · "3,5" -> 3.5 */
@@ -73,12 +77,9 @@ export function extraerPerfilDeterminista(notas: string): PerfilExtraido {
   if (mAdultos) {
     adultos = palabraONumero(mAdultos[1]);
     guardar("adultos", mAdultos[0]);
-  } else if (/\bpareja\b|\bmatrimonio\b|\bluna de miel\b|\bse casan\b|\blos dos\b/.test(t)) {
+  } else if (DOS_ADULTOS.test(t)) {
     adultos = 2;
-    guardar(
-      "adultos",
-      t.match(/\bpareja\b|\bmatrimonio\b|\bluna de miel\b|\bse casan\b|\blos dos\b/)?.[0],
-    );
+    guardar("adultos", t.match(DOS_ADULTOS)?.[0]);
   } else {
     const mAmigos = t.match(/(\d+|dos|tres|cuatro|cinco|seis|siete|ocho)\s+amigos?/);
     if (mAmigos) {
@@ -221,7 +222,11 @@ export function extraerPerfilDeterminista(notas: string): PerfilExtraido {
     )
   )
     restricciones.push("no vuelos largos");
-  if (/presupuesto ajustado|van justos|poco presupuesto|lo mas barato/.test(t))
+  if (
+    /presupuesto ajustado|van justos|poco presupuesto|lo mas barato|que no sea muy caro|sin gastar mucho|economic/.test(
+      t,
+    )
+  )
     restricciones.push("presupuesto ajustado");
   if (restricciones.length) guardar("restricciones", restricciones.join(", "));
 

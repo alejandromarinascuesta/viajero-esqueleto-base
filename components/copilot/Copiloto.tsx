@@ -120,6 +120,28 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
       const d = (await r.json()) as Respuesta & { error?: { message: string } };
       if (!r.ok) throw new Error(d.error?.message ?? "No se ha podido calcular la propuesta.");
       setRespuesta(d);
+
+      // Si faltan datos, no se deja al agente en un callejon sin salida: se
+      // rellena el formulario con lo que SI se ha entendido y solo se le pide
+      // lo que falta.
+      if (d.modo === "perfil-incompleto" && d.perfilExtraido) {
+        const p = d.perfilExtraido;
+        setForm((f) => ({
+          ...f,
+          adultos: p.adultos ?? f.adultos,
+          ninos: (p.ninos ?? []).join(", "),
+          mes: p.mes ?? f.mes,
+          dias: p.dias ?? f.dias,
+          motivacion: (["descanso", "cultura", "aventura", "romantico", "celebracion"].includes(
+            p.motivacion ?? "",
+          )
+            ? p.motivacion
+            : f.motivacion) as typeof f.motivacion,
+          restricciones: (p as { restricciones?: string[] }).restricciones ?? f.restricciones,
+          tensionDeclarada: p.tension ?? f.tensionDeclarada,
+        }));
+        setModo("guiado");
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se ha podido calcular la propuesta.");
     } finally {
@@ -127,7 +149,9 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
     }
   }
 
-  const [motivo, setMotivo] = useState("");
+  // Un motivo POR PROPUESTA. Con un solo estado compartido, escribir en una
+  // tarjeta escribia en las dos.
+  const [motivos, setMotivos] = useState<Record<string, string>>({});
 
   async function descartar(id: string, texto: string) {
     // El motivo del descarte es lo que hace util el registro: sin el, solo
@@ -144,7 +168,11 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
 
     const fuera = [...excluidos, id];
     setExcluidos(fuera);
-    setMotivo("");
+    setMotivos((m) => {
+      const resto = { ...m };
+      delete resto[id];
+      return resto;
+    });
     await enviar(ultimaEntrada.texto, fuera, ultimaEntrada.formulario);
   }
 
@@ -323,7 +351,13 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
         {error ? <Vacio mensaje={error} /> : null}
 
         {respuesta?.modo === "perfil-incompleto" ? (
-          <Vacio mensaje={respuesta.mensaje ?? "Faltan datos en las notas."} />
+          <div className="subpanel p-4">
+            <p className="text-[13px]">{respuesta.mensaje ?? "Faltan datos en las notas."}</p>
+            <p className="mt-2 text-[12px] leading-relaxed text-[var(--muted)]">
+              He rellenado el formulario de arriba con lo que sí he entendido de tus notas. Añade el
+              presupuesto y dale a «Preparar propuesta».
+            </p>
+          </div>
         ) : null}
 
         {respuesta?.resultado ? (
@@ -431,12 +465,12 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
                           id={`motivo-${p.id}`}
                           className="field text-[12px]"
                           placeholder="¿Por qué no encaja? (opcional)"
-                          value={motivo}
-                          onChange={(e) => setMotivo(e.target.value)}
+                          value={motivos[p.id] ?? ""}
+                          onChange={(e) => setMotivos({ ...motivos, [p.id]: e.target.value })}
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                               e.preventDefault();
-                              void descartar(p.id, motivo.trim() || "sin motivo indicado");
+                              void descartar(p.id, (motivos[p.id] ?? "").trim() || "sin motivo indicado");
                             }
                           }}
                           disabled={cargando}
@@ -445,7 +479,7 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
                           type="button"
                           className="btn btn-ghost shrink-0 px-3 py-1.5 text-[11px]"
                           disabled={cargando}
-                          onClick={() => descartar(p.id, motivo.trim() || "sin motivo indicado")}
+                          onClick={() => descartar(p.id, (motivos[p.id] ?? "").trim() || "sin motivo indicado")}
                         >
                           {cargando ? "Recalculando…" : "Descartar"}
                         </button>

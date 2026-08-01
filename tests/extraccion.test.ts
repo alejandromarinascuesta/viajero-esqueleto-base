@@ -55,3 +55,30 @@ test("entiende que no quieren volar, se diga como se diga", () => {
     assert.ok(r.restricciones.includes("no vuelos largos"), notas);
   }
 });
+
+test("reconoce a los padres como dos adultos", () => {
+  const r = extraerPerfilDeterminista(
+    "Quieren viajar fuera de España. Padre, madre e hijo de 15 años. 7 días. 3.000 euros en julio.",
+  );
+  assert.equal(r.adultos, 2);
+  assert.deepEqual(r.ninos, [15]);
+  assert.equal(r.dias, 7);
+});
+
+test("«que no sea muy caro» es una restriccion, no un presupuesto", () => {
+  const r = extraerPerfilDeterminista(
+    "Pareja con un hijo de 15, julio, 7 días, 2.500 en total. Que no sea muy caro.",
+  );
+  assert.ok(r.restricciones.includes("presupuesto ajustado"));
+  assert.equal(r.presupuesto_total, 2500);
+});
+
+test("deduce dos adultos de las formas en que un agente lo escribe", () => {
+  for (const [notas, esperado] of [
+    ["Chico y chica jóvenes, 1.200 euros, puente de mayo.", 2],
+    ["Familia numerosa, 3 niños de 6, 9 y 12, 7.000, agosto, dos semanas.", 2],
+    ["Los padres y un hijo de 10. 4.000 en julio, una semana.", 2],
+  ] as const) {
+    assert.equal(extraerPerfilDeterminista(notas).adultos, esperado, notas);
+  }
+});
