@@ -14,6 +14,7 @@ test("el contenido de continuidad solo utiliza hechos de la ficha", () => {
     objective: "Generar solicitudes de presupuesto",
     tone: "familiar",
     duration: 15,
+    visualMix: "video",
   });
   assert.equal(plan.destino, "Mallorca");
   assert.equal(plan.escenas.length, 4);
@@ -25,10 +26,11 @@ test("la pieza de treinta segundos admite más escenas sin inventar datos", () =
   const destino = destinos[0];
   const plan = contenidoFallback(destino, {
     destinationId: destino.id,
-    audience: "Parejas",
-    objective: "Inspirar",
+    audience: "Parejas de 30 a 45 años",
+    objective: "Inspirar y aumentar notoriedad",
     tone: "inspirador",
     duration: 30,
+    visualMix: "mixto",
   });
   assert.ok(plan.escenas.length >= 4 && plan.escenas.length <= 6);
   assert.equal(plan.duracion, 30);
