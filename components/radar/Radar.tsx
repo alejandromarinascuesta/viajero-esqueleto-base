@@ -28,6 +28,15 @@ const interesDe = (d: DestinoConScore) =>
 const volumenDe = (d: DestinoConScore) =>
   d.senales.find((s) => s.metrica === "volumen_atencion_dia" && s.estado === "ok")?.valor ?? null;
 
+type ImportacionTrends = {
+  guardadas?: number;
+  emparejados?: { termino: string; destinoId: string; momentum: number }[];
+  sinDestino?: string[];
+  sinMomentum?: string[];
+  aviso?: string;
+  error?: { message: string };
+};
+
 type Ingesta = {
   resumen?: { fuente: string; detalle: string; ok: number; fallos: number; ms: number }[];
   motivosDeFallo?: string[];
@@ -50,6 +59,26 @@ export default function Radar({
   const [busqueda, setBusqueda] = useState("");
   const [ingiriendo, setIngiriendo] = useState(false);
   const [ingesta, setIngesta] = useState<Ingesta | null>(null);
+  const [csv, setCsv] = useState("");
+  const [importando, setImportando] = useState(false);
+  const [trends, setTrends] = useState<ImportacionTrends | null>(null);
+  const [verImportador, setVerImportador] = useState(false);
+
+  async function importarTrends() {
+    setImportando(true);
+    try {
+      const r = await fetch("/api/trends", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ csv, mes }),
+      });
+      setTrends((await r.json()) as ImportacionTrends);
+    } catch {
+      setTrends({ error: { message: "No se ha podido leer el archivo." } });
+    } finally {
+      setImportando(false);
+    }
+  }
 
   async function refrescarFuentes() {
     setIngiriendo(true);
@@ -118,6 +147,9 @@ export default function Radar({
               <RefreshCw size={14} className="mr-1.5 inline" aria-hidden />
               {ingiriendo ? "Ingiriendo fuentes…" : "Refrescar fuentes"}
             </button>
+            <button type="button" className="btn btn-ghost" onClick={() => setVerImportador((v) => !v)}>
+              Importar Google Trends
+            </button>
             {lider ? (
               <button type="button" className="btn btn-primary" onClick={() => onAbrirDestino(lider.id)}>
                 Analizar {lider.destino}
@@ -147,6 +179,85 @@ export default function Radar({
           nota={origen.detalle}
         />
       </div>
+
+      {verImportador ? (
+        <section className="panel p-5">
+          <h2 className="text-[15px] tracking-tight">Importar Google Trends</h2>
+          <p className="mt-2 text-[12px] leading-relaxed text-[var(--muted)]">
+            En <b>trends.google.es</b>, compara hasta cinco términos del tipo «viajar a Mallorca», elige
+            España y los últimos 12 meses, y descarga el CSV de <b>Interés a lo largo del tiempo</b>. Pega
+            aquí su contenido.
+          </p>
+          <p className="mt-2 text-[11px] leading-relaxed text-[var(--dim)]">
+            Solo se guarda el <b>momentum</b>, no el valor absoluto: Trends normaliza de 0 a 100 dentro de
+            cada consulta, así que dos exportaciones no son comparables entre sí. La variación dentro de una
+            misma serie sí lo es.
+          </p>
+
+          <label className="sr-only" htmlFor="csv-trends">Contenido del CSV</label>
+          <textarea
+            id="csv-trends"
+            className="field mt-3 min-h-[120px] resize-y font-mono text-[11px]"
+            placeholder={"Categoría: Todas las categorías\n\nSemana,viajar a Mallorca: (España),...\n2026-05-03,40,..."}
+            value={csv}
+            onChange={(e) => setCsv(e.target.value)}
+          />
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <span className="text-[11px] text-[var(--dim)]">
+              Dato real exportado por ti. La API oficial de Trends está en acceso restringido.
+            </span>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={importando || csv.trim().length < 10}
+              onClick={importarTrends}
+            >
+              {importando ? "Importando…" : "Importar"}
+            </button>
+          </div>
+
+          {trends ? (
+            <div className="subpanel mt-3 p-4 text-[12px]">
+              {trends.error ? (
+                <p className="text-[var(--muted)]">{trends.error.message}</p>
+              ) : (
+                <>
+                  <p>
+                    <b>{trends.guardadas ?? 0}</b> series guardadas.
+                  </p>
+                  {trends.emparejados?.length ? (
+                    <ul className="mt-2 space-y-0.5 text-[var(--muted)]">
+                      {trends.emparejados.map((e) => (
+                        <li key={e.termino}>
+                          {e.termino} → {e.destinoId} ·{" "}
+                          <span style={{ color: e.momentum >= 0 ? "var(--green)" : "var(--orange)" }}>
+                            {e.momentum > 0 ? "+" : ""}
+                            {e.momentum}%
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {trends.sinDestino?.length ? (
+                    <p className="mt-2 text-[11px]" style={{ color: "var(--orange)" }}>
+                      Sin destino en el catálogo: {trends.sinDestino.join(", ")}
+                    </p>
+                  ) : null}
+                  {trends.sinMomentum?.length ? (
+                    <p className="mt-1 text-[11px] text-[var(--dim)]">
+                      Sin momentum: {trends.sinMomentum.join(" · ")}
+                    </p>
+                  ) : null}
+                  {trends.aviso ? <p className="mt-2 text-[11px] text-[var(--dim)]">{trends.aviso}</p> : null}
+                  {trends.guardadas ? (
+                    <p className="mt-2 text-[11px] text-[var(--dim)]">Recarga la página para verlo en el radar.</p>
+                  ) : null}
+                </>
+              )}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       {ingesta ? (
         <div className="subpanel p-4">

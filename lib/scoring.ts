@@ -22,7 +22,7 @@ import type { Destino, Oportunidad } from "@/types";
  */
 
 const PESOS = [
-  { clave: "momentum", etiqueta: "Momentum de interés", peso: 35, origen: "Wikimedia · 28 días frente a 28" },
+  { clave: "momentum", etiqueta: "Momentum de búsquedas", peso: 35, origen: "Google Trends si está importado; Wikimedia como respaldo" },
   { clave: "volumen", etiqueta: "Volumen de atención", peso: 20, origen: "Wikimedia · visitas medias al día" },
   { clave: "margen", etiqueta: "Atractivo económico", peso: 20, origen: "Catálogo de la agencia" },
   { clave: "disponibilidad", etiqueta: "Cupo disponible", peso: 15, origen: "Catálogo de la agencia" },
@@ -40,9 +40,16 @@ function senal(d: Destino, metrica: string): { valor: number | null; aplica: boo
 
 function componente(clave: string, d: Destino): { valor: number | null; aplica: boolean } {
   if (clave === "momentum") {
-    const { valor, aplica } = senal(d, "tendencia_interes_pct");
+    // Trends mide intencion de viaje; Wikipedia mide atencion. Cuando hay
+    // Trends manda Trends, y si no se usa Wikipedia como respaldo declarado.
+    const trends = senal(d, "momentum_busquedas_pct");
+    const wiki = senal(d, "tendencia_interes_pct");
+    const elegida = trends.valor !== null ? trends : wiki;
     // -50 % -> 0 · 0 % -> 0,5 · +50 % -> 1
-    return { valor: valor === null ? null : acotar((valor + 50) / 100), aplica };
+    return {
+      valor: elegida.valor === null ? null : acotar((elegida.valor + 50) / 100),
+      aplica: trends.aplica || wiki.aplica,
+    };
   }
   if (clave === "volumen") {
     const { valor, aplica } = senal(d, "volumen_atencion_dia");

@@ -89,3 +89,18 @@ test("una fuente que NO cubre el destino no le resta confianza", () => {
     "el INE no aplicable no puede cambiar la confianza",
   );
 });
+
+test("cuando hay Google Trends manda Trends, y si no Wikipedia como respaldo", () => {
+  const base = buscar("Ibiza");
+  const soloWiki = opportunityScore(base);
+  const conTrends = opportunityScore({
+    ...base,
+    senales: [
+      ...base.senales,
+      { fuente: "trends" as const, metrica: "momentum_busquedas_pct", valor: 45, periodo: "2026-08", estado: "ok" as const, obtenidoEn: null },
+    ],
+  });
+  // Ibiza cae en Wikipedia; con un Trends de +45 el momentum tiene que subir.
+  assert.ok(conTrends.componentes.find((c) => c.clave === "momentum")!.valor! >
+    soloWiki.componentes.find((c) => c.clave === "momentum")!.valor!);
+});
