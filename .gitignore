@@ -9,3 +9,5 @@ out
 .DS_Store
 next-env.d.ts
 .test-build
+
+tsconfig.tsbuildinfo

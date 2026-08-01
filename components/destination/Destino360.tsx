@@ -145,11 +145,18 @@ export default function Destino360({
               ))}
             </ul>
             {destino.oportunidad.ausentes.length > 0 ? (
-              <p className="mt-4 text-[11px] leading-relaxed" style={{ color: "var(--orange)" }}>
-                Sin dato de {destino.oportunidad.ausentes.join(", ").toLowerCase()}. Su peso se reparte entre
-                las métricas disponibles y la confianza baja a {destino.oportunidad.confianza}%. No se rellena
-                con un valor estimado.
-              </p>
+              <div className="mt-4 space-y-2">
+                <p className="text-[11px] leading-relaxed" style={{ color: "var(--orange)" }}>
+                  Sin dato de {destino.oportunidad.ausentes.join(", ").toLowerCase()}. Su peso se reparte
+                  entre las métricas disponibles y la confianza baja a {destino.oportunidad.confianza}%. No
+                  se rellena con un valor estimado.
+                </p>
+                <p className="text-[11px] leading-relaxed text-[var(--dim)]">
+                  Con las métricas disponibles saldría <b>{destino.oportunidad.scoreSinAjustar}</b>, pero se
+                  publica <b>{destino.oportunidad.score}</b>: el score va ajustado por confianza para que la
+                  falta de datos nunca premie a un destino.
+                </p>
+              </div>
             ) : null}
           </Panel>
 

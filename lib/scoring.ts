@@ -8,6 +8,15 @@ import type { Destino, Oportunidad } from "@/types";
  * están y **baja la confianza**. La confianza es, literalmente, la proporción
  * del peso total que se ha podido calcular con datos reales.
  *
+ * PERO repartir el peso no puede salir gratis. Si se repartiera sin más, un
+ * destino sin señal de demanda vería su 35% caer sobre el margen — y como los
+ * destinos exóticos son los de mayor margen, **no tener datos subiría la
+ * puntuación**. Es justo lo contrario de lo que debe pasar.
+ *
+ * Por eso el score que se publica está ajustado por la confianza: es el valor
+ * esperado, no el optimista. Un destino con la mitad de las métricas no puede
+ * competir de tú a tú con uno que las tiene todas.
+ *
  * Es determinista: mismas señales, mismo número. Ningún modelo generativo
  * interviene aquí.
  */
@@ -75,9 +84,16 @@ export function opportunityScore(d: Destino): Oportunidad {
     }
   }
 
+  const confianza = pesoDisponible / pesoTotal;
+  // Ajuste conservador: con confianza total no penaliza; con la mitad de las
+  // métricas, el score baja un 25%. No castiga tanto como multiplicar por la
+  // confianza directa, pero impide que la falta de datos premie.
+  const ajustado = score * (0.5 + 0.5 * confianza);
+
   return {
-    score: Math.round(score),
-    confianza: Math.round((pesoDisponible / pesoTotal) * 100),
+    score: Math.round(ajustado),
+    scoreSinAjustar: Math.round(score),
+    confianza: Math.round(confianza * 100),
     componentes,
     ausentes: componentes.filter((c) => c.valor === null).map((c) => c.etiqueta),
     calculadoEn: new Date().toISOString(),

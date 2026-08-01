@@ -13,7 +13,7 @@ import type { Destino } from "@/types";
  */
 
 export type FilaSenal = {
-  fuente: "clima" | "interes";
+  fuente: "clima" | "interes" | "divisa";
   destino_id: string;
   periodo: string;
   metrica: string;
@@ -166,4 +166,79 @@ export async function conectorInteres(destinos: Destino[], mes: number): Promise
       return { ...base, valor_bruto: { motivo: e instanceof Error ? e.message : "fallo de red" } };
     }
   });
+}
+
+/**
+ * Divisa — Banco Central Europeo. Oficial, gratuita y sin clave.
+ *
+ * Para que sirve: un destino cuya moneda se ha depreciado frente al euro se ha
+ * abaratado en la practica aunque su precio de catalogo no haya cambiado. Es
+ * una senal de oportunidad que ninguna otra fuente da.
+ *
+ * Los tipos de referencia se publican cada dia laborable sobre las 16:00 CET.
+ */
+const MONEDA_POR_PAIS: Record<string, string> = {
+  "Estados Unidos": "USD", México: "MXN", Marruecos: "MAD", Indonesia: "IDR",
+  Emiratos: "AED", Tailandia: "THB", Japón: "JPY", "Costa Rica": "CRC",
+  Maldivas: "MVR", Tanzania: "TZS", Egipto: "EGP", Islandia: "ISK",
+  Chequia: "CZK", Croacia: "EUR", Reino_Unido: "GBP",
+};
+
+export async function conectorDivisa(destinos: Destino[], mes: number): Promise<FilaSenal[]> {
+  const periodo = periodoDe(mes);
+  const base = (d: Destino, motivo: string): FilaSenal => ({
+    fuente: "divisa", destino_id: d.id, periodo, metrica: "variacion_divisa_pct",
+    valor: null, valor_bruto: { motivo }, estado: "no_disponible",
+  });
+
+  const necesarias = [...new Set(
+    destinos.map((d) => MONEDA_POR_PAIS[d.pais]).filter((m): m is string => Boolean(m) && m !== "EUR"),
+  )];
+  if (necesarias.length === 0) return destinos.map((d) => base(d, "destino en euros"));
+
+  const hoy = new Date();
+  const hace90 = new Date(hoy.getTime() - 90 * 86400000);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+  try {
+    const r = await conReintento(
+      `https://data-api.ecb.europa.eu/service/data/EXR/D.${necesarias.join("+")}.EUR.SP00.A` +
+        `?startPeriod=${iso(hace90)}&endPeriod=${iso(hoy)}&format=jsondata&detail=dataonly`,
+    );
+    if (!r || !r.ok) return destinos.map((d) => base(d, `respuesta ${r?.status ?? "sin respuesta"}`));
+
+    const j = (await r.json()) as {
+      dataSets?: { series?: Record<string, { observations?: Record<string, (number | null)[]> }> }[];
+      structure?: { dimensions?: { series?: { id: string; values: { id: string }[] }[] } };
+    };
+    const dims = j.structure?.dimensions?.series ?? [];
+    const idxMoneda = dims.findIndex((x) => x.id === "CURRENCY");
+    const series = j.dataSets?.[0]?.series ?? {};
+
+    const variacion: Record<string, number> = {};
+    for (const [clave, valor] of Object.entries(series)) {
+      const posicion = Number(clave.split(":")[idxMoneda]);
+      const moneda = dims[idxMoneda]?.values[posicion]?.id;
+      const obs = Object.entries(valor.observations ?? {})
+        .sort((a, b) => Number(a[0]) - Number(b[0]))
+        .map(([, v]) => v?.[0])
+        .filter((v): v is number => typeof v === "number");
+      if (!moneda || obs.length < 2) continue;
+      // Sube el tipo = hacen falta mas unidades por euro = el destino se abarata.
+      variacion[moneda] = Math.round(((obs.at(-1)! - obs[0]) / obs[0]) * 1000) / 10;
+    }
+
+    return destinos.map((d) => {
+      const moneda = MONEDA_POR_PAIS[d.pais];
+      if (!moneda || moneda === "EUR") return base(d, "destino en euros");
+      const v = variacion[moneda];
+      if (v === undefined) return base(d, `sin serie para ${moneda}`);
+      return {
+        fuente: "divisa", destino_id: d.id, periodo, metrica: "variacion_divisa_pct",
+        valor: v, valor_bruto: { moneda, ventana: "90 dias" }, estado: "ok",
+      };
+    });
+  } catch (e) {
+    return destinos.map((d) => base(d, e instanceof Error ? e.message : "fallo de red"));
+  }
 }

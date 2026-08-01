@@ -257,7 +257,16 @@ export default function Radar({
                     <td className="px-3 py-3 text-right tabular-nums" style={{ color: d.oportunidad.confianza < 60 ? "var(--orange)" : undefined }}>
                       {d.oportunidad.confianza}%
                     </td>
-                    <td className="px-3 py-3 text-[12px] text-[var(--muted)]">{p.etiqueta}</td>
+                    <td className="px-3 py-3 text-[12px] text-[var(--muted)]">
+                      {d.oportunidad.ausentes.length > 0 ? (
+                        <span style={{ color: "var(--orange)" }}>
+                          faltan {d.oportunidad.ausentes.length} métrica
+                          {d.oportunidad.ausentes.length === 1 ? "" : "s"}
+                        </span>
+                      ) : (
+                        `${p.etiqueta} · dato completo`
+                      )}
+                    </td>
                     <td className="py-3 pr-1">
                       <div className="flex justify-end gap-1.5">
                         <button type="button" className="btn btn-ghost px-2.5 py-1.5 text-[11px]" onClick={() => onAbrirCopiloto(d.id)}>
@@ -282,9 +291,9 @@ export default function Radar({
       )}
 
       <p className="mt-4 text-[11px] leading-relaxed text-[var(--dim)]">
-        El Opportunity Score se calcula solo con métricas realmente disponibles. Cuando falta una, su peso
-        se reparte entre las demás y baja la confianza: nunca se rellena con una media ni con un valor
-        generado. Mes de referencia: {mes}.
+        El Opportunity Score se calcula solo con métricas realmente disponibles, y va <b>ajustado por
+        confianza</b>: repartir el peso de una métrica ausente no puede premiar a un destino por no tener
+        datos. Nunca se rellena con una media ni con un valor generado. Mes de referencia: {mes}.
       </p>
     </Panel>
     </div>

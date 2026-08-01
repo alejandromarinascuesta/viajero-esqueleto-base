@@ -8,7 +8,7 @@ export type Frescura =
   | "unavailable";    // no existe informacion
 
 export type Senal = {
-  fuente: "catalogo" | "interes" | "clima" | "vuelos" | "reservas" | "calendario";
+  fuente: "catalogo" | "interes" | "clima" | "divisa" | "vuelos" | "reservas" | "eventos" | "calendario";
   metrica: string;
   valor: number | null;
   periodo: string;
@@ -44,7 +44,10 @@ export type Destino = {
 /** Puntuacion de oportunidad, con su procedencia. Cada componente declara si
  *  se ha podido calcular; los que faltan no se rellenan, bajan la confianza. */
 export type Oportunidad = {
+  /** Ajustado por confianza: es el valor esperado, no el optimista. */
   score: number;
+  /** El que saldría si todas las métricas ausentes fueran neutras. */
+  scoreSinAjustar: number;
   confianza: number;
   componentes: {
     clave: string;

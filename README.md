@@ -93,6 +93,11 @@ Fórmula explicable, determinista y auditable desde la interfaz:
 Si falta un componente, su peso se reparte entre los disponibles y la **confianza** baja: la confianza es,
 literalmente, la proporción del peso total que se ha podido calcular con datos reales.
 
+**Y el score va ajustado por confianza.** Sin ese ajuste, repartir el 35 % de la demanda ausente caería
+sobre el margen — y como los destinos exóticos son los de mayor margen, **no tener datos subiría la
+puntuación**. El score publicado es el valor esperado, no el optimista, y la ficha del destino enseña los
+dos números para que se pueda auditar.
+
 ## Las reglas duras, en dos niveles
 
 | Nivel | Reglas | Qué implica |
@@ -114,7 +119,7 @@ npm run dev          # http://localhost:3000
 npm run typecheck
 npm run lint
 npm run build
-npm test             # 28 pruebas
+npm test             # 31 pruebas
 ```
 
 **Funciona sin ninguna variable de entorno.** Sin base de datos sirve la última observación real guardada

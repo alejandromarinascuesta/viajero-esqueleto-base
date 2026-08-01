@@ -44,3 +44,14 @@ test("lo que las notas no dicen queda a null y se declara", () => {
   assert.equal(r.presupuesto_total, null);
   assert.ok(r.no_consta.includes("presupuesto_total"));
 });
+
+test("entiende que no quieren volar, se diga como se diga", () => {
+  for (const notas of [
+    "Pareja de 45 con 2 niños, no quieren volar, quieren ir en coche desde Madrid. 2.000 en total, agosto, 5 días.",
+    "Familia con 3.000 euros en julio, una semana. Prefieren vuelo corto.",
+    "Matrimonio, 2.500, mayo, seis días. Tienen miedo a volar.",
+  ]) {
+    const r = extraerPerfilDeterminista(notas);
+    assert.ok(r.restricciones.includes("no vuelos largos"), notas);
+  }
+});

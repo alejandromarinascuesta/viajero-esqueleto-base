@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { cargarDestinos } from "@/lib/data";
-import { conectorClima, conectorInteres, type FilaSenal, type ResumenFuente } from "@/lib/conectores";
+import {
+  conectorClima,
+  conectorDivisa,
+  conectorInteres,
+  type FilaSenal,
+  type ResumenFuente,
+} from "@/lib/conectores";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -37,6 +43,7 @@ export async function POST(request: Request) {
   for (const [fuente, detalle, ejecutar] of [
     ["clima", "Open-Meteo · archivo histórico · sin clave", () => conectorClima(destinos, mes)],
     ["interes", "Wikimedia · vistas diarias · sin clave", () => conectorInteres(destinos, mes)],
+    ["divisa", "Banco Central Europeo · tipos de referencia · sin clave", () => conectorDivisa(destinos, mes)],
   ] as const) {
     const inicio = Date.now();
     const r = await ejecutar();

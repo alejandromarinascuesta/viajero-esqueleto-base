@@ -36,3 +36,21 @@ test("el mismo destino da siempre el mismo score: es determinista", () => {
   const b = opportunityScore(buscar("Creta")).score;
   assert.equal(a, b);
 });
+
+test("no tener datos NO puede subir la puntuacion", () => {
+  const completo = buscar("Ibiza"); // clima e interes reales
+  const sinSenal = buscar("Bali"); // sin interes
+  const a = opportunityScore(completo);
+  const b = opportunityScore(sinSenal);
+
+  assert.equal(a.confianza, 100);
+  assert.ok(b.confianza < 100, "Bali deberia tener confianza incompleta");
+  // El ajuste tiene que morder: el score publicado es menor que el que saldria
+  // repartiendo el peso sin penalizar.
+  assert.ok(b.score < b.scoreSinAjustar, "el score sin ajustar deberia ser mayor");
+});
+
+test("con confianza total el score no se penaliza", () => {
+  const o = opportunityScore(buscar("Ibiza"));
+  assert.equal(o.score, o.scoreSinAjustar);
+});

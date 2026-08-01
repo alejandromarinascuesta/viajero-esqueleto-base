@@ -213,7 +213,13 @@ export function extraerPerfilDeterminista(notas: string): PerfilExtraido {
     )
   )
     restricciones.push("movilidad reducida");
-  if (/no quier[ea]n? vuelos largos|vuelo corto|nada de vuelos largos|sin vuelos largos/.test(t))
+  // Cubre desde "vuelo corto" hasta "no quieren volar" o "quieren ir en coche":
+  // el agente escribe como habla, no como un formulario.
+  if (
+    /no quier[ea]n? vuelos largos|vuelo corto|nada de vuelos largos|sin vuelos largos|no quier[ea]n? volar|sin volar|nada de avion|miedo a volar|en coche|por carretera|en tren/.test(
+      t,
+    )
+  )
     restricciones.push("no vuelos largos");
   if (/presupuesto ajustado|van justos|poco presupuesto|lo mas barato/.test(t))
     restricciones.push("presupuesto ajustado");
