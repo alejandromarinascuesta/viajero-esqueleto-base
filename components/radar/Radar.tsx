@@ -1,6 +1,8 @@
 "use client";
 
-import { ArrowRight, Clapperboard, MessageSquare } from "lucide-react";
+import { Fragment, useState } from "react";
+import { ArrowRight, ChevronDown, Clapperboard, HelpCircle, MessageSquare } from "lucide-react";
+import PorQue from "@/components/radar/PorQue";
 import type { DestinoConScore } from "@/components/layout/Shell";
 import type { OrigenDatos } from "@/lib/data";
 import { Kpi, Panel, Vacio } from "@/components/ui";
@@ -22,7 +24,12 @@ export default function Radar({
   onAbrirCopiloto: (id: string) => void;
   onAbrirContenido: (id: string) => void;
 }) {
-  const filas = [...destinos].sort((a, b) => b.oportunidad.score - a.oportunidad.score).slice(0, 5);
+  // Se enseña el catálogo entero. Recortarlo a cinco escondía el trabajo: lo
+  // valioso no es que haya un top, es que hay un orden y se puede auditar.
+  const filas = [...destinos].sort((a, b) => b.oportunidad.score - a.oportunidad.score);
+  const ACTIVABLES = 5;
+  const [abierto, setAbierto] = useState<string | null>(null);
+  const [criterio, setCriterio] = useState(false);
   const lider = filas[0];
   const confianzaMedia = filas.length
     ? Math.round(filas.reduce((s, d) => s + d.oportunidad.confianza, 0) / filas.length)
@@ -42,10 +49,11 @@ export default function Radar({
         <div>
           <span className="pill pill-green">QUÉ VENDER AHORA</span>
           <h2 className="mt-3 max-w-2xl text-[25px] leading-tight tracking-tight">
-            Las cinco oportunidades que merece la pena activar.
+            Todo el catálogo, ordenado por dónde merece la pena empujar.
           </h2>
-          <p className="mt-2 text-[12px] text-[var(--muted)]">
-            La plataforma analiza todo el catálogo, pero la demo solo enseña lo importante.
+          <p className="mt-2 max-w-2xl text-[12px] leading-relaxed text-[var(--muted)]">
+            Las {ACTIVABLES} primeras son las que se pueden convertir en campaña. Pincha en cualquiera
+            para ver de dónde sale su puntuación.
           </p>
         </div>
         {lider ? (
@@ -66,16 +74,65 @@ export default function Radar({
       </section>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <Kpi etiqueta="Prioridades visibles" valor={String(filas.length)} nota={`de ${destinos.length} destinos analizados`} />
+        <Kpi etiqueta="Destinos analizados" valor={String(filas.length)} nota={`${ACTIVABLES} activables para contenido`} />
         <Kpi etiqueta="Líder" valor={lider?.destino ?? "—"} nota={lider ? `score ${lider.oportunidad.score}` : "sin datos"} tono="verde" />
         <Kpi etiqueta="Confianza media" valor={`${confianzaMedia}%`} nota={`${conTrends} con Google Trends · ${origen.frescura}`} />
       </div>
 
-      <Panel titulo="Top 5 de oportunidades" extra={<span className="pill pill-line">Actualización automática</span>}>
+      <section className="panel p-0">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-4 p-4 text-left"
+          onClick={() => setCriterio(!criterio)}
+          aria-expanded={criterio}
+        >
+          <span className="flex items-center gap-2.5">
+            <HelpCircle size={16} className="shrink-0 text-[var(--green)]" aria-hidden />
+            <span>
+              <b className="block text-[13px]">¿Cómo se decide este orden?</b>
+              <span className="block text-[11px] text-[var(--muted)]">Cinco medidas, ningún criterio oculto y ninguna decisión de la IA.</span>
+            </span>
+          </span>
+          <ChevronDown size={16} className="shrink-0 text-[var(--dim)]" style={{ transform: criterio ? "rotate(180deg)" : undefined }} aria-hidden />
+        </button>
+        {criterio ? (
+          <div className="space-y-3 border-t px-4 pb-4 pt-4 text-[12px] leading-relaxed" style={{ borderColor: "var(--line)" }}>
+            <p className="text-[var(--muted)]">
+              Cada destino empieza con 100 puntos por repartir. Estas cinco medidas se los van llevando,
+              y lo que suman es su puntuación. El reparto lo decide la dirección en la pestaña de criterio comercial,
+              no el sistema.
+            </p>
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {[
+                ["35", "Cuánto se busca ahora", "Si las búsquedas del destino suben, es que la gente lo está pensando. Es la medida que más pesa."],
+                ["20", "Cuánta gente lo mira", "Un +40 % sobre doscientas personas no es lo mismo que sobre doscientas mil. El tamaño cuenta aparte."],
+                ["20", "Lo que gana la agencia", "De poco sirve vender mucho de lo que deja poco margen."],
+                ["15", "Plazas que quedan", "Empujar lo que ya está lleno es gastar dinero en decepcionar clientes."],
+                ["10", "Si el tiempo acompaña", "La temperatura media frente a los 24 °C que la mayoría considera ideales."],
+              ].map(([peso, titulo, texto]) => (
+                <li key={titulo} className="subpanel flex gap-3 p-3">
+                  <b className="shrink-0 text-[17px] tabular-nums text-[var(--green)]">{peso}</b>
+                  <span>
+                    <b className="block text-[12px]">{titulo}</b>
+                    <span className="mt-0.5 block text-[11px] text-[var(--muted)]">{texto}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="subpanel space-y-2 p-3 text-[11px]">
+              <p><b className="text-[var(--green)]">Si falta una medida, no se inventa.</b> Su peso se reparte entre las que sí tenemos y la confianza baja. La puntuación baja con ella: un destino no puede subir por no tener datos.</p>
+              <p><b>Si una fuente no llega hasta ahí, no cuenta.</b> El INE no mide hoteles en Maldivas. Eso no es un dato que falte, así que ni penaliza ni baja la confianza.</p>
+              <p className="text-[var(--dim)]">Es una fórmula fija: con las mismas señales sale siempre el mismo número. Aquí no interviene ningún modelo de lenguaje.</p>
+            </div>
+          </div>
+        ) : null}
+      </section>
+
+      <Panel titulo={`Catálogo ordenado · ${filas.length} destinos`} extra={<span className="pill pill-line">Actualización automática</span>}>
         {filas.length === 0 ? <Vacio mensaje="Todavía no hay oportunidades disponibles." /> : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[650px] text-[13px]">
-              <caption className="sr-only">Cinco mejores destinos por oportunidad comercial</caption>
+              <caption className="sr-only">Catálogo ordenado por oportunidad comercial</caption>
               <thead>
                 <tr className="text-left text-[9px] uppercase tracking-[.08em] text-[var(--dim)]">
                   <th className="px-3 pb-3 font-normal">Destino</th>
@@ -90,12 +147,26 @@ export default function Radar({
                   const interes = interesDe(d);
                   const fuente = senalMomentum(d);
                   const estado = pulso(interes);
+                  const activable = indice < ACTIVABLES;
+                  const expandido = abierto === d.id;
                   return (
-                    <tr key={d.id} className="border-t" style={{ borderColor: "rgba(255,255,255,.055)" }}>
+                    <Fragment key={d.id}>
+                    <tr className="border-t" style={{ borderColor: "rgba(255,255,255,.055)", opacity: activable ? 1 : .72 }}>
                       <th scope="row" className="px-3 py-3 text-left font-normal">
-                        <button type="button" className="flex items-center gap-3 text-left" onClick={() => onAbrirDestino(d.id)}>
-                          <span className="grid h-7 w-7 place-items-center rounded-lg text-[11px] font-bold" style={{ background: "rgba(141,245,189,.08)", color: "var(--green)" }}>{indice + 1}</span>
-                          <span><span className="block font-semibold">{d.destino}</span><span className="block text-[10px] text-[var(--dim)]">{d.pais} · {d.tipo}</span></span>
+                        <button
+                          type="button"
+                          className="flex items-center gap-3 text-left"
+                          onClick={() => setAbierto(expandido ? null : d.id)}
+                          aria-expanded={expandido}
+                        >
+                          <span className="grid h-7 w-7 place-items-center rounded-lg text-[11px] font-bold" style={{ background: activable ? "rgba(141,245,189,.12)" : "rgba(255,255,255,.05)", color: activable ? "var(--green)" : "var(--dim)" }}>{indice + 1}</span>
+                          <span>
+                            <span className="flex items-center gap-1.5 font-semibold">
+                              {d.destino}
+                              <ChevronDown size={13} className="text-[var(--dim)]" style={{ transform: expandido ? "rotate(180deg)" : undefined }} aria-hidden />
+                            </span>
+                            <span className="block text-[10px] text-[var(--dim)]">{d.pais} · {d.tipo}{activable ? " · activable" : ""}</span>
+                          </span>
                         </button>
                       </th>
                       <td className="px-3 py-3">
@@ -109,11 +180,30 @@ export default function Radar({
                       <td className="py-3 pr-1">
                         <div className="flex justify-end gap-1.5">
                           <button type="button" className="btn btn-ghost px-2.5 py-1.5" onClick={() => onAbrirCopiloto(d.id)} aria-label={`Recomendar ${d.destino}`}><MessageSquare size={13} aria-hidden /></button>
-                          <button type="button" className="btn btn-ghost px-2.5 py-1.5" onClick={() => onAbrirContenido(d.id)} aria-label={`Crear contenido de ${d.destino}`}><Clapperboard size={13} aria-hidden /></button>
+                          <button
+                            type="button"
+                            className="btn btn-ghost px-2.5 py-1.5"
+                            disabled={!activable}
+                            title={activable ? `Crear contenido de ${d.destino}` : `${d.destino} está fuera del top ${ACTIVABLES}: todavía no se produce contenido para él`}
+                            onClick={() => onAbrirContenido(d.id)}
+                            aria-label={`Crear contenido de ${d.destino}`}
+                          ><Clapperboard size={13} aria-hidden /></button>
                           <button type="button" className="btn btn-primary px-3 py-1.5 text-[11px]" onClick={() => onAbrirDestino(d.id)}>Ver</button>
                         </div>
                       </td>
                     </tr>
+                    {expandido ? (
+                      <tr style={{ background: "rgba(0,0,0,.16)" }}>
+                        <td colSpan={5} className="px-3 pb-4">
+                          <PorQue destino={d} />
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button type="button" className="btn btn-ghost px-3 py-1.5 text-[11px]" onClick={() => onAbrirDestino(d.id)}>Ver la ficha completa</button>
+                            <button type="button" className="btn btn-ghost px-3 py-1.5 text-[11px]" onClick={() => onAbrirCopiloto(d.id)}>Recomendárselo a un cliente</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
+                    </Fragment>
                   );
                 })}
               </tbody>
