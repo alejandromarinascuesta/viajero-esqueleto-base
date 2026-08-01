@@ -31,11 +31,13 @@ export default function ContentStudio({
   destinoSugerido: string;
   onSeleccionar: (id: string) => void;
 }) {
-  const [destinoId, setDestinoId] = useState(destinoSugerido || destinos[0]?.id || "");
+  const [destinoId, setDestinoId] = useState(
+    () => destinos.some((d) => d.id === destinoSugerido) ? destinoSugerido : destinos[0]?.id || "",
+  );
   const [audiencia, setAudiencia] = useState<(typeof AUDIENCIAS_CONTENIDO)[number]>("Parejas de 30 a 45 años");
   const [objetivo, setObjetivo] = useState("Generar solicitudes de presupuesto");
   const [tono, setTono] = useState<"inspirador" | "premium" | "familiar" | "aventurero">("inspirador");
-  const [duracion, setDuracion] = useState<15 | 30>(15);
+  const [duracion, setDuracion] = useState<15 | 30>(30);
   const [mezclaVisual, setMezclaVisual] = useState<"video" | "mixto" | "fotos">("video");
   const [plan, setPlan] = useState<PlanContenido | null>(null);
   const [activos, setActivos] = useState<ActivoVisual[]>([]);
@@ -140,19 +142,19 @@ export default function ContentStudio({
 
   return (
     <div className="space-y-4">
-      <section className="panel overflow-hidden p-6" style={{ background: "linear-gradient(120deg,rgba(22,61,49,.98),rgba(9,23,20,.92))" }}>
+      <section className="panel overflow-hidden p-5" style={{ background: "linear-gradient(120deg,rgba(22,61,49,.98),rgba(9,23,20,.92))" }}>
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="max-w-2xl">
             <span className="pill pill-green"><Sparkles size={12} /> CONTENT STUDIO</span>
-            <h2 className="mt-4 text-[28px] leading-tight">Del destino que está creciendo a un vídeo listo para activar.</h2>
-            <p className="mt-2 text-[13px] leading-relaxed text-[var(--muted)]">Claude orquesta el guion con hechos verificados; Wikimedia aporta material con licencia y el navegador compone una pieza vertical real.</p>
+            <h2 className="mt-3 text-[25px] leading-tight">Crea contenido solo para las cinco oportunidades prioritarias.</h2>
+            <p className="mt-2 text-[12px] leading-relaxed text-[var(--muted)]">Menos destinos, mejor material y una demo más fiable.</p>
           </div>
           {destino ? <div className="subpanel px-4 py-3 text-right"><span className="block text-[10px] text-[var(--dim)]">OPORTUNIDAD SELECCIONADA</span><b className="text-[18px] text-[var(--green)]">{destino.destino} · {destino.oportunidad.score}</b></div> : null}
         </div>
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <Panel titulo="Brief de campaña">
+        <Panel titulo="Brief guiado · top 5">
           <div className="space-y-4">
             <label className="block text-[11px] text-[var(--muted)]">Destino
               <select className="field mt-1.5" value={destinoId} onChange={(e) => { setDestinoId(e.target.value); onSeleccionar(e.target.value); }}>
@@ -207,7 +209,7 @@ export default function ContentStudio({
                         <video key={activoVisual.id} src={activoVisual.url} poster={activoVisual.miniatura} autoPlay loop muted playsInline className="absolute inset-0 h-full w-full object-cover" />
                       ) : activoVisual ? <img src={activoVisual.miniatura} alt="" className="absolute inset-0 h-full w-full object-cover" /> : null}
                       <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.1) 40%,rgba(0,0,0,.9))" }} />
-                      <div className="absolute left-4 top-4 text-[8px] font-black tracking-[.12em] text-[var(--green)]">TRAVEL INTELLIGENCE</div>
+                      <div className="absolute left-4 top-4 text-[8px] font-black tracking-[.12em] text-[var(--green)]">DESTINATION PULSE</div>
                       <div className="absolute inset-x-4 bottom-14"><b className="block text-[24px] leading-tight">{plan.escenas[escena]?.textoPantalla}</b><span className="mt-2 block text-[11px] leading-relaxed text-white/80">{plan.escenas[escena]?.locucion}</span></div>
                       <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between"><span className="text-[9px]">{escena + 1}/{plan.escenas.length}</span><button type="button" aria-label={reproduciendo ? "Pausar" : "Reproducir"} className="grid h-8 w-8 place-items-center rounded-full bg-[var(--green)] text-[#092116]" onClick={() => setReproduciendo(!reproduciendo)}>{reproduciendo ? <Pause size={14} /> : <Play size={14} />}</button></div>
                     </>
@@ -246,3 +248,4 @@ export default function ContentStudio({
     </div>
   );
 }
+

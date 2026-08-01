@@ -154,7 +154,7 @@ async function consultarCommons(consulta: string, tipo: "video" | "bitmap", sign
   });
   const respuesta = await fetch(`https://commons.wikimedia.org/w/api.php?${parametros}`, {
     signal,
-    headers: { "User-Agent": "TravelIntelligenceAI/1.0 (portfolio product)" },
+    headers: { "User-Agent": "DestinationPulse/1.0 (portfolio product)" },
     next: { revalidate: 86_400 },
   });
   if (!respuesta.ok) return [];

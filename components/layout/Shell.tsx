@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, Clapperboard, Compass, MessageSquare, Network, SlidersHorizontal, X } from "lucide-react";
+import { Activity, ArrowLeft, Clapperboard, MessageSquare, Network, SlidersHorizontal, X } from "lucide-react";
 import type { Destino, Oportunidad } from "@/types";
 import type { OrigenDatos } from "@/lib/data";
 import { Frescor } from "@/components/ui";
@@ -19,13 +19,11 @@ export type DestinoConScore = Destino & { oportunidad: Oportunidad };
 // La arquitectura se explica, no se navega: vive en un panel aparte.
 const VISTAS = [
   { id: "radar", nombre: "Radar de demanda", icono: Activity },
-  { id: "destino", nombre: "Destino 360", icono: Compass },
   { id: "copiloto", nombre: "Copiloto", icono: MessageSquare },
   { id: "contenido", nombre: "Content Studio", icono: Clapperboard },
-  { id: "criterio", nombre: "Criterio comercial", icono: SlidersHorizontal },
 ] as const;
 
-export type Vista = (typeof VISTAS)[number]["id"];
+export type Vista = (typeof VISTAS)[number]["id"] | "destino" | "criterio";
 
 export default function Shell({
   destinos,
@@ -41,6 +39,9 @@ export default function Shell({
   const [seleccion, setSeleccion] = useState<string>(
     () => [...destinos].sort((a, b) => b.oportunidad.score - a.oportunidad.score)[0]?.id ?? "",
   );
+  const destinosContenido = [...destinos]
+    .sort((a, b) => b.oportunidad.score - a.oportunidad.score)
+    .slice(0, 5);
 
   const abrirDestino = (id: string) => {
     setSeleccion(id);
@@ -51,20 +52,24 @@ export default function Shell({
     setVista("copiloto");
   };
   const abrirContenido = (id: string) => {
-    setSeleccion(id);
+    setSeleccion(destinosContenido.some((d) => d.id === id) ? id : destinosContenido[0]?.id ?? id);
     setVista("contenido");
   };
 
   const activo = destinos.find((d) => d.id === seleccion) ?? destinos[0];
-  const titulo = VISTAS.find((v) => v.id === vista)?.nombre ?? "";
+  const titulo = vista === "destino"
+    ? activo?.destino ?? "Destino"
+    : vista === "criterio"
+      ? "Ajustes de dirección"
+      : VISTAS.find((v) => v.id === vista)?.nombre ?? "";
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[250px_minmax(0,1fr)]">
+    <div className="min-h-screen lg:grid lg:grid-cols-[220px_minmax(0,1fr)]">
       <aside
         className="flex flex-col border-b p-5 lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r"
         style={{ borderColor: "var(--line)", background: "rgba(6,14,12,.88)", backdropFilter: "blur(24px)" }}
       >
-        <div className="flex items-center gap-3 pb-7">
+        <div className="flex items-center gap-3 pb-5">
           <div
             className="grid h-9 w-9 place-items-center rounded-[11px] font-black"
             style={{ background: "linear-gradient(145deg,var(--green),#56d999)", color: "#092116" }}
@@ -72,8 +77,8 @@ export default function Shell({
             T
           </div>
           <div>
-            <strong className="block text-[14px] tracking-tight">Travel Intelligence</strong>
-            <span className="block text-[10px] text-[var(--dim)]">Plataforma de inteligencia turística</span>
+            <strong className="block text-[14px] tracking-tight">Destination Pulse</strong>
+            <span className="block text-[10px] text-[var(--dim)]">Decisión comercial</span>
           </div>
         </div>
 
@@ -100,27 +105,30 @@ export default function Shell({
           })}
         </nav>
 
-        <div className="mt-auto hidden gap-3 pt-6 lg:grid">
+        <div className="mt-auto hidden gap-2 pt-6 lg:grid">
+          <button type="button" className="btn btn-ghost w-full" onClick={() => setVista("criterio")}>
+            <SlidersHorizontal size={14} className="mr-1.5 inline" aria-hidden />
+            Ajustes de dirección
+          </button>
           <button type="button" className="btn btn-ghost w-full" onClick={() => setVerArquitectura(true)}>
             <Network size={14} className="mr-1.5 inline" aria-hidden />
-            Ver la arquitectura
+            Arquitectura
           </button>
-          <div className="subpanel p-3">
-            <Frescor estado={origen.frescura} detalle={origen.detalle} />
-            <p className="mt-2 text-[10px] leading-relaxed text-[var(--dim)]">
-              {origen.detalle}. Ningún indicador se rellena con valores inventados.
-            </p>
-          </div>
         </div>
       </aside>
 
       <main className="min-w-0 px-4 pb-12 sm:px-6 lg:px-8">
-        <header className="flex h-[92px] items-center justify-between gap-4">
-          <div className="min-w-0">
-            <span className="text-[9px] font-extrabold tracking-[.16em] text-[var(--dim)]">
-              AGENCIA EUROPEA · ESPACIO DE DECISIÓN COMERCIAL
-            </span>
-            <h1 className="mt-1.5 truncate text-[24px] tracking-tight">{titulo}</h1>
+        <header className="flex h-[72px] items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            {vista === "destino" ? (
+              <button type="button" className="btn btn-ghost px-2.5 py-2" onClick={() => setVista("radar")} aria-label="Volver al Radar">
+                <ArrowLeft size={15} aria-hidden />
+              </button>
+            ) : null}
+            <div className="min-w-0">
+              <h1 className="truncate text-[22px] tracking-tight">{titulo}</h1>
+              <span className="text-[10px] text-[var(--dim)]">Señales reales · decisiones explicables</span>
+            </div>
           </div>
           <Frescor estado={origen.frescura} detalle={origen.detalle} />
         </header>
@@ -138,7 +146,7 @@ export default function Shell({
           <Destino360 destino={activo} destinos={destinos} mes={mes} onSeleccionar={setSeleccion} onAbrirCopiloto={abrirCopiloto} onAbrirContenido={abrirContenido} />
         ) : null}
         {vista === "copiloto" ? <Copiloto destinoSugerido={activo?.destino ?? ""} /> : null}
-        {vista === "contenido" ? <ContentStudio destinos={destinos} destinoSugerido={activo?.id ?? ""} onSeleccionar={setSeleccion} /> : null}
+        {vista === "contenido" ? <ContentStudio destinos={destinosContenido} destinoSugerido={activo?.id ?? ""} onSeleccionar={setSeleccion} /> : null}
         {vista === "criterio" ? <CriterioComercial destinos={destinos} /> : null}
       </main>
 
@@ -171,3 +179,4 @@ export default function Shell({
     </div>
   );
 }
+

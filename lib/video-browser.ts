@@ -81,7 +81,7 @@ function dibujarTexto(ctx: CanvasRenderingContext2D, plan: PlanContenido, escena
   ctx.globalAlpha = entrada;
   ctx.fillStyle = "#8df5bd";
   ctx.font = "700 22px Arial";
-  ctx.fillText("TRAVEL INTELLIGENCE", 54, 74);
+  ctx.fillText("DESTINATION PULSE", 54, 74);
   ctx.fillStyle = "#ffffff";
   ctx.font = "800 58px Arial";
   const trozos = lineas(ctx, datos.textoPantalla, ANCHO - 108);
@@ -186,3 +186,4 @@ export async function renderizarVideoWebM(
   await audio.close();
   return blob;
 }
+

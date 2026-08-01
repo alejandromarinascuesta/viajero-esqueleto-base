@@ -1,32 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ArrowRight, Clapperboard, Clock3, Search } from "lucide-react";
+import { ArrowRight, Clapperboard, MessageSquare } from "lucide-react";
 import type { DestinoConScore } from "@/components/layout/Shell";
 import type { OrigenDatos } from "@/lib/data";
-import { Anillo, Kpi, Panel, Vacio } from "@/components/ui";
+import { Kpi, Panel, Vacio } from "@/components/ui";
 import { pulso } from "@/lib/pulso";
-import { etiquetaFuenteMomentum, senalMasReciente, senalMomentum } from "@/lib/signals";
-
-const FILTROS = [
-  { id: "todos", nombre: "Todos" },
-  { id: "prioridad", nombre: "Prioridad alta" },
-  { id: "crecimiento", nombre: "Crecimiento fuerte" },
-  { id: "margen", nombre: "Margen alto" },
-  { id: "confianza", nombre: "Confianza alta" },
-] as const;
-
-const ORDENES = [
-  { id: "score", nombre: "Opportunity Score" },
-  { id: "crecimiento", nombre: "Crecimiento" },
-  { id: "margen", nombre: "Margen" },
-  { id: "confianza", nombre: "Confianza" },
-] as const;
+import { etiquetaFuenteMomentum, senalMomentum } from "@/lib/signals";
 
 const interesDe = (d: DestinoConScore) => senalMomentum(d)?.valor ?? null;
-
-const volumenDe = (d: DestinoConScore) =>
-  senalMasReciente(d.senales, "volumen_atencion_dia")?.valor ?? null;
 
 export default function Radar({
   destinos,
@@ -41,241 +22,106 @@ export default function Radar({
   onAbrirCopiloto: (id: string) => void;
   onAbrirContenido: (id: string) => void;
 }) {
-  const [busqueda, setBusqueda] = useState("");
-  const [filtro, setFiltro] = useState<(typeof FILTROS)[number]["id"]>("todos");
-  const [orden, setOrden] = useState<(typeof ORDENES)[number]["id"]>("score");
-
-  const filas = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
-    return destinos
-      .filter((d) => !q || d.destino.toLowerCase().includes(q) || d.pais.toLowerCase().includes(q))
-      .filter((d) => {
-        if (filtro === "prioridad") return d.oportunidad.score >= 55;
-        if (filtro === "crecimiento") return (interesDe(d) ?? -999) >= 0;
-        if (filtro === "margen") return d.margenPct >= 24;
-        if (filtro === "confianza") return d.oportunidad.confianza >= 75;
-        return true;
-      })
-      .sort((a, b) => {
-        if (orden === "crecimiento") return (interesDe(b) ?? -999) - (interesDe(a) ?? -999);
-        if (orden === "margen") return b.margenPct - a.margenPct;
-        if (orden === "confianza") return b.oportunidad.confianza - a.oportunidad.confianza;
-        return b.oportunidad.score - a.oportunidad.score;
-      });
-  }, [destinos, busqueda, filtro, orden]);
-
-  const ordenados = [...destinos].sort((a, b) => b.oportunidad.score - a.oportunidad.score);
-  const lider = ordenados[0];
-  const prioritarios = ordenados.filter((d) => d.oportunidad.score >= 55).length;
-  const confianzaMedia = destinos.length
-    ? Math.round(destinos.reduce((s, d) => s + d.oportunidad.confianza, 0) / destinos.length)
+  const filas = [...destinos].sort((a, b) => b.oportunidad.score - a.oportunidad.score).slice(0, 5);
+  const lider = filas[0];
+  const confianzaMedia = filas.length
+    ? Math.round(filas.reduce((s, d) => s + d.oportunidad.confianza, 0) / filas.length)
     : 0;
-  const conSenal = destinos.filter((d) => interesDe(d) !== null).length;
-  const conTrends = destinos.filter((d) => senalMomentum(d)?.fuente === "trends").length;
-  const conWiki = destinos.filter((d) => senalMomentum(d)?.fuente === "interes").length;
+  const conTrends = filas.filter((d) => senalMomentum(d)?.fuente === "trends").length;
 
   return (
     <div className="space-y-4">
       <section
-        className="grid overflow-hidden rounded-[26px] lg:grid-cols-[1.15fr_.85fr]"
+        className="flex flex-col justify-between gap-5 rounded-[22px] p-5 md:flex-row md:items-center"
         style={{
           border: "1px solid var(--line-strong)",
           background: "linear-gradient(110deg,rgba(16,42,34,.98),rgba(9,23,20,.9))",
           boxShadow: "var(--shadow)",
         }}
       >
-        <div className="p-7">
-          <span className="pill pill-green">PROPUESTA DE VALOR</span>
-          <h2 className="mt-4 max-w-xl text-[30px] leading-[1.08] tracking-tight">
-            Convierte señales de demanda en{" "}
-            <em className="not-italic" style={{ color: "var(--green)" }}>decisiones comerciales</em>{" "}
-            que un agente puede defender.
+        <div>
+          <span className="pill pill-green">QUÉ VENDER AHORA</span>
+          <h2 className="mt-3 max-w-2xl text-[25px] leading-tight tracking-tight">
+            Las cinco oportunidades que merece la pena activar.
           </h2>
-          <p className="mt-3 max-w-lg text-[13px] leading-relaxed text-[#a8bbb3]">
-            Los datos están dispersos, pero el problema real es otro: el criterio comercial vive en la
-            cabeza de unos pocos agentes. Esta plataforma lo hace explícito, editable y medible.
+          <p className="mt-2 text-[12px] text-[var(--muted)]">
+            La plataforma analiza todo el catálogo, pero la demo solo enseña lo importante.
           </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <span className="pill">
-              <Clock3 size={13} className="mr-1.5 inline" aria-hidden />
-              Sincronización automática · Google Trends nocturno
+        </div>
+        {lider ? (
+          <button
+            type="button"
+            className="flex min-w-[260px] items-center justify-between gap-4 rounded-2xl p-4 text-left"
+            style={{ background: "rgba(141,245,189,.07)" }}
+            onClick={() => onAbrirDestino(lider.id)}
+          >
+            <span>
+              <span className="text-[10px] font-bold uppercase tracking-[.1em] text-[var(--green)]">Líder actual</span>
+              <strong className="mt-1 block text-[20px]">{lider.destino}</strong>
+              <span className="text-[11px] text-[var(--muted)]">Score {lider.oportunidad.score} · confianza {lider.oportunidad.confianza}%</span>
             </span>
-            {lider ? (
-              <>
-                <button type="button" className="btn btn-primary" onClick={() => onAbrirDestino(lider.id)}>
-                  Analizar {lider.destino}
-                </button>
-                <button type="button" className="btn btn-ghost" onClick={() => onAbrirContenido(lider.id)}>
-                  <Clapperboard size={14} className="mr-1.5 inline" aria-hidden />
-                  Crear vídeo del líder
-                </button>
-              </>
-            ) : null}
-          </div>
-        </div>
-        <div className="relative grid min-h-[210px] place-items-center p-6">
-          {lider ? (
-            <>
-              <Anillo valor={lider.oportunidad.score} sub="OPPORTUNITY SCORE" />
-              <p className="mt-3 text-center text-[12px] text-[var(--muted)]">
-                {lider.destino} · confianza {lider.oportunidad.confianza}%
-              </p>
-            </>
-          ) : null}
-        </div>
+            <ArrowRight size={17} className="text-[var(--green)]" aria-hidden />
+          </button>
+        ) : null}
       </section>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Kpi etiqueta="Destinos analizados" valor={String(destinos.length)} nota="catálogo de la agencia" />
-        <Kpi etiqueta="Oportunidades prioritarias" valor={String(prioritarios)} nota="score 55 o superior" tono="verde" />
-        <Kpi
-          etiqueta="Confianza media del dato"
-          valor={`${confianzaMedia}%`}
-          nota={`${conTrends} Google Trends · ${conWiki} Wikimedia · ${destinos.length - conSenal} sin señal`}
-        />
-        <Kpi
-          etiqueta="Última ingesta"
-          valor={origen.ingestadoEn ? new Date(origen.ingestadoEn).toLocaleDateString("es-ES") : "—"}
-          nota={origen.detalle}
-        />
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Kpi etiqueta="Prioridades visibles" valor={String(filas.length)} nota={`de ${destinos.length} destinos analizados`} />
+        <Kpi etiqueta="Líder" valor={lider?.destino ?? "—"} nota={lider ? `score ${lider.oportunidad.score}` : "sin datos"} tono="verde" />
+        <Kpi etiqueta="Confianza media" valor={`${confianzaMedia}%`} nota={`${conTrends} con Google Trends · ${origen.frescura}`} />
       </div>
 
-    <Panel
-      titulo={`Radar de demanda · ${filas.length} de ${destinos.length} destinos`}
-      extra={
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="relative">
-            <span className="sr-only">Buscar destino</span>
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--dim)]" aria-hidden />
-            <input
-              className="field w-44 pl-8 text-[12px]"
-              placeholder="Buscar destino"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-            />
-          </label>
-          <label className="sr-only" htmlFor="orden">Ordenar por</label>
-          <select id="orden" className="field w-auto text-[12px]" value={orden} onChange={(e) => setOrden(e.target.value as typeof orden)}>
-            {ORDENES.map((o) => (
-              <option key={o.id} value={o.id}>{o.nombre}</option>
-            ))}
-          </select>
-        </div>
-      }
-    >
-      <div className="mb-4 flex flex-wrap gap-1.5 rounded-xl p-1" style={{ border: "1px solid var(--line)" }}>
-        {FILTROS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => setFiltro(f.id)}
-            aria-pressed={filtro === f.id}
-            className="rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors"
-            style={{
-              background: filtro === f.id ? "rgba(141,245,189,.1)" : "transparent",
-              color: filtro === f.id ? "var(--green)" : "#70897e",
-            }}
-          >
-            {f.nombre}
-          </button>
-        ))}
-      </div>
-
-      {filas.length === 0 ? (
-        <Vacio mensaje="Ningún destino cumple ese filtro. Prueba con otro criterio." />
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-[13px]">
-            <caption className="sr-only">Destinos ordenados por oportunidad comercial</caption>
-            <thead>
-              <tr className="text-left text-[9px] uppercase tracking-[.08em] text-[var(--dim)]">
-                <th scope="col" className="px-3 pb-3 font-normal">Destino</th>
-                <th scope="col" className="px-3 pb-3 font-normal">Opportunity</th>
-                <th scope="col" className="px-3 pb-3 font-normal">Tendencia</th>
-                <th scope="col" className="px-3 pb-3 text-right font-normal">Margen</th>
-                <th scope="col" className="px-3 pb-3 text-right font-normal">Confianza</th>
-                <th scope="col" className="px-3 pb-3 font-normal">Recomendación</th>
-                <th scope="col" className="pb-3"><span className="sr-only">Acciones</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filas.map((d) => {
-                const interes = interesDe(d);
-                const fuenteInteres = senalMomentum(d);
-                const p = pulso(interes);
-                return (
-                  <tr key={d.id} className="border-t" style={{ borderColor: "rgba(255,255,255,.055)" }}>
-                    <th scope="row" className="px-3 py-3 text-left font-normal">
-                      <span className="block">{d.destino}</span>
-                      <span className="block text-[10px] text-[var(--dim)]">{d.pais} · {d.tipo}</span>
-                    </th>
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="bar w-12"><i style={{ width: `${d.oportunidad.score}%` }} /></div>
-                        <span className="tabular-nums">{d.oportunidad.score}</span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className="mr-1.5" aria-hidden>{p.icono}</span>
-                      {interes === null ? (
-                        <span className="text-[var(--dim)]">sin señal</span>
-                      ) : (
-                        <>
-                          <span className="tabular-nums">{interes > 0 ? "+" : ""}{interes}%</span>
-                          <span className="block text-[10px] text-[var(--dim)]">
-                            {etiquetaFuenteMomentum(fuenteInteres)} · {fuenteInteres?.periodo}
-                          </span>
-                          {volumenDe(d) !== null ? (
-                            <span className="block text-[10px] text-[var(--dim)]">
-                              {Intl.NumberFormat("es-ES").format(volumenDe(d)!)} visitas/día
-                            </span>
-                          ) : null}
-                        </>
-                      )}
-                    </td>
-                    <td className="px-3 py-3 text-right tabular-nums">{d.margenPct}%</td>
-                    <td className="px-3 py-3 text-right tabular-nums" style={{ color: d.oportunidad.confianza < 60 ? "var(--orange)" : undefined }}>
-                      {d.oportunidad.confianza}%
-                    </td>
-                    <td className="px-3 py-3 text-[12px] text-[var(--muted)]">
-                      {d.oportunidad.ausentes.length > 0 ? (
-                        <span style={{ color: "var(--orange)" }}>
-                          faltan {d.oportunidad.ausentes.length} métrica
-                          {d.oportunidad.ausentes.length === 1 ? "" : "s"}
-                        </span>
-                      ) : (
-                        `${p.etiqueta} · dato completo`
-                      )}
-                    </td>
-                    <td className="py-3 pr-1">
-                      <div className="flex justify-end gap-1.5">
-                        <button type="button" className="btn btn-ghost px-2.5 py-1.5 text-[11px]" onClick={() => onAbrirCopiloto(d.id)}>
-                          Copiloto
+      <Panel titulo="Top 5 de oportunidades" extra={<span className="pill pill-line">Actualización automática</span>}>
+        {filas.length === 0 ? <Vacio mensaje="Todavía no hay oportunidades disponibles." /> : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[650px] text-[13px]">
+              <caption className="sr-only">Cinco mejores destinos por oportunidad comercial</caption>
+              <thead>
+                <tr className="text-left text-[9px] uppercase tracking-[.08em] text-[var(--dim)]">
+                  <th className="px-3 pb-3 font-normal">Destino</th>
+                  <th className="px-3 pb-3 font-normal">Demanda</th>
+                  <th className="px-3 pb-3 font-normal">Score</th>
+                  <th className="px-3 pb-3 text-right font-normal">Margen</th>
+                  <th className="pb-3"><span className="sr-only">Acciones</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filas.map((d, indice) => {
+                  const interes = interesDe(d);
+                  const fuente = senalMomentum(d);
+                  const estado = pulso(interes);
+                  return (
+                    <tr key={d.id} className="border-t" style={{ borderColor: "rgba(255,255,255,.055)" }}>
+                      <th scope="row" className="px-3 py-3 text-left font-normal">
+                        <button type="button" className="flex items-center gap-3 text-left" onClick={() => onAbrirDestino(d.id)}>
+                          <span className="grid h-7 w-7 place-items-center rounded-lg text-[11px] font-bold" style={{ background: "rgba(141,245,189,.08)", color: "var(--green)" }}>{indice + 1}</span>
+                          <span><span className="block font-semibold">{d.destino}</span><span className="block text-[10px] text-[var(--dim)]">{d.pais} · {d.tipo}</span></span>
                         </button>
-                        <button
-                          type="button"
-                          className="btn btn-ghost px-2.5 py-1.5"
-                          onClick={() => onAbrirDestino(d.id)}
-                          aria-label={`Abrir Destino 360 de ${d.destino}`}
-                        >
-                          <ArrowRight size={13} aria-hidden />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <p className="mt-4 text-[11px] leading-relaxed text-[var(--dim)]">
-        El Opportunity Score se calcula solo con métricas realmente disponibles, y va <b>ajustado por
-        confianza</b>: repartir el peso de una métrica ausente no puede premiar a un destino por no tener
-        datos. Nunca se rellena con una media ni con un valor generado. Cada señal muestra su periodo real.
-      </p>
-    </Panel>
+                      </th>
+                      <td className="px-3 py-3">
+                        <span className="mr-1.5" aria-hidden>{estado.icono}</span>
+                        {interes === null ? <span className="text-[var(--dim)]">Sin señal</span> : (
+                          <><span className="tabular-nums">{interes > 0 ? "+" : ""}{interes}%</span><span className="block text-[10px] text-[var(--dim)]">{etiquetaFuenteMomentum(fuente)}</span></>
+                        )}
+                      </td>
+                      <td className="px-3 py-3"><strong className="tabular-nums">{d.oportunidad.score}</strong><span className="ml-2 text-[10px] text-[var(--dim)]">{d.oportunidad.confianza}% conf.</span></td>
+                      <td className="px-3 py-3 text-right tabular-nums">{d.margenPct}%</td>
+                      <td className="py-3 pr-1">
+                        <div className="flex justify-end gap-1.5">
+                          <button type="button" className="btn btn-ghost px-2.5 py-1.5" onClick={() => onAbrirCopiloto(d.id)} aria-label={`Recomendar ${d.destino}`}><MessageSquare size={13} aria-hidden /></button>
+                          <button type="button" className="btn btn-ghost px-2.5 py-1.5" onClick={() => onAbrirContenido(d.id)} aria-label={`Crear contenido de ${d.destino}`}><Clapperboard size={13} aria-hidden /></button>
+                          <button type="button" className="btn btn-primary px-3 py-1.5 text-[11px]" onClick={() => onAbrirDestino(d.id)}>Ver</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Panel>
     </div>
   );
 }
+
