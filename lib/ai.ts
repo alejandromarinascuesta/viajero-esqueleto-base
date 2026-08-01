@@ -1,4 +1,5 @@
 import type { Destino, Perfil } from "@/types";
+import { senalMasReciente } from "@/lib/signals";
 
 /**
  * El proveedor del modelo es intercambiable por variable de entorno: cualquier
@@ -176,7 +177,7 @@ export function contextoParaArgumento(perfil: Perfil, elegidos: Destino[]) {
       motivo_1: d.motivos[0] ?? null,
       motivo_2: d.motivos[1] ?? null,
       motivo_3: d.motivos[2] ?? null,
-      temperatura_media: d.senales.find((s) => s.metrica === "temperatura_media" && s.estado === "ok")?.valor ?? null,
+      temperatura_media: senalMasReciente(d.senales, "temperatura_media")?.valor ?? null,
     })),
   });
 }

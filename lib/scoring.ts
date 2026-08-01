@@ -1,4 +1,5 @@
 import type { Destino, Oportunidad } from "@/types";
+import { senalMasReciente, senalMomentum } from "@/lib/signals";
 
 /**
  * Opportunity Score: qué destinos merece la pena promover al mercado.
@@ -32,23 +33,32 @@ const PESOS = [
 const acotar = (v: number) => Math.min(1, Math.max(0, v));
 
 function senal(d: Destino, metrica: string): { valor: number | null; aplica: boolean } {
-  const s = d.senales.find((x) => x.metrica === metrica);
-  if (!s) return { valor: null, aplica: true };
-  if (s.estado === "no_aplicable") return { valor: null, aplica: false };
-  return { valor: s.estado === "ok" ? s.valor : null, aplica: true };
+  const actual = senalMasReciente(d.senales, metrica);
+  if (actual) return { valor: actual.valor, aplica: true };
+
+  const candidatas = d.senales.filter((x) => x.metrica === metrica);
+  if (candidatas.length > 0 && candidatas.every((x) => x.estado === "no_aplicable")) {
+    return { valor: null, aplica: false };
+  }
+  return { valor: null, aplica: true };
 }
 
-function componente(clave: string, d: Destino): { valor: number | null; aplica: boolean } {
+function componente(clave: string, d: Destino): { valor: number | null; aplica: boolean; origen?: string } {
   if (clave === "momentum") {
     // Trends mide intencion de viaje; Wikipedia mide atencion. Cuando hay
     // Trends manda Trends, y si no se usa Wikipedia como respaldo declarado.
-    const trends = senal(d, "momentum_busquedas_pct");
-    const wiki = senal(d, "tendencia_interes_pct");
-    const elegida = trends.valor !== null ? trends : wiki;
+    const elegida = senalMomentum(d);
     // -50 % -> 0 · 0 % -> 0,5 · +50 % -> 1
     return {
-      valor: elegida.valor === null ? null : acotar((elegida.valor + 50) / 100),
-      aplica: trends.aplica || wiki.aplica,
+      valor: elegida?.valor === null || elegida?.valor === undefined
+        ? null
+        : acotar((elegida.valor + 50) / 100),
+      aplica: true,
+      origen: elegida
+        ? elegida.fuente === "trends"
+          ? `Google Trends · exportación real · ${elegida.periodo}`
+          : `Wikimedia Pageviews · respaldo de atención · ${elegida.periodo}`
+        : "Google Trends si está importado; Wikimedia como respaldo",
     };
   }
   if (clave === "volumen") {
@@ -71,8 +81,8 @@ function componente(clave: string, d: Destino): { valor: number | null; aplica: 
 
 export function opportunityScore(d: Destino): Oportunidad {
   const componentes = PESOS.map((p) => {
-    const { valor, aplica } = componente(p.clave, d);
-    return { clave: p.clave, etiqueta: p.etiqueta, peso: p.peso, valor, aplica, aporta: 0, origen: p.origen };
+    const { valor, aplica, origen } = componente(p.clave, d);
+    return { clave: p.clave, etiqueta: p.etiqueta, peso: p.peso, valor, aplica, aporta: 0, origen: origen ?? p.origen };
   });
 
   // Las que no aplican salen del denominador: no penalizan.

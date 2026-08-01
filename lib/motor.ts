@@ -1,4 +1,5 @@
 import type { Destino, Perfil, Propuesta, Recomendacion } from "@/types";
+import { senalMomentum } from "@/lib/signals";
 
 /**
  * Motor de recomendación. Determinista de principio a fin.
@@ -133,7 +134,7 @@ export function puntuar(
   if (p.edadesNinos.length > 0 && norm(d.aptoNinos) === "alto") encaje += 0.2;
   if (p.destinosVisitados.includes(d.destino)) encaje -= 0.3;
 
-  const interes = d.senales.find((s) => s.metrica === "tendencia_interes_pct" && s.estado === "ok")?.valor;
+  const interes = senalMomentum(d)?.valor;
   const factores: Record<keyof Pesos, number> = {
     encaje_cliente: acotar(encaje),
     // Sin señal de demanda el factor es neutro, no cero: no penaliza al destino

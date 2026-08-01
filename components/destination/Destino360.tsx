@@ -5,10 +5,12 @@ import { MessageSquare } from "lucide-react";
 import type { DestinoConScore } from "@/components/layout/Shell";
 import { Anillo, Kpi, Panel, Vacio } from "@/components/ui";
 import { accionRecomendada, pulso } from "@/lib/pulso";
+import { senalMomentum, senalesActuales } from "@/lib/signals";
 
 /** Cada fuente con su cadencia real. La frescura no es uniforme, y decirlo vale
  *  mas que fingir que todo es de hace una hora. */
 const FUENTE: Record<string, { nombre: string; cadencia: string }> = {
+  trends: { nombre: "Demanda · Google Trends", cadencia: "CSV real importado · 4 semanas vs 4" },
   clima: { nombre: "Clima · Open-Meteo", cadencia: "archivo histórico · estable" },
   interes: { nombre: "Interés · Wikimedia", cadencia: "vistas diarias · 28 días vs 28" },
   divisa: { nombre: "Divisa · Banco Central Europeo", cadencia: "cada día laborable" },
@@ -63,7 +65,7 @@ export default function Destino360({
     return () => control.abort();
   }, [destino.id]);
 
-  const interes = destino.senales.find((s) => s.metrica === "tendencia_interes_pct" && s.estado === "ok")?.valor ?? null;
+  const interes = senalMomentum(destino)?.valor ?? null;
   const p = pulso(interes);
   const accion = accionRecomendada(
     {
@@ -209,7 +211,7 @@ export default function Destino360({
 
             <Panel titulo="Procedencia del dato">
               <ul className="space-y-2 text-[11px]">
-                {destino.senales.map((s) => (
+                {senalesActuales(destino.senales).map((s) => (
                   <li key={`${s.fuente}-${s.metrica}`} className="flex items-baseline justify-between gap-3">
                     <span className="min-w-0 text-[var(--muted)]">
                       {FUENTE[s.fuente]?.nombre ?? s.fuente}

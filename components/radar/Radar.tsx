@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowRight, RefreshCw, Search } from "lucide-react";
 import type { DestinoConScore } from "@/components/layout/Shell";
 import type { OrigenDatos } from "@/lib/data";
 import { Anillo, Kpi, Panel, Vacio } from "@/components/ui";
 import { pulso } from "@/lib/pulso";
+import { etiquetaFuenteMomentum, senalMasReciente, senalMomentum } from "@/lib/signals";
 
 const FILTROS = [
   { id: "todos", nombre: "Todos" },
@@ -22,11 +24,10 @@ const ORDENES = [
   { id: "confianza", nombre: "Confianza" },
 ] as const;
 
-const interesDe = (d: DestinoConScore) =>
-  d.senales.find((s) => s.metrica === "tendencia_interes_pct" && s.estado === "ok")?.valor ?? null;
+const interesDe = (d: DestinoConScore) => senalMomentum(d)?.valor ?? null;
 
 const volumenDe = (d: DestinoConScore) =>
-  d.senales.find((s) => s.metrica === "volumen_atencion_dia" && s.estado === "ok")?.valor ?? null;
+  senalMasReciente(d.senales, "volumen_atencion_dia")?.valor ?? null;
 
 type ImportacionTrends = {
   guardadas?: number;
@@ -56,6 +57,7 @@ export default function Radar({
   onAbrirDestino: (id: string) => void;
   onAbrirCopiloto: (id: string) => void;
 }) {
+  const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
   const [ingiriendo, setIngiriendo] = useState(false);
   const [ingesta, setIngesta] = useState<Ingesta | null>(null);
@@ -72,7 +74,9 @@ export default function Radar({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ csv, mes }),
       });
-      setTrends((await r.json()) as ImportacionTrends);
+      const resultado = (await r.json()) as ImportacionTrends;
+      setTrends(resultado);
+      if (r.ok && (resultado.guardadas ?? 0) > 0) router.refresh();
     } catch {
       setTrends({ error: { message: "No se ha podido leer el archivo." } });
     } finally {
@@ -120,6 +124,8 @@ export default function Radar({
     ? Math.round(destinos.reduce((s, d) => s + d.oportunidad.confianza, 0) / destinos.length)
     : 0;
   const conSenal = destinos.filter((d) => interesDe(d) !== null).length;
+  const conTrends = destinos.filter((d) => senalMomentum(d)?.fuente === "trends").length;
+  const conWiki = destinos.filter((d) => senalMomentum(d)?.fuente === "interes").length;
 
   return (
     <div className="space-y-4">
@@ -172,7 +178,11 @@ export default function Radar({
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi etiqueta="Destinos analizados" valor={String(destinos.length)} nota="catálogo de la agencia" />
         <Kpi etiqueta="Oportunidades prioritarias" valor={String(prioritarios)} nota="score 55 o superior" tono="verde" />
-        <Kpi etiqueta="Confianza media del dato" valor={`${confianzaMedia}%`} nota={`${conSenal} con señal de demanda`} />
+        <Kpi
+          etiqueta="Confianza media del dato"
+          valor={`${confianzaMedia}%`}
+          nota={`${conTrends} Google Trends · ${conWiki} Wikimedia · ${destinos.length - conSenal} sin señal`}
+        />
         <Kpi
           etiqueta="Última ingesta"
           valor={origen.ingestadoEn ? new Date(origen.ingestadoEn).toLocaleDateString("es-ES") : "—"}
@@ -250,7 +260,7 @@ export default function Radar({
                   ) : null}
                   {trends.aviso ? <p className="mt-2 text-[11px] text-[var(--dim)]">{trends.aviso}</p> : null}
                   {trends.guardadas ? (
-                    <p className="mt-2 text-[11px] text-[var(--dim)]">Recarga la página para verlo en el radar.</p>
+                    <p className="mt-2 text-[11px] text-[var(--dim)]">Radar actualizado con las señales importadas.</p>
                   ) : null}
                 </>
               )}
@@ -346,6 +356,7 @@ export default function Radar({
             <tbody>
               {filas.map((d) => {
                 const interes = interesDe(d);
+                const fuenteInteres = senalMomentum(d);
                 const p = pulso(interes);
                 return (
                   <tr key={d.id} className="border-t" style={{ borderColor: "rgba(255,255,255,.055)" }}>
@@ -366,6 +377,9 @@ export default function Radar({
                       ) : (
                         <>
                           <span className="tabular-nums">{interes > 0 ? "+" : ""}{interes}%</span>
+                          <span className="block text-[10px] text-[var(--dim)]">
+                            {etiquetaFuenteMomentum(fuenteInteres)} · {fuenteInteres?.periodo}
+                          </span>
                           {volumenDe(d) !== null ? (
                             <span className="block text-[10px] text-[var(--dim)]">
                               {Intl.NumberFormat("es-ES").format(volumenDe(d)!)} visitas/día

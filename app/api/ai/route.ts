@@ -7,6 +7,7 @@ import { recomendar } from "@/lib/motor";
 import { leerCriterio } from "@/lib/criterio";
 import { verificarArgumento } from "@/lib/verificar";
 import { estimarConversion, leerHistorico } from "@/lib/conversion";
+import { senalMasReciente } from "@/lib/signals";
 import type { Destino, Perfil } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -201,7 +202,7 @@ export async function POST(request: Request) {
         precio_desde_pp: d.precioDesdePp, noches: d.noches, horas_vuelo: d.horasVuelo,
         motivo_1: d.motivos[0], motivo_2: d.motivos[1], motivo_3: d.motivos[2],
         temperatura_media:
-          d.senales.find((s) => s.metrica === "temperatura_media" && s.estado === "ok")?.valor ?? null,
+          senalMasReciente(d.senales, "temperatura_media")?.valor ?? null,
       };
       const v = verificarArgumento(redactado.argumento, redactado.campos_citados ?? [], ficha);
       // Si no se puede verificar, NO se muestra el texto del modelo.

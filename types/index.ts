@@ -8,7 +8,7 @@ export type Frescura =
   | "unavailable";    // no existe informacion
 
 export type Senal = {
-  fuente: "catalogo" | "interes" | "clima" | "divisa" | "ine" | "vuelos" | "reservas" | "eventos" | "calendario";
+  fuente: "catalogo" | "trends" | "interes" | "clima" | "divisa" | "ine" | "vuelos" | "reservas" | "eventos" | "calendario";
   metrica: string;
   valor: number | null;
   periodo: string;
