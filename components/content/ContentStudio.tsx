@@ -54,6 +54,8 @@ export default function ContentStudio({
   const [medios, setMedios] = useState<{ fuente: string; videos: number; fotos: number } | null>(null);
   const [vozDisponible, setVozDisponible] = useState(false);
   const [usarVoz, setUsarVoz] = useState(true);
+  const [probandoVoz, setProbandoVoz] = useState(false);
+  const audioPruebaRef = useRef<HTMLAudioElement | null>(null);
   const [consentimiento, setConsentimiento] = useState(false);
   const [publicando, setPublicando] = useState(false);
   const [guardados, setGuardados] = useState<PlanContenido[]>([]);
@@ -118,6 +120,24 @@ export default function ContentStudio({
       if (!r.ok) return null;
       return await r.arrayBuffer();
     } catch { return null; }
+  }
+
+  /** Escucha la locución suelta. Sirve para separar un fallo de voz de uno de mezcla. */
+  async function escucharLocucion() {
+    if (!plan) return;
+    setProbandoVoz(true); setMensaje(null);
+    try {
+      const bytes = await pedirLocucion(plan);
+      if (!bytes) throw new Error("La síntesis de voz no ha devuelto audio. Revisa la clave en el despliegue.");
+      audioPruebaRef.current?.pause();
+      if (audioPruebaRef.current?.src) URL.revokeObjectURL(audioPruebaRef.current.src);
+      const audio = new Audio(URL.createObjectURL(new Blob([bytes], { type: "audio/mpeg" })));
+      audioPruebaRef.current = audio;
+      await audio.play();
+      setMensaje("Reproduciendo la locución. Si la oyes aquí, la voz funciona y el problema sería la mezcla.");
+    } catch (e) {
+      setMensaje(e instanceof Error ? e.message : "No se ha podido reproducir la locución.");
+    } finally { setProbandoVoz(false); }
   }
 
   async function crearVideo(descargar: boolean) {
@@ -245,6 +265,12 @@ export default function ContentStudio({
                     ? "Voz en español sobre la cama musical. Lee el guion verificado, no añade nada."
                     : "Falta la clave de síntesis de voz. La pieza sale con música y rótulos."}
                 </p>
+                {vozDisponible ? (
+                  <button type="button" className="btn btn-ghost mt-2 w-full py-1.5 text-[10px]" disabled={probandoVoz} onClick={escucharLocucion}>
+                    {probandoVoz ? <LoaderCircle size={12} className="mr-1.5 inline animate-spin" /> : <Play size={12} className="mr-1.5 inline" />}
+                    Escuchar solo la locución
+                  </button>
+                ) : null}
               </div>
             ) : null}
             <button type="button" className="btn btn-primary w-full" disabled={cargando || !audiencia.trim() || !objetivo.trim()} onClick={generar}>

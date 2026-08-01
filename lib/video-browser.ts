@@ -254,7 +254,7 @@ function textos(ctx: CanvasRenderingContext2D, plan: PlanContenido, indice: numb
  * pista de Epidemic Sound o Uppbeat — pero suena a fondo intencionado y evita
  * meter material protegido en una pieza que se va a publicar.
  */
-function camaMusical(audio: AudioContext, destino: AudioNode, segundos: number) {
+function camaMusical(audio: AudioContext, destino: AudioNode, segundos: number, t0: number) {
   const acordes = [
     [174.61, 220.0, 261.63],
     [196.0, 246.94, 293.66],
@@ -264,11 +264,11 @@ function camaMusical(audio: AudioContext, destino: AudioNode, segundos: number) 
   const compas = segundos / acordes.length;
   const filtro = audio.createBiquadFilter();
   filtro.type = "lowpass";
-  filtro.frequency.setValueAtTime(1300, audio.currentTime);
+  filtro.frequency.setValueAtTime(1300, t0);
   filtro.connect(destino);
 
   acordes.forEach((acorde, paso) => {
-    const inicio = audio.currentTime + paso * compas;
+    const inicio = t0 + paso * compas;
     acorde.forEach((frecuencia, voz) => {
       const oscilador = audio.createOscillator();
       const ganancia = audio.createGain();
@@ -285,7 +285,7 @@ function camaMusical(audio: AudioContext, destino: AudioNode, segundos: number) 
 
   // Pulso grave que marca el tempo sin llegar a ser percusion.
   for (let golpe = 0; golpe * 0.5 < segundos; golpe += 1) {
-    const inicio = audio.currentTime + golpe * 0.5;
+    const inicio = t0 + golpe * 0.5;
     const oscilador = audio.createOscillator();
     const ganancia = audio.createGain();
     oscilador.type = "sine";
@@ -346,30 +346,34 @@ export async function renderizarVideo(
   );
 
   const audio = new AudioContext();
+  // Este contexto se crea despues de varios await — la peticion de voz y la
+  // carga de los clips — y el navegador lo abre suspendido. Mientras lo este,
+  // currentTime no avanza: todo lo que se programe queda en el pasado y no
+  // suena nada. Hay que reanudarlo antes de tocar el reloj.
+  if (audio.state !== "running") {
+    try { await audio.resume(); } catch { /* se comprueba justo despues */ }
+  }
+
+  // La voz se descodifica antes de programar nada: descodificar tarda, y si se
+  // hace en medio se desplaza todo lo ya programado.
+  let vozDecodificada: AudioBuffer | null = null;
+  if (locucion) {
+    try { vozDecodificada = await audio.decodeAudioData(locucion.slice(0)); } catch { vozDecodificada = null; }
+  }
+
   const salida = audio.createMediaStreamDestination();
   const musica = audio.createGain();
   musica.connect(salida);
   // La musica baja cuando hay voz: si no, compiten y no se entiende ninguna.
-  musica.gain.setValueAtTime(locucion ? 0.055 : 0.13, audio.currentTime);
-  camaMusical(audio, musica, plan.duracion);
-
-  if (locucion) {
-    try {
-      const decodificado = await audio.decodeAudioData(locucion.slice(0));
-      const voz = audio.createBufferSource();
-      const ganancia = audio.createGain();
-      ganancia.gain.setValueAtTime(1.25, audio.currentTime);
-      voz.buffer = decodificado;
-      voz.connect(ganancia).connect(salida);
-      voz.start(audio.currentTime + 0.25);
-    } catch {
-      // Si el MP3 no se puede decodificar, la pieza sale con musica y sin voz.
-      musica.gain.setValueAtTime(0.13, audio.currentTime);
-    }
-  }
+  musica.gain.value = vozDecodificada ? 0.05 : 0.13;
 
   const video = canvas.captureStream(FPS);
-  const mezcla = new MediaStream([...video.getVideoTracks(), ...salida.stream.getAudioTracks()]);
+  const pistasAudio = salida.stream.getAudioTracks();
+  const mezcla = new MediaStream([...video.getVideoTracks(), ...pistasAudio]);
+  if (!pistasAudio.length) {
+    await audio.close();
+    throw new Error("El navegador no ha dejado abrir la pista de audio. Vuelve a pulsar el botón.");
+  }
   const grabador = new MediaRecorder(mezcla, {
     mimeType: contenedor.mime,
     videoBitsPerSecond: 5_000_000,
@@ -384,6 +388,20 @@ export async function renderizarVideo(
   });
 
   grabador.start(500);
+
+  // Se programa con el grabador ya en marcha y unos milisegundos por delante,
+  // para no perder el arranque de la musica ni de la voz.
+  const t0 = audio.currentTime + 0.12;
+  camaMusical(audio, musica, plan.duracion, t0);
+  if (vozDecodificada) {
+    const voz = audio.createBufferSource();
+    const ganancia = audio.createGain();
+    ganancia.gain.value = 1.35;
+    voz.buffer = vozDecodificada;
+    voz.connect(ganancia).connect(salida);
+    voz.start(t0 + 0.3);
+  }
+
   const inicio = performance.now();
   const total = plan.duracion * 1000;
 
