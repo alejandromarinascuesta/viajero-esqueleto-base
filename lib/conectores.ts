@@ -19,7 +19,7 @@ export type FilaSenal = {
   metrica: string;
   valor: number | null;
   valor_bruto: unknown;
-  estado: "ok" | "no_disponible";
+  estado: "ok" | "no_disponible" | "no_aplicable";
 };
 
 export type ResumenFuente = { fuente: string; detalle: string; ok: number; fallos: number; ms: number };
@@ -137,7 +137,7 @@ export async function conectorInteres(destinos: Destino[], mes: number): Promise
     return { serie, motivo: "" };
   }
 
-  return enTandas(destinos, async (d): Promise<FilaSenal> => {
+  const filas = await enTandas(destinos, async (d): Promise<FilaSenal | FilaSenal[]> => {
     const base: FilaSenal = {
       fuente: "interes", destino_id: d.id, periodo, metrica: "tendencia_interes_pct",
       valor: null, valor_bruto: null, estado: "no_disponible",
@@ -168,22 +168,34 @@ export async function conectorInteres(destinos: Destino[], mes: number): Promise
       const previos = media(serie.slice(-56, -28));
       if (previos === 0) return { ...base, valor_bruto: { motivo: "ventana previa sin visitas" } };
 
-      return {
-        ...base,
-        valor: Math.round(((recientes - previos) / previos) * 1000) / 10,
-        valor_bruto: {
-          articulo: titulo,
-          edicion,
-          dias: serie.length,
-          media_28d: Math.round(recientes),
-          media_28d_previos: Math.round(previos),
+      return [
+        {
+          ...base,
+          valor: Math.round(((recientes - previos) / previos) * 1000) / 10,
+          valor_bruto: {
+            articulo: titulo,
+            edicion,
+            dias: serie.length,
+            media_28d: Math.round(recientes),
+            media_28d_previos: Math.round(previos),
+          },
+          estado: "ok" as const,
         },
-        estado: "ok",
-      };
+        {
+          // El momentum dice si sube; el volumen dice cuanto importa. Sin esto,
+          // un +40% sobre 200 visitas pesa igual que un +40% sobre 200.000.
+          ...base,
+          metrica: "volumen_atencion_dia",
+          valor: Math.round(recientes),
+          valor_bruto: { articulo: titulo, edicion },
+          estado: "ok" as const,
+        },
+      ];
     } catch (e) {
       return { ...base, valor_bruto: { motivo: e instanceof Error ? e.message : "fallo de red" } };
     }
   });
+  return filas.flat();
 }
 
 /**
@@ -212,7 +224,11 @@ export async function conectorDivisa(destinos: Destino[], mes: number): Promise<
   const necesarias = [...new Set(
     destinos.map((d) => MONEDA_POR_PAIS[d.pais]).filter((m): m is string => Boolean(m) && m !== "EUR"),
   )];
-  if (necesarias.length === 0) return destinos.map((d) => base(d, "destino en euros"));
+  const enEuros = (d: Destino): FilaSenal => ({
+    fuente: "divisa", destino_id: d.id, periodo, metrica: "variacion_divisa_pct",
+    valor: null, valor_bruto: { motivo: "el destino cotiza en euros" }, estado: "no_aplicable",
+  });
+  if (necesarias.length === 0) return destinos.map(enEuros);
 
   const hoy = new Date();
   const hace90 = new Date(hoy.getTime() - 90 * 86400000);
@@ -248,7 +264,7 @@ export async function conectorDivisa(destinos: Destino[], mes: number): Promise<
 
     return destinos.map((d) => {
       const moneda = MONEDA_POR_PAIS[d.pais];
-      if (!moneda || moneda === "EUR") return base(d, "destino en euros");
+      if (!moneda || moneda === "EUR") return enEuros(d);
       const v = variacion[moneda];
       if (v === undefined) return base(d, `sin serie para ${moneda}`);
       return {
@@ -274,9 +290,14 @@ export async function conectorDivisa(destinos: Destino[], mes: number): Promise<
  *  - Se publica con dos meses de retraso. No es tiempo real y la interfaz lo
  *    marca como «ultimo dato oficial», no como «en directo».
  *
- * El identificador de tabla es configurable (INE_TABLA) porque el INE
- * reorganiza su catalogo: si cambia, se ajusta una variable de entorno y no el
- * codigo.
+ * Sobre el emparejamiento: se busca la serie por nombre de provincia porque es
+ * lo estable entre reorganizaciones del catalogo del INE, pero el identificador
+ * de tabla es configurable (INE_TABLA) y el emparejamiento exige que el nombre
+ * contenga TANTO la provincia COMO la palabra viajeros, para no confundir la
+ * serie de pernoctaciones con la de viajeros.
+ *
+ * Si la tabla por defecto deja de servir, se cambia una variable de entorno y
+ * no el codigo.
  */
 const PROVINCIA_INE: Record<string, { codigo: string; nombre: string }> = {
   EXP01: { codigo: "07", nombre: "Illes Balears" },
@@ -301,8 +322,15 @@ export async function conectorIne(destinos: Destino[], mes: number): Promise<Fil
     valor: null, valor_bruto: { motivo }, estado: "no_disponible",
   });
 
+  // Un destino fuera de Espana no es un fallo de la fuente: es que la fuente no
+  // lo cubre. Se marca NO APLICABLE para que no le reste confianza.
+  const noAplica = (d: Destino): FilaSenal => ({
+    fuente: "ine", destino_id: d.id, periodo, metrica: "variacion_viajeros_pct",
+    valor: null, valor_bruto: { motivo: "el INE solo cubre España" }, estado: "no_aplicable",
+  });
+
   const nacionales = destinos.filter((d) => PROVINCIA_INE[d.id]);
-  if (nacionales.length === 0) return destinos.map((d) => base(d, "destino no nacional"));
+  if (nacionales.length === 0) return destinos.map(noAplica);
 
   const tabla = process.env.INE_TABLA ?? "2074";
   let series: SerieIne[] = [];
@@ -324,7 +352,7 @@ export async function conectorIne(destinos: Destino[], mes: number): Promise<Fil
 
   return destinos.map((d) => {
     const prov = PROVINCIA_INE[d.id];
-    if (!prov) return base(d, "destino no nacional");
+    if (!prov) return noAplica(d);
 
     // Se busca la serie de viajeros de esa provincia por nombre, que es lo
     // estable entre reorganizaciones del catalogo.

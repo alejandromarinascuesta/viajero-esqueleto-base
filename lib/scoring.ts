@@ -3,91 +3,89 @@ import type { Destino, Oportunidad } from "@/types";
 /**
  * Opportunity Score: qué destinos merece la pena promover al mercado.
  *
- * Se calcula SOLO con métricas realmente disponibles. Si falta una, no se
- * inventa ni se sustituye por una media: se reparte su peso entre las que sí
- * están y **baja la confianza**. La confianza es, literalmente, la proporción
- * del peso total que se ha podido calcular con datos reales.
+ * Cinco reglas que lo gobiernan:
  *
- * PERO repartir el peso no puede salir gratis. Si se repartiera sin más, un
- * destino sin señal de demanda vería su 35% caer sobre el margen — y como los
- * destinos exóticos son los de mayor margen, **no tener datos subiría la
- * puntuación**. Es justo lo contrario de lo que debe pasar.
- *
- * Por eso el score que se publica está ajustado por la confianza: es el valor
- * esperado, no el optimista. Un destino con la mitad de las métricas no puede
- * competir de tú a tú con uno que las tiene todas.
+ * 1. Solo se calcula con métricas REALMENTE disponibles. Nada se rellena con
+ *    una media, una estimación ni un valor generado.
+ * 2. Momentum y volumen son cosas distintas. Un +40 % sobre doscientas visitas
+ *    no vale lo mismo que un +40 % sobre doscientas mil, y por eso el volumen
+ *    absoluto entra con su propio peso.
+ * 3. Si una fuente NO CUBRE un destino —el INE no cubre Bali—, eso no es un
+ *    dato que falte: es una métrica que no aplica, y no puede restar confianza.
+ * 4. Si una fuente sí cubre el destino y no devolvió dato, su peso se reparte y
+ *    la confianza baja.
+ * 5. El score publicado va ajustado por confianza. Sin ese ajuste, repartir el
+ *    peso de una métrica ausente premiaría al destino por no tener datos.
  *
  * Es determinista: mismas señales, mismo número. Ningún modelo generativo
  * interviene aquí.
  */
+
 const PESOS = [
-  { clave: "interes", etiqueta: "Tendencia de interés", peso: 35, origen: "Wikimedia Pageviews · 28 días" },
-  { clave: "margen", etiqueta: "Atractivo económico", peso: 25, origen: "Catálogo de la agencia" },
-  { clave: "disponibilidad", etiqueta: "Cupo disponible", peso: 20, origen: "Catálogo de la agencia" },
-  { clave: "clima", etiqueta: "Idoneidad climática", peso: 20, origen: "Open-Meteo · archivo histórico" },
+  { clave: "momentum", etiqueta: "Momentum de interés", peso: 35, origen: "Wikimedia · 28 días frente a 28" },
+  { clave: "volumen", etiqueta: "Volumen de atención", peso: 20, origen: "Wikimedia · visitas medias al día" },
+  { clave: "margen", etiqueta: "Atractivo económico", peso: 20, origen: "Catálogo de la agencia" },
+  { clave: "disponibilidad", etiqueta: "Cupo disponible", peso: 15, origen: "Catálogo de la agencia" },
+  { clave: "clima", etiqueta: "Idoneidad climática", peso: 10, origen: "Open-Meteo · archivo histórico" },
 ] as const;
 
 const acotar = (v: number) => Math.min(1, Math.max(0, v));
 
-function senal(d: Destino, metrica: string): number | null {
-  const s = d.senales.find((x) => x.metrica === metrica && x.estado === "ok");
-  return s?.valor ?? null;
+function senal(d: Destino, metrica: string): { valor: number | null; aplica: boolean } {
+  const s = d.senales.find((x) => x.metrica === metrica);
+  if (!s) return { valor: null, aplica: true };
+  if (s.estado === "no_aplicable") return { valor: null, aplica: false };
+  return { valor: s.estado === "ok" ? s.valor : null, aplica: true };
 }
 
-/** Normaliza cada componente a 0-1. Devuelve null si no hay dato real. */
-function componente(clave: string, d: Destino): number | null {
-  if (clave === "interes") {
-    const v = senal(d, "tendencia_interes_pct");
-    // -50% -> 0 · 0% -> 0,5 · +50% -> 1
-    return v === null ? null : acotar((v + 50) / 100);
+function componente(clave: string, d: Destino): { valor: number | null; aplica: boolean } {
+  if (clave === "momentum") {
+    const { valor, aplica } = senal(d, "tendencia_interes_pct");
+    // -50 % -> 0 · 0 % -> 0,5 · +50 % -> 1
+    return { valor: valor === null ? null : acotar((valor + 50) / 100), aplica };
   }
-  if (clave === "margen") {
-    // El catálogo se mueve entre 18 y 28 por ciento.
-    return acotar((d.margenPct - 15) / 15);
+  if (clave === "volumen") {
+    const { valor, aplica } = senal(d, "volumen_atencion_dia");
+    if (valor === null) return { valor: null, aplica };
+    // Escala logarítmica: entre 100 y 100.000 visitas al día hay tres órdenes
+    // de magnitud, y una escala lineal aplastaría todo lo que no sea Nueva York.
+    return { valor: acotar((Math.log10(Math.max(1, valor)) - 2) / 3), aplica };
   }
-  if (clave === "disponibilidad") {
-    return acotar(d.cupo / 30);
-  }
+  if (clave === "margen") return { valor: acotar((d.margenPct - 15) / 15), aplica: true };
+  if (clave === "disponibilidad") return { valor: acotar(d.cupo / 30), aplica: true };
   if (clave === "clima") {
-    const t = senal(d, "temperatura_media");
-    if (t === null) return null;
-    // Confort de viaje: 24 °C es el óptimo, se penaliza al alejarse.
-    return acotar(1 - Math.abs(t - 24) / 18);
+    const { valor, aplica } = senal(d, "temperatura_media");
+    if (valor === null) return { valor: null, aplica };
+    // 24 °C como óptimo de confort; se penaliza al alejarse.
+    return { valor: acotar(1 - Math.abs(valor - 24) / 18), aplica };
   }
-  return null;
+  return { valor: null, aplica: true };
 }
 
 export function opportunityScore(d: Destino): Oportunidad {
   const componentes = PESOS.map((p) => {
-    const valor = componente(p.clave, d);
-    return {
-      clave: p.clave,
-      etiqueta: p.etiqueta,
-      peso: p.peso,
-      valor,
-      aporta: 0,
-      origen: p.origen,
-    };
+    const { valor, aplica } = componente(p.clave, d);
+    return { clave: p.clave, etiqueta: p.etiqueta, peso: p.peso, valor, aplica, aporta: 0, origen: p.origen };
   });
 
-  const disponibles = componentes.filter((c) => c.valor !== null);
+  // Las que no aplican salen del denominador: no penalizan.
+  const aplicables = componentes.filter((c) => c.aplica);
+  const disponibles = aplicables.filter((c) => c.valor !== null);
+  const pesoAplicable = aplicables.reduce((s, c) => s + c.peso, 0);
   const pesoDisponible = disponibles.reduce((s, c) => s + c.peso, 0);
-  const pesoTotal = PESOS.reduce((s, p) => s + p.peso, 0);
 
   let score = 0;
   if (pesoDisponible > 0) {
     for (const c of componentes) {
       if (c.valor === null) continue;
-      // Se reparte el peso entre las disponibles, no se rellena la que falta.
       c.aporta = (c.valor * c.peso * 100) / pesoDisponible;
       score += c.aporta;
     }
   }
 
-  const confianza = pesoDisponible / pesoTotal;
+  const confianza = pesoAplicable > 0 ? pesoDisponible / pesoAplicable : 0;
   // Ajuste conservador: con confianza total no penaliza; con la mitad de las
-  // métricas, el score baja un 25%. No castiga tanto como multiplicar por la
-  // confianza directa, pero impide que la falta de datos premie.
+  // métricas el score baja un 25 %.
   const ajustado = score * (0.5 + 0.5 * confianza);
 
   return {
@@ -95,7 +93,8 @@ export function opportunityScore(d: Destino): Oportunidad {
     scoreSinAjustar: Math.round(score),
     confianza: Math.round(confianza * 100),
     componentes,
-    ausentes: componentes.filter((c) => c.valor === null).map((c) => c.etiqueta),
+    ausentes: componentes.filter((c) => c.aplica && c.valor === null).map((c) => c.etiqueta),
+    noAplicables: componentes.filter((c) => !c.aplica).map((c) => c.etiqueta),
     calculadoEn: new Date().toISOString(),
   };
 }

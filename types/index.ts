@@ -12,7 +12,13 @@ export type Senal = {
   metrica: string;
   valor: number | null;
   periodo: string;
-  estado: "ok" | "no_disponible" | "obsoleta";
+  /**
+   * ok            hay dato real
+   * no_disponible la fuente cubre el destino pero no devolvio nada
+   * no_aplicable  la fuente NO cubre este destino (el INE no cubre Bali)
+   * obsoleta      hay dato pero fuera de su ventana de frescura
+   */
+  estado: "ok" | "no_disponible" | "no_aplicable" | "obsoleta";
   obtenidoEn: string | null;
 };
 
@@ -54,10 +60,14 @@ export type Oportunidad = {
     etiqueta: string;
     peso: number;
     valor: number | null;
+    /** false cuando la fuente no cubre este destino. No resta confianza. */
+    aplica: boolean;
     aporta: number;
     origen: string;
   }[];
   ausentes: string[];
+  /** Métricas que no aplican a este destino, por geografía o por moneda. */
+  noAplicables: string[];
   calculadoEn: string;
 };
 

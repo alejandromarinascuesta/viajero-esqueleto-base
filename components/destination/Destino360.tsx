@@ -148,9 +148,20 @@ export default function Destino360({
               {destino.oportunidad.componentes.map((c) => (
                 <li key={c.clave}>
                   <div className="flex items-baseline justify-between gap-3 text-[12px]">
-                    <span>{c.etiqueta} <span className="text-[var(--dim)]">· peso {c.peso}%</span></span>
-                    <span className="tabular-nums" style={{ color: c.valor === null ? "var(--orange)" : "var(--green)" }}>
-                      {c.valor === null ? "sin dato" : `+${Math.round(c.aporta)}`}
+                    <span>
+                      {c.etiqueta} <span className="text-[var(--dim)]">· peso {c.peso}%</span>
+                    </span>
+                    <span
+                      className="tabular-nums"
+                      style={{
+                        color: !c.aplica
+                          ? "var(--dim)"
+                          : c.valor === null
+                            ? "var(--orange)"
+                            : "var(--green)",
+                      }}
+                    >
+                      {!c.aplica ? "no aplica" : c.valor === null ? "sin dato" : `+${Math.round(c.aporta)}`}
                     </span>
                   </div>
                   <div className="bar mt-1.5"><i style={{ width: `${c.valor === null ? 0 : Math.round(c.valor * 100)}%` }} /></div>
@@ -158,6 +169,12 @@ export default function Destino360({
                 </li>
               ))}
             </ul>
+            {destino.oportunidad.noAplicables.length > 0 ? (
+              <p className="mt-4 text-[11px] leading-relaxed text-[var(--dim)]">
+                No aplica a este destino: {destino.oportunidad.noAplicables.join(", ").toLowerCase()}. Una
+                fuente que no cubre un destino no es un dato que falte, así que <b>no le resta confianza</b>.
+              </p>
+            ) : null}
             {destino.oportunidad.ausentes.length > 0 ? (
               <div className="mt-4 space-y-2">
                 <p className="text-[11px] leading-relaxed" style={{ color: "var(--orange)" }}>

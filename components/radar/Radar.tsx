@@ -25,6 +25,9 @@ const ORDENES = [
 const interesDe = (d: DestinoConScore) =>
   d.senales.find((s) => s.metrica === "tendencia_interes_pct" && s.estado === "ok")?.valor ?? null;
 
+const volumenDe = (d: DestinoConScore) =>
+  d.senales.find((s) => s.metrica === "volumen_atencion_dia" && s.estado === "ok")?.valor ?? null;
+
 type Ingesta = {
   resumen?: { fuente: string; detalle: string; ok: number; fallos: number; ms: number }[];
   motivosDeFallo?: string[];
@@ -250,7 +253,14 @@ export default function Radar({
                       {interes === null ? (
                         <span className="text-[var(--dim)]">sin señal</span>
                       ) : (
-                        <span className="tabular-nums">{interes > 0 ? "+" : ""}{interes}%</span>
+                        <>
+                          <span className="tabular-nums">{interes > 0 ? "+" : ""}{interes}%</span>
+                          {volumenDe(d) !== null ? (
+                            <span className="block text-[10px] text-[var(--dim)]">
+                              {Intl.NumberFormat("es-ES").format(volumenDe(d)!)} visitas/día
+                            </span>
+                          ) : null}
+                        </>
                       )}
                     </td>
                     <td className="px-3 py-3 text-right tabular-nums">{d.margenPct}%</td>

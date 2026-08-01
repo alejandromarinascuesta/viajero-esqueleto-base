@@ -17,13 +17,18 @@ test("el score nunca inventa: sin senal, baja la confianza", () => {
   }
 });
 
-test("un destino con las dos senales externas tiene mas confianza que uno sin ellas", () => {
-  const conAmbas = opportunityScore(buscar("Ibiza"));
-  const peor = destinos
-    .map(opportunityScore)
-    .sort((a, b) => a.confianza - b.confianza)[0];
-  assert.equal(conAmbas.confianza, 100);
+test("mas senales disponibles, mas confianza", () => {
+  const conAmbas = opportunityScore(buscar("Ibiza")); // clima e interes reales
+  const peor = destinos.map(opportunityScore).sort((a, b) => a.confianza - b.confianza)[0];
   assert.ok(conAmbas.confianza > peor.confianza);
+});
+
+test("el volcado guardado no trae volumen todavia, y se declara como ausente", () => {
+  // La metrica de volumen se anadio despues de la ultima ingesta real. No se
+  // rellena con nada: aparece como ausente hasta que se vuelva a ingerir.
+  const o = opportunityScore(buscar("Ibiza"));
+  assert.ok(o.ausentes.includes("Volumen de atención"));
+  assert.ok(o.confianza < 100);
 });
 
 test("los componentes ausentes no aportan nada al score", () => {
@@ -40,7 +45,7 @@ test("el mismo destino da siempre el mismo score: es determinista", () => {
 });
 
 test("no tener datos NO puede subir la puntuacion", () => {
-  const completo = buscar("Ibiza"); // clima e interes reales
+  const completo = buscar("Ibiza");
   const sinSenal = destinos.find(
     (d) => !d.senales.some((s) => s.metrica === "tendencia_interes_pct" && s.estado === "ok"),
   )!;
@@ -48,14 +53,39 @@ test("no tener datos NO puede subir la puntuacion", () => {
   const a = opportunityScore(completo);
   const b = opportunityScore(sinSenal);
 
-  assert.equal(a.confianza, 100);
-  assert.ok(b.confianza < 100, "Bali deberia tener confianza incompleta");
+  assert.ok(a.confianza > b.confianza, "el que tiene mas senales deberia tener mas confianza");
   // El ajuste tiene que morder: el score publicado es menor que el que saldria
   // repartiendo el peso sin penalizar.
   assert.ok(b.score < b.scoreSinAjustar, "el score sin ajustar deberia ser mayor");
 });
 
 test("con confianza total el score no se penaliza", () => {
-  const o = opportunityScore(buscar("Ibiza"));
+  // Se construye un destino con todas las metricas para comprobar el limite.
+  const completo = {
+    ...buscar("Ibiza"),
+    senales: [
+      { fuente: "interes" as const, metrica: "tendencia_interes_pct", valor: 10, periodo: "2026-08", estado: "ok" as const, obtenidoEn: null },
+      { fuente: "interes" as const, metrica: "volumen_atencion_dia", valor: 5000, periodo: "2026-08", estado: "ok" as const, obtenidoEn: null },
+      { fuente: "clima" as const, metrica: "temperatura_media", valor: 24, periodo: "2026-08", estado: "ok" as const, obtenidoEn: null },
+    ],
+  };
+  const o = opportunityScore(completo);
+  assert.equal(o.confianza, 100);
   assert.equal(o.score, o.scoreSinAjustar);
+});
+
+test("una fuente que NO cubre el destino no le resta confianza", () => {
+  const base = buscar("Ibiza");
+  const conIneNoAplicable = {
+    ...base,
+    senales: [
+      ...base.senales,
+      { fuente: "ine" as const, metrica: "variacion_viajeros_pct", valor: null, periodo: "2026-08", estado: "no_aplicable" as const, obtenidoEn: null },
+    ],
+  };
+  assert.equal(
+    opportunityScore(conIneNoAplicable).confianza,
+    opportunityScore(base).confianza,
+    "el INE no aplicable no puede cambiar la confianza",
+  );
 });
