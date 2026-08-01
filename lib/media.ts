@@ -28,13 +28,16 @@ export async function buscarActivosCommons(destino: Destino): Promise<ActivoVisu
   const reloj = setTimeout(() => control.abort(), 9_000);
   try {
     const enfoque: Record<string, string> = {
-      playa: "beach coast sea",
-      ciudad: "landmark architecture street",
-      cultural: "landmark architecture heritage",
-      naturaleza: "landscape hiking nature",
-      aventura: "landscape adventure nature",
+      playa: "beach",
+      ciudad: "landmark",
+      cultural: "landmark",
+      naturaleza: "landscape",
+      aventura: "landscape",
     };
-    const consulta = `\"${destino.destino}\" tourism OR \"${destino.destino}\" ${enfoque[destino.tipo] ?? "landmark travel"}`;
+    // Una búsqueda corta y específica funciona mejor que una consulta con OR:
+    // en Tenerife, por ejemplo, evita que los resultados de satélite desplacen
+    // a las playas que el vídeo necesita enseñar.
+    const consulta = `\"${destino.destino}\" ${enfoque[destino.tipo] ?? "tourism"}`;
     const parametros = new URLSearchParams({
       action: "query",
       generator: "search",
@@ -57,8 +60,10 @@ export async function buscarActivosCommons(destino: Destino): Promise<ActivoVisu
     const paginas = Object.values(cuerpo.query?.pages ?? {});
     return paginas.flatMap((pagina): ActivoVisual[] => {
       const info = pagina.imageinfo?.[0];
-      if (!info?.url || !info.mime?.startsWith("image/")) return [];
+      if (!info?.url || !["image/jpeg", "image/png", "image/webp"].includes(info.mime ?? "")) return [];
       const meta = info.extmetadata ?? {};
+      const descripcion = `${pagina.title ?? ""} ${meta.ImageDescription?.value ?? ""}`.toLowerCase();
+      if (/satellite|space agency|map of|locator|flag of|coat of arms|logo|diagram/.test(descripcion)) return [];
       const licencia = textoPlano(meta.LicenseShortName?.value) || "Licencia indicada en Wikimedia Commons";
       const libre = /cc|public domain|dominio público/i.test(licencia);
       if (!libre) return [];
