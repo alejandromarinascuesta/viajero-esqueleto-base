@@ -15,12 +15,30 @@ export type UsoModelo = {
   error: string | null;
 };
 
-function proveedor() {
-  const clave = process.env.IA_API_KEY;
+type Proveedor = { familia: "anthropic" | "openai"; url: string; modelo: string; clave: string };
+
+/**
+ * Acepta claves de Anthropic y de cualquier API compatible con OpenAI, y lo
+ * detecta por el prefijo. Cambiar de proveedor es cambiar una variable de
+ * entorno, no tocar codigo: la IA esta en los bordes del sistema, no dentro.
+ */
+function proveedor(): Proveedor | null {
+  // Se acepta el nombre propio del proyecto y tambien los canonicos de cada
+  // proveedor, para que la clave funcione se llame como se llame.
+  const clave =
+    process.env.IA_API_KEY ??
+    process.env.ANTHROPIC_API_KEY ??
+    process.env.OPENAI_API_KEY;
   if (!clave) return null;
+  const anthropic = clave.startsWith("sk-ant-");
   return {
-    url: process.env.IA_URL ?? "https://api.openai.com/v1/chat/completions",
-    modelo: process.env.IA_MODELO ?? "gpt-5-mini",
+    familia: anthropic ? "anthropic" : "openai",
+    url:
+      process.env.IA_URL ??
+      (anthropic
+        ? "https://api.anthropic.com/v1/messages"
+        : "https://api.openai.com/v1/chat/completions"),
+    modelo: process.env.IA_MODELO ?? (anthropic ? "claude-sonnet-4-5" : "gpt-5-mini"),
     clave,
   };
 }
@@ -61,17 +79,30 @@ export async function pedirJson<T>(
   try {
     const control = new AbortController();
     const reloj = setTimeout(() => control.abort(), 20_000);
+    const anthropic = p.familia === "anthropic";
     const r = await fetch(p.url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${p.clave}` },
-      body: JSON.stringify({
-        model: p.modelo,
-        temperature: temperatura,
-        messages: [
-          { role: "system", content: instruccion },
-          { role: "user", content: entrada },
-        ],
-      }),
+      headers: anthropic
+        ? { "Content-Type": "application/json", "x-api-key": p.clave, "anthropic-version": "2023-06-01" }
+        : { "Content-Type": "application/json", Authorization: `Bearer ${p.clave}` },
+      body: JSON.stringify(
+        anthropic
+          ? {
+              model: p.modelo,
+              max_tokens: 1500,
+              temperature: temperatura,
+              system: instruccion,
+              messages: [{ role: "user", content: entrada }],
+            }
+          : {
+              model: p.modelo,
+              temperature: temperatura,
+              messages: [
+                { role: "system", content: instruccion },
+                { role: "user", content: entrada },
+              ],
+            },
+      ),
       signal: control.signal,
     });
     clearTimeout(reloj);
@@ -80,17 +111,24 @@ export async function pedirJson<T>(
 
     const cuerpo = (await r.json()) as {
       choices?: { message?: { content?: string } }[];
-      usage?: { prompt_tokens?: number; completion_tokens?: number };
+      content?: { text?: string }[];
+      usage?: {
+        prompt_tokens?: number; completion_tokens?: number;
+        input_tokens?: number; output_tokens?: number;
+      };
     };
-    const datos = extraerJson(cuerpo.choices?.[0]?.message?.content ?? "") as T | null;
+    const texto = anthropic
+      ? (cuerpo.content ?? []).map((c) => c.text ?? "").join("")
+      : (cuerpo.choices?.[0]?.message?.content ?? "");
+    const datos = extraerJson(texto) as T | null;
     return {
       datos,
       uso: {
         ...base,
         ok: datos !== null,
         ms,
-        tokensEntrada: cuerpo.usage?.prompt_tokens ?? null,
-        tokensSalida: cuerpo.usage?.completion_tokens ?? null,
+        tokensEntrada: cuerpo.usage?.prompt_tokens ?? cuerpo.usage?.input_tokens ?? null,
+        tokensSalida: cuerpo.usage?.completion_tokens ?? cuerpo.usage?.output_tokens ?? null,
         error: datos === null ? "el modelo no devolvió JSON válido" : null,
       },
     };

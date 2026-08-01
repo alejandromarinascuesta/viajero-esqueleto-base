@@ -8,6 +8,7 @@ import type { Recomendacion } from "@/types";
 type Argumento = { id: string; argumento: string[]; camposCitados: string[]; verificado: boolean; motivo: string | null };
 type Respuesta = {
   modo: string;
+  recomendacionId?: number | null;
   mensaje?: string;
   resultado?: Recomendacion;
   argumentos?: Argumento[];
@@ -55,11 +56,28 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
     }
   }
 
-  const descartar = (id: string) => {
+  const [motivoDe, setMotivoDe] = useState<string | null>(null);
+  const [motivo, setMotivo] = useState("");
+
+  async function descartar(id: string, texto: string) {
+    // El motivo del descarte es lo que hace util el registro: sin el, solo
+    // sabriamos que se rechazo, no por que.
+    void fetch("/api/descarte", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        recomendacionId: respuesta?.recomendacionId ?? null,
+        destinoId: id,
+        motivo: texto,
+      }),
+    }).catch(() => undefined);
+
     const fuera = [...excluidos, id];
     setExcluidos(fuera);
-    void enviar(notas, fuera);
-  };
+    setMotivoDe(null);
+    setMotivo("");
+    await enviar(notas, fuera);
+  }
 
   const perfil = respuesta?.perfilExtraido;
 
@@ -170,9 +188,36 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
                           : `Sin redacción verificada${arg?.motivo ? ` (${arg.motivo})` : ""}. Se muestran los motivos del catálogo.`}
                       </p>
 
-                      <button type="button" className="btn btn-ghost mt-3 px-3 py-1.5 text-[11px]" onClick={() => descartar(p.id)}>
-                        Descartar y recalcular
-                      </button>
+                      {motivoDe === p.id ? (
+                        <form
+                          className="mt-3 flex gap-2"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            if (motivo.trim()) void descartar(p.id, motivo.trim());
+                          }}
+                        >
+                          <label className="sr-only" htmlFor={`motivo-${p.id}`}>Motivo del descarte</label>
+                          <input
+                            id={`motivo-${p.id}`}
+                            className="field text-[12px]"
+                            placeholder="¿Por qué no encaja?"
+                            value={motivo}
+                            onChange={(e) => setMotivo(e.target.value)}
+                            autoFocus
+                          />
+                          <button type="submit" className="btn btn-ghost shrink-0 px-3 py-1.5 text-[11px]">
+                            Descartar
+                          </button>
+                        </form>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn-ghost mt-3 px-3 py-1.5 text-[11px]"
+                          onClick={() => { setMotivoDe(p.id); setMotivo(""); }}
+                        >
+                          Descartar y recalcular
+                        </button>
+                      )}
                     </article>
                   );
                 })}

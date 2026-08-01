@@ -61,15 +61,18 @@ Estados de frescura que usa la interfaz: `En directo`, `Actualizado`, `Último d
 
 ---
 
-## Las cinco secciones
+## Las cuatro secciones
 
 | Sección | Qué resuelve |
 |---|---|
 | **Overview** | El estado del negocio en quince segundos: oportunidades, confianza media y estado de las fuentes |
-| **Radar de demanda** | Comparar los 30 destinos con búsqueda, cuatro filtros y cuatro ordenaciones |
+| **Radar de demanda** | Pantalla de entrada: propuesta de valor, KPIs, ingesta de fuentes y los 30 destinos con búsqueda, cuatro filtros y cuatro ordenaciones |
 | **Destino 360** | La ficha completa, con el desglose de cómo se calcula su score y de dónde sale cada dato |
 | **Copiloto** | De las notas de una llamada a dos propuestas argumentadas y verificadas |
 | **Criterio comercial** | Los pesos, campañas y vetos que mueve la dirección. Es lo que convierte el algoritmo en plataforma |
+
+La arquitectura se explica en un panel aparte, accesible desde la barra lateral: es material de defensa, no
+una pantalla que el agente vaya a usar.
 | **Arquitectura** | Cómo se orquesta, qué cuesta cada decisión y dónde están los puntos críticos |
 
 *Campaign Studio y Biblioteca quedan fuera de esta versión de forma deliberada: son la pata de contenido
@@ -123,7 +126,7 @@ y el argumento cae a los motivos del catálogo.
 | Variable | Para qué |
 |---|---|
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Histórico de observaciones en Postgres |
-| `IA_API_KEY`, `IA_URL`, `IA_MODELO` | Redacción del argumento. Cualquier proveedor compatible con OpenAI |
+| `IA_API_KEY`, `IA_URL`, `IA_MODELO` | Redacción del argumento. Anthropic o cualquier API compatible con OpenAI: se detecta por el prefijo de la clave. También se aceptan `ANTHROPIC_API_KEY` y `OPENAI_API_KEY` |
 
 ## Despliegue en Vercel
 
@@ -144,6 +147,8 @@ sin declararlo, sigue buscando una carpeta `dist` que Next.js no genera.
 | `GET /api/weather?destinationId=EXP14` | Clima en directo, o la última observación real si falla |
 | `POST /api/ai` | Notas → perfil → reglas → dos propuestas verificadas |
 | `GET`/`PUT` `/api/criterio` | Pesos, campañas y vetos de la dirección |
+| `POST /api/ingesta` | Ejecuta los conectores y guarda las observaciones |
+| `POST /api/descarte` | Registra un descarte con su motivo |
 
 ---
 

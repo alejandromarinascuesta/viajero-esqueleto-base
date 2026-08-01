@@ -70,6 +70,14 @@ export async function leerCriterio(): Promise<CriterioGuardado> {
       }
     }
 
+    const campRes = await fetch(`${c.url}/rest/v1/experiencias?select=id&en_campana=eq.true`, {
+      headers: c.cabeceras,
+      cache: "no-store",
+    });
+    const campanas = campRes.ok
+      ? ((await campRes.json()) as { id: string }[]).map((x) => x.id)
+      : [];
+
     let vetos: Veto[] = [];
     if (vetosRes.ok) {
       const v = (await vetosRes.json()) as { destino_id: string; mes: number | null; motivo: string; activo: boolean }[];
@@ -78,9 +86,59 @@ export async function leerCriterio(): Promise<CriterioGuardado> {
         .map((x) => ({ destinoId: x.destino_id, mes: x.mes, motivo: x.motivo ?? "" }));
     }
 
-    return { pesos, campanas: [], vetos, persistido: true };
+    return { pesos, campanas, vetos, persistido: true };
   } catch {
     return base;
+  }
+}
+
+/** Guarda el criterio completo: pesos, campanas y vetos. Todo o nada. */
+export async function guardarCriterio(criterio: {
+  pesos: Pesos;
+  campanas: string[];
+  vetos: Veto[];
+}): Promise<boolean> {
+  const c = credenciales();
+  if (!c) return false;
+  const json = { ...c.cabeceras, "Content-Type": "application/json" };
+  try {
+    const ok = await guardarPesos(criterio.pesos);
+    if (!ok) return false;
+
+    // Campanas: se marcan las elegidas y se desmarcan las demas.
+    await fetch(`${c.url}/rest/v1/experiencias?en_campana=eq.true`, {
+      method: "PATCH",
+      headers: json,
+      body: JSON.stringify({ en_campana: false }),
+    });
+    if (criterio.campanas.length > 0) {
+      const lista = criterio.campanas.map((id) => `"${id}"`).join(",");
+      await fetch(`${c.url}/rest/v1/experiencias?id=in.(${lista})`, {
+        method: "PATCH",
+        headers: json,
+        body: JSON.stringify({ en_campana: true }),
+      });
+    }
+
+    // Vetos: se reemplaza la lista entera.
+    await fetch(`${c.url}/rest/v1/vetos?id=gt.0`, { method: "DELETE", headers: json });
+    if (criterio.vetos.length > 0) {
+      await fetch(`${c.url}/rest/v1/vetos`, {
+        method: "POST",
+        headers: json,
+        body: JSON.stringify(
+          criterio.vetos.map((v) => ({
+            destino_id: v.destinoId,
+            mes: v.mes,
+            motivo: v.motivo || "veto de la dirección",
+            activo: true,
+          })),
+        ),
+      });
+    }
+    return true;
+  } catch {
+    return false;
   }
 }
 

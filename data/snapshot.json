@@ -51,7 +51,9 @@
      "estado": "ok",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Mallorca",
+   "enCampana": false
   },
   {
    "id": "EXP02",
@@ -94,7 +96,9 @@
      "estado": "ok",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Ibiza",
+   "enCampana": false
   },
   {
    "id": "EXP03",
@@ -137,7 +141,9 @@
      "estado": "ok",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Tenerife",
+   "enCampana": false
   },
   {
    "id": "EXP04",
@@ -180,7 +186,9 @@
      "estado": "ok",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Gran Canaria",
+   "enCampana": false
   },
   {
    "id": "EXP05",
@@ -223,7 +231,9 @@
      "estado": "ok",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "San Sebastián",
+   "enCampana": false
   },
   {
    "id": "EXP06",
@@ -266,7 +276,9 @@
      "estado": "ok",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Picos de Europa",
+   "enCampana": false
   },
   {
    "id": "EXP07",
@@ -309,7 +321,9 @@
      "estado": "ok",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Sevilla",
+   "enCampana": false
   },
   {
    "id": "EXP08",
@@ -352,7 +366,9 @@
      "estado": "ok",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Marbella",
+   "enCampana": false
   },
   {
    "id": "EXP09",
@@ -395,7 +411,9 @@
      "estado": "ok",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Lisboa",
+   "enCampana": false
   },
   {
    "id": "EXP10",
@@ -438,7 +456,9 @@
      "estado": "ok",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Roma",
+   "enCampana": false
   },
   {
    "id": "EXP11",
@@ -481,7 +501,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "París",
+   "enCampana": false
   },
   {
    "id": "EXP12",
@@ -524,7 +546,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Ámsterdam",
+   "enCampana": false
   },
   {
    "id": "EXP13",
@@ -567,7 +591,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Santorini",
+   "enCampana": false
   },
   {
    "id": "EXP14",
@@ -610,7 +636,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Creta",
+   "enCampana": false
   },
   {
    "id": "EXP15",
@@ -653,7 +681,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Praga",
+   "enCampana": false
   },
   {
    "id": "EXP16",
@@ -696,7 +726,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Islandia",
+   "enCampana": false
   },
   {
    "id": "EXP17",
@@ -739,7 +771,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Apulia",
+   "enCampana": false
   },
   {
    "id": "EXP18",
@@ -782,7 +816,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Madeira",
+   "enCampana": false
   },
   {
    "id": "EXP19",
@@ -825,7 +861,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Dalmacia",
+   "enCampana": false
   },
   {
    "id": "EXP20",
@@ -868,7 +906,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Nueva York",
+   "enCampana": false
   },
   {
    "id": "EXP21",
@@ -911,7 +951,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Riviera Maya",
+   "enCampana": false
   },
   {
    "id": "EXP22",
@@ -954,7 +996,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Marrakech",
+   "enCampana": false
   },
   {
    "id": "EXP23",
@@ -997,7 +1041,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Bali",
+   "enCampana": false
   },
   {
    "id": "EXP24",
@@ -1040,7 +1086,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Dubái",
+   "enCampana": false
   },
   {
    "id": "EXP25",
@@ -1083,7 +1131,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Tailandia",
+   "enCampana": false
   },
   {
    "id": "EXP26",
@@ -1126,7 +1176,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Japón",
+   "enCampana": false
   },
   {
    "id": "EXP27",
@@ -1169,7 +1221,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Costa Rica",
+   "enCampana": false
   },
   {
    "id": "EXP28",
@@ -1212,7 +1266,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Maldivas",
+   "enCampana": false
   },
   {
    "id": "EXP29",
@@ -1255,7 +1311,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Zanzíbar",
+   "enCampana": false
   },
   {
    "id": "EXP30",
@@ -1298,7 +1356,9 @@
      "estado": "no_disponible",
      "obtenidoEn": "2026-07-30T11:09:11.312Z"
     }
-   ]
+   ],
+   "wiki": "Egipto",
+   "enCampana": false
   }
  ]
 }

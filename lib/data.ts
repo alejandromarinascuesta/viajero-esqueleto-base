@@ -80,6 +80,8 @@ export async function cargarDestinos(): Promise<{ destinos: Destino[]; origen: O
       lon: Number(f.lon),
       tipo: String(f.tipo),
       iata: (f.iata as string) ?? null,
+      wiki: (f.wiki as string) ?? null,
+      enCampana: f.en_campana === true,
       precioDesdePp: Number(f.precio_desde_pp),
       noches: Number(f.noches),
       temporada: String(f.temporada_agencia),

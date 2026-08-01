@@ -79,7 +79,7 @@ export default function CriterioComercial({ destinos }: { destinos: DestinoConSc
       const r = await fetch("/api/criterio", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(pesos),
+        body: JSON.stringify({ pesos, campanas, vetos }),
       });
       const d = (await r.json()) as { guardado: boolean; mensaje: string; error?: { message: string } };
       setAviso(d.error?.message ?? d.mensaje);

@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowRight, Search } from "lucide-react";
+import { ArrowRight, RefreshCw, Search } from "lucide-react";
 import type { DestinoConScore } from "@/components/layout/Shell";
-import { Panel, Vacio } from "@/components/ui";
+import type { OrigenDatos } from "@/lib/data";
+import { Anillo, Kpi, Panel, Vacio } from "@/components/ui";
 import { pulso } from "@/lib/pulso";
 
 const FILTROS = [
@@ -24,18 +25,40 @@ const ORDENES = [
 const interesDe = (d: DestinoConScore) =>
   d.senales.find((s) => s.metrica === "tendencia_interes_pct" && s.estado === "ok")?.valor ?? null;
 
+type Ingesta = {
+  resumen?: { fuente: string; detalle: string; ok: number; fallos: number; ms: number }[];
+  motivosDeFallo?: string[];
+  error?: { message: string };
+};
+
 export default function Radar({
   destinos,
   mes,
+  origen,
   onAbrirDestino,
   onAbrirCopiloto,
 }: {
   destinos: DestinoConScore[];
   mes: number;
+  origen: OrigenDatos;
   onAbrirDestino: (id: string) => void;
   onAbrirCopiloto: (id: string) => void;
 }) {
   const [busqueda, setBusqueda] = useState("");
+  const [ingiriendo, setIngiriendo] = useState(false);
+  const [ingesta, setIngesta] = useState<Ingesta | null>(null);
+
+  async function refrescarFuentes() {
+    setIngiriendo(true);
+    try {
+      const r = await fetch(`/api/ingesta?mes=${mes}`, { method: "POST" });
+      setIngesta((await r.json()) as Ingesta);
+    } catch {
+      setIngesta({ error: { message: "No se ha podido ejecutar la ingesta." } });
+    } finally {
+      setIngiriendo(false);
+    }
+  }
   const [filtro, setFiltro] = useState<(typeof FILTROS)[number]["id"]>("todos");
   const [orden, setOrden] = useState<(typeof ORDENES)[number]["id"]>("score");
 
@@ -58,7 +81,96 @@ export default function Radar({
       });
   }, [destinos, busqueda, filtro, orden]);
 
+  const ordenados = [...destinos].sort((a, b) => b.oportunidad.score - a.oportunidad.score);
+  const lider = ordenados[0];
+  const prioritarios = ordenados.filter((d) => d.oportunidad.score >= 55).length;
+  const confianzaMedia = destinos.length
+    ? Math.round(destinos.reduce((s, d) => s + d.oportunidad.confianza, 0) / destinos.length)
+    : 0;
+  const conSenal = destinos.filter((d) => interesDe(d) !== null).length;
+
   return (
+    <div className="space-y-4">
+      <section
+        className="grid overflow-hidden rounded-[26px] lg:grid-cols-[1.15fr_.85fr]"
+        style={{
+          border: "1px solid var(--line-strong)",
+          background: "linear-gradient(110deg,rgba(16,42,34,.98),rgba(9,23,20,.9))",
+          boxShadow: "var(--shadow)",
+        }}
+      >
+        <div className="p-7">
+          <span className="pill pill-green">PROPUESTA DE VALOR</span>
+          <h2 className="mt-4 max-w-xl text-[30px] leading-[1.08] tracking-tight">
+            Convierte señales de demanda en{" "}
+            <em className="not-italic" style={{ color: "var(--green)" }}>decisiones comerciales</em>{" "}
+            que un agente puede defender.
+          </h2>
+          <p className="mt-3 max-w-lg text-[13px] leading-relaxed text-[#a8bbb3]">
+            Los datos están dispersos, pero el problema real es otro: el criterio comercial vive en la
+            cabeza de unos pocos agentes. Esta plataforma lo hace explícito, editable y medible.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <button type="button" className="btn btn-ghost" onClick={refrescarFuentes} disabled={ingiriendo}>
+              <RefreshCw size={14} className="mr-1.5 inline" aria-hidden />
+              {ingiriendo ? "Ingiriendo fuentes…" : "Refrescar fuentes"}
+            </button>
+            {lider ? (
+              <button type="button" className="btn btn-primary" onClick={() => onAbrirDestino(lider.id)}>
+                Analizar {lider.destino}
+              </button>
+            ) : null}
+          </div>
+        </div>
+        <div className="relative grid min-h-[210px] place-items-center p-6">
+          {lider ? (
+            <>
+              <Anillo valor={lider.oportunidad.score} sub="OPPORTUNITY SCORE" />
+              <p className="mt-3 text-center text-[12px] text-[var(--muted)]">
+                {lider.destino} · confianza {lider.oportunidad.confianza}%
+              </p>
+            </>
+          ) : null}
+        </div>
+      </section>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Kpi etiqueta="Destinos analizados" valor={String(destinos.length)} nota="catálogo de la agencia" />
+        <Kpi etiqueta="Oportunidades prioritarias" valor={String(prioritarios)} nota="score 55 o superior" tono="verde" />
+        <Kpi etiqueta="Confianza media del dato" valor={`${confianzaMedia}%`} nota={`${conSenal} con señal de demanda`} />
+        <Kpi
+          etiqueta="Última ingesta"
+          valor={origen.ingestadoEn ? new Date(origen.ingestadoEn).toLocaleDateString("es-ES") : "—"}
+          nota={origen.detalle}
+        />
+      </div>
+
+      {ingesta ? (
+        <div className="subpanel p-4">
+          {ingesta.error ? (
+            <p className="text-[12px] text-[var(--muted)]">{ingesta.error.message}</p>
+          ) : (
+            <>
+              <ul className="space-y-1 text-[12px]">
+                {ingesta.resumen?.map((r) => (
+                  <li key={r.fuente}>
+                    <b>{r.fuente}</b> · {r.detalle} — {r.ok} con dato, {r.fallos} sin dato · {r.ms} ms
+                  </li>
+                ))}
+              </ul>
+              {ingesta.motivosDeFallo && ingesta.motivosDeFallo.length > 0 ? (
+                <p className="mt-2 text-[11px] text-[var(--dim)]">
+                  Motivos: {ingesta.motivosDeFallo.join(" · ")}
+                </p>
+              ) : null}
+              <p className="mt-2 text-[11px] text-[var(--dim)]">
+                Recarga la página para ver los datos nuevos.
+              </p>
+            </>
+          )}
+        </div>
+      ) : null}
+
     <Panel
       titulo={`Radar de demanda · ${filas.length} de ${destinos.length} destinos`}
       extra={
@@ -175,5 +287,6 @@ export default function Radar({
         generado. Mes de referencia: {mes}.
       </p>
     </Panel>
+    </div>
   );
 }

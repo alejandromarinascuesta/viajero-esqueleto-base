@@ -29,6 +29,39 @@ const Entrada = z.object({
 const MOTIVACIONES = ["descanso", "cultura", "aventura", "romantico", "celebracion"];
 const RESTRICCIONES = ["movilidad reducida", "no vuelos largos", "presupuesto ajustado"];
 
+async function registrar(
+  perfil: Perfil,
+  resultado: Awaited<ReturnType<typeof recomendar>>,
+  excluidos: string[],
+): Promise<number | null> {
+  const url = process.env.SUPABASE_URL;
+  const clave = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !clave) return null;
+  try {
+    const r = await fetch(`${url}/rest/v1/recomendaciones`, {
+      method: "POST",
+      headers: {
+        apikey: clave,
+        Authorization: `Bearer ${clave}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify({
+        perfil,
+        candidatas: resultado.candidatas,
+        supervivientes: resultado.supervivientes,
+        propuestas: resultado.propuestas,
+        traza: { ...resultado.traza, excluidos },
+      }),
+    });
+    if (!r.ok) return null;
+    const filas = (await r.json()) as { id: number }[];
+    return filas[0]?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: Request) {
   let cuerpo: unknown;
   try {
@@ -133,8 +166,14 @@ export async function POST(request: Request) {
     });
   }
 
+  // El bucle: cada recomendacion y cada descarte quedan registrados. Es el
+  // unico dato que ningun proveedor puede vender —que funciona en ESTA
+  // agencia— y el cimiento de la v2.
+  const recomendacionId = await registrar(perfil, resultado, excluidos);
+
   return NextResponse.json({
     modo: "ok",
+    recomendacionId,
     perfilExtraido: extraido,
     perfil,
     resultado,

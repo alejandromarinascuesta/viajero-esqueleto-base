@@ -25,6 +25,8 @@ export type Destino = {
   lon: number;
   tipo: string;
   iata: string | null;
+  wiki: string | null;
+  enCampana: boolean;
   precioDesdePp: number;
   noches: number;
   temporada: string;

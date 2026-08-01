@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, Compass, LayoutGrid, MessageSquare, Network, SlidersHorizontal } from "lucide-react";
+import { Activity, Compass, MessageSquare, Network, SlidersHorizontal, X } from "lucide-react";
 import type { Destino, Oportunidad } from "@/types";
 import type { OrigenDatos } from "@/lib/data";
 import { Frescor } from "@/components/ui";
-import Overview from "@/components/overview/Overview";
 import Radar from "@/components/radar/Radar";
 import Destino360 from "@/components/destination/Destino360";
 import Copiloto from "@/components/copilot/Copiloto";
@@ -14,13 +13,14 @@ import Arquitectura from "@/components/architecture/Arquitectura";
 
 export type DestinoConScore = Destino & { oportunidad: Oportunidad };
 
+// Cuatro secciones, un recorrido lineal: donde esta la oportunidad, por que,
+// que le digo a este cliente, y como cambia la direccion el criterio.
+// La arquitectura se explica, no se navega: vive en un panel aparte.
 const VISTAS = [
-  { id: "overview", nombre: "Overview", icono: LayoutGrid },
   { id: "radar", nombre: "Radar de demanda", icono: Activity },
   { id: "destino", nombre: "Destino 360", icono: Compass },
   { id: "copiloto", nombre: "Copiloto", icono: MessageSquare },
   { id: "criterio", nombre: "Criterio comercial", icono: SlidersHorizontal },
-  { id: "arquitectura", nombre: "Arquitectura", icono: Network },
 ] as const;
 
 export type Vista = (typeof VISTAS)[number]["id"];
@@ -34,7 +34,8 @@ export default function Shell({
   origen: OrigenDatos;
   mes: number;
 }) {
-  const [vista, setVista] = useState<Vista>("overview");
+  const [vista, setVista] = useState<Vista>("radar");
+  const [verArquitectura, setVerArquitectura] = useState(false);
   const [seleccion, setSeleccion] = useState<string>(destinos[0]?.id ?? "");
 
   const abrirDestino = (id: string) => {
@@ -92,6 +93,10 @@ export default function Shell({
         </nav>
 
         <div className="mt-auto hidden gap-3 pt-6 lg:grid">
+          <button type="button" className="btn btn-ghost w-full" onClick={() => setVerArquitectura(true)}>
+            <Network size={14} className="mr-1.5 inline" aria-hidden />
+            Ver la arquitectura
+          </button>
           <div className="subpanel p-3">
             <Frescor estado={origen.frescura} detalle={origen.detalle} />
             <p className="mt-2 text-[10px] leading-relaxed text-[var(--dim)]">
@@ -112,19 +117,48 @@ export default function Shell({
           <Frescor estado={origen.frescura} detalle={origen.detalle} />
         </header>
 
-        {vista === "overview" ? (
-          <Overview destinos={destinos} origen={origen} onAbrirDestino={abrirDestino} onIrARadar={() => setVista("radar")} />
-        ) : null}
         {vista === "radar" ? (
-          <Radar destinos={destinos} mes={mes} onAbrirDestino={abrirDestino} onAbrirCopiloto={abrirCopiloto} />
+          <Radar
+            destinos={destinos}
+            mes={mes}
+            origen={origen}
+            onAbrirDestino={abrirDestino}
+            onAbrirCopiloto={abrirCopiloto}
+          />
         ) : null}
         {vista === "destino" && activo ? (
           <Destino360 destino={activo} destinos={destinos} mes={mes} onSeleccionar={setSeleccion} onAbrirCopiloto={abrirCopiloto} />
         ) : null}
         {vista === "copiloto" ? <Copiloto destinoSugerido={activo?.destino ?? ""} /> : null}
         {vista === "criterio" ? <CriterioComercial destinos={destinos} /> : null}
-        {vista === "arquitectura" ? <Arquitectura origen={origen} /> : null}
       </main>
+
+      {verArquitectura ? (
+        <div
+          className="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-8"
+          style={{ background: "rgba(0,0,0,.68)", backdropFilter: "blur(8px)" }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Arquitectura de la plataforma"
+          onClick={(e) => e.target === e.currentTarget && setVerArquitectura(false)}
+          onKeyDown={(e) => e.key === "Escape" && setVerArquitectura(false)}
+          tabIndex={-1}
+        >
+          <div className="mx-auto max-w-5xl">
+            <div className="mb-3 flex justify-end">
+              <button
+                type="button"
+                className="btn btn-ghost px-3 py-2"
+                onClick={() => setVerArquitectura(false)}
+                aria-label="Cerrar"
+              >
+                <X size={16} aria-hidden />
+              </button>
+            </div>
+            <Arquitectura origen={origen} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
