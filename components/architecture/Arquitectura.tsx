@@ -60,7 +60,7 @@ function GastoIA() {
       ) : !datos || datos.llamadas === 0 ? (
         <p className="text-[12px] leading-relaxed text-[var(--muted)]">
           Todavía no hay llamadas en esta ventana. Genera una propuesta en el Copiloto o una pieza
-          en el Content Studio y vuelve aquí: cada llamada al modelo se registra con su coste en euros.
+          en el Crear contenido y vuelve aquí: cada llamada al modelo se registra con su coste en euros.
         </p>
       ) : (
         <div className="space-y-4">
@@ -124,12 +124,12 @@ function GastoIA() {
 const CAPAS = [
   {
     nombre: "Experiencia",
-    piezas: ["Radar de demanda", "Destino 360", "Copiloto", "Content Studio", "Criterio comercial"],
+    piezas: ["Dónde vender", "Destino 360", "Copiloto", "Crear contenido", "Criterio comercial"],
     nota: "Lo que ve el agente y la dirección",
   },
   {
     nombre: "Producto",
-    piezas: ["Opportunity Score", "Reglas duras", "Pesos comerciales", "Guiones verificados", "Render vertical"],
+    piezas: ["Puntuación de oportunidad", "Reglas duras", "Pesos comerciales", "Guiones verificados", "Render vertical"],
     nota: "El criterio de la agencia, hecho código. Determinista",
   },
   {

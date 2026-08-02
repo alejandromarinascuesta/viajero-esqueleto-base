@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from "react";
 import { ArrowRight, ChevronDown, Clapperboard, HelpCircle, MessageSquare } from "lucide-react";
-import PorQue from "@/components/radar/PorQue";
+import Sincronizar from "@/components/ui/Sincronizar";
 import type { DestinoConScore } from "@/components/layout/Shell";
 import type { OrigenDatos } from "@/lib/data";
 import { Kpi, Panel, Vacio } from "@/components/ui";
@@ -72,6 +72,13 @@ export default function Radar({
           </button>
         ) : null}
       </section>
+
+      <div className="panel flex flex-wrap items-center justify-between gap-3 p-4">
+        <span className="text-[12px] leading-relaxed text-[var(--muted)]">
+          Los datos se actualizan solos cada noche. Si alguno aparece sin señal, puedes forzarlo ahora.
+        </span>
+        <Sincronizar compacto />
+      </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Kpi etiqueta="Destinos analizados" valor={String(filas.length)} nota={`${ACTIVABLES} activables para contenido`} />
@@ -196,10 +203,31 @@ export default function Radar({
                     {expandido ? (
                       <tr style={{ background: "rgba(0,0,0,.16)" }}>
                         <td colSpan={5} className="px-3 pb-4">
-                          <PorQue destino={d} />
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <button type="button" className="btn btn-ghost px-3 py-1.5 text-[11px]" onClick={() => onAbrirDestino(d.id)}>Ver la ficha completa</button>
-                            <button type="button" className="btn btn-ghost px-3 py-1.5 text-[11px]" onClick={() => onAbrirCopiloto(d.id)}>Recomendárselo a un cliente</button>
+                          {/* Resumen, no desglose: el desglose completo vive en la
+                              ficha del destino y repetirlo aquí era decir dos veces
+                              lo mismo en dos pantallas seguidas. */}
+                          <div className="rounded-2xl p-4" style={{ background: "rgba(141,245,189,.04)", border: "1px solid var(--line)" }}>
+                            <p className="text-[13px] leading-relaxed">
+                              <b>{d.destino} saca {d.oportunidad.score} puntos sobre 100</b>
+                              {d.oportunidad.confianza < 100 ? (
+                                <>
+                                  {" "}con una <b style={{ color: "#FF9868" }}>confianza del {d.oportunidad.confianza}&nbsp;%</b>:
+                                  no hemos podido medir {d.oportunidad.ausentes.join(" ni ").toLowerCase()}.
+                                  No lo inventamos, así que la puntuación baja de {d.oportunidad.scoreSinAjustar} a {d.oportunidad.score}.
+                                </>
+                              ) : (
+                                <> con las cinco medidas disponibles: <b style={{ color: "var(--green)" }}>confianza del 100&nbsp;%</b>.</>
+                              )}
+                            </p>
+                            {d.oportunidad.noAplicables.length ? (
+                              <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--muted)]">
+                                {d.oportunidad.noAplicables.join(" y ")} no aplica a este destino, así que ni suma ni resta.
+                              </p>
+                            ) : null}
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <button type="button" className="btn btn-primary px-3 py-1.5 text-[11px]" onClick={() => onAbrirDestino(d.id)}>Ver de dónde sale cada dato</button>
+                              <button type="button" className="btn btn-ghost px-3 py-1.5 text-[11px]" onClick={() => onAbrirCopiloto(d.id)}>Preparar una propuesta</button>
+                            </div>
                           </div>
                         </td>
                       </tr>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, ArrowLeft, Clapperboard, MessageSquare, Network, SlidersHorizontal, X } from "lucide-react";
+import { Activity, ArrowLeft, Clapperboard, MapPin, MessageSquare, Network, SlidersHorizontal, X } from "lucide-react";
 import type { Destino, Oportunidad } from "@/types";
 import type { OrigenDatos } from "@/lib/data";
 import { Frescor } from "@/components/ui";
@@ -9,6 +9,7 @@ import Radar from "@/components/radar/Radar";
 import Destino360 from "@/components/destination/Destino360";
 import Copiloto from "@/components/copilot/Copiloto";
 import CriterioComercial from "@/components/criterio/CriterioComercial";
+import Sincronizar from "@/components/ui/Sincronizar";
 import Arquitectura from "@/components/architecture/Arquitectura";
 import ContentStudio from "@/components/content/ContentStudio";
 
@@ -17,13 +18,18 @@ export type DestinoConScore = Destino & { oportunidad: Oportunidad };
 // Cuatro secciones, un recorrido lineal: donde esta la oportunidad, por que,
 // que le digo a este cliente, y como cambia la direccion el criterio.
 // La arquitectura se explica, no se navega: vive en un panel aparte.
+// Un solo menú, un solo estilo, siempre visible. Antes había tres mecanismos
+// distintos para llegar a cinco sitios, y dos de ellos desaparecían en
+// pantallas estrechas: nadie descubría media aplicación.
 const VISTAS = [
-  { id: "radar", nombre: "Radar de demanda", icono: Activity },
-  { id: "copiloto", nombre: "Copiloto", icono: MessageSquare },
-  { id: "contenido", nombre: "Content Studio", icono: Clapperboard },
+  { id: "radar", nombre: "Dónde vender", icono: Activity, pista: "El catálogo, ordenado" },
+  { id: "destino", nombre: "Ficha del destino", icono: MapPin, pista: "De dónde sale cada dato" },
+  { id: "copiloto", nombre: "Preparar propuesta", icono: MessageSquare, pista: "Para un cliente concreto" },
+  { id: "contenido", nombre: "Crear contenido", icono: Clapperboard, pista: "Vídeo vertical para redes" },
+  { id: "criterio", nombre: "Ajustes de dirección", icono: SlidersHorizontal, pista: "El criterio comercial" },
 ] as const;
 
-export type Vista = (typeof VISTAS)[number]["id"] | "destino" | "criterio";
+export type Vista = (typeof VISTAS)[number]["id"];
 
 export default function Shell({
   destinos,
@@ -92,27 +98,29 @@ export default function Shell({
                 type="button"
                 onClick={() => setVista(v.id)}
                 aria-current={on ? "page" : undefined}
-                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold transition-colors"
+                className="flex items-start gap-3 rounded-xl px-3 py-2 text-left text-[13px] font-semibold transition-colors"
                 style={{
                   background: on ? "rgba(141,245,189,.09)" : "transparent",
                   color: on ? "var(--text)" : "#8ba097",
                 }}
               >
-                <Icono size={16} style={{ color: on ? "var(--green)" : "#66857a" }} aria-hidden />
-                {v.nombre}
+                <Icono size={16} className="mt-0.5 shrink-0" style={{ color: on ? "var(--green)" : "#66857a" }} aria-hidden />
+                <span>
+                  <span className="block">{v.nombre}</span>
+                  <span className="block text-[10px] font-normal" style={{ color: on ? "var(--muted)" : "#5f7a70" }}>
+                    {v.pista}
+                  </span>
+                </span>
               </button>
             );
           })}
         </nav>
 
-        <div className="mt-auto hidden gap-2 pt-6 lg:grid">
-          <button type="button" className="btn btn-ghost w-full" onClick={() => setVista("criterio")}>
-            <SlidersHorizontal size={14} className="mr-1.5 inline" aria-hidden />
-            Ajustes de dirección
-          </button>
-          <button type="button" className="btn btn-ghost w-full" onClick={() => setVerArquitectura(true)}>
-            <Network size={14} className="mr-1.5 inline" aria-hidden />
-            Arquitectura
+        <div className="mt-auto grid gap-2 pt-6">
+          <Sincronizar compacto />
+          <button type="button" className="btn btn-ghost w-full text-[11px]" onClick={() => setVerArquitectura(true)}>
+            <Network size={13} className="mr-1.5 inline" aria-hidden />
+            Cómo funciona por dentro
           </button>
         </div>
       </aside>

@@ -5,6 +5,7 @@ import { Clapperboard, MessageSquare } from "lucide-react";
 import type { DestinoConScore } from "@/components/layout/Shell";
 import { Anillo, Kpi, Panel, Vacio } from "@/components/ui";
 import { accionRecomendada, pulso } from "@/lib/pulso";
+import Sincronizar from "@/components/ui/Sincronizar";
 import { senalMomentum, senalesActuales } from "@/lib/signals";
 
 /** Cada fuente con su cadencia real. La frescura no es uniforme, y decirlo vale
@@ -120,6 +121,7 @@ export default function Destino360({
               <div className="mt-4 rounded-r-xl border-l-2 p-4" style={{ borderColor: "var(--green)", background: "rgba(141,245,189,.035)" }}>
                 <p className="text-[13px] font-semibold">{accion.titulo}</p>
                 <p className="mt-1 text-[12px] leading-relaxed text-[var(--muted)]">{accion.detalle}</p>
+                {interes === null ? <div className="mt-3"><Sincronizar compacto /></div> : null}
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <button type="button" className="btn btn-primary" onClick={() => onAbrirCopiloto(destino.id)}>
@@ -128,7 +130,7 @@ export default function Destino360({
                 </button>
                 <button type="button" className="btn btn-ghost" onClick={() => onAbrirContenido(destino.id)}>
                   <Clapperboard size={14} className="mr-1.5 inline" aria-hidden />
-                  Crear vídeo social
+                  Crear contenido
                 </button>
               </div>
             </div>
@@ -151,7 +153,7 @@ export default function Destino360({
         </div>
 
         <div className="grid gap-3 xl:grid-cols-2">
-          <Panel titulo="Cómo se calcula el Opportunity Score">
+          <Panel titulo="Cómo se calcula el Puntuación de oportunidad">
             <ul className="space-y-3">
               {destino.oportunidad.componentes.map((c) => (
                 <li key={c.clave}>

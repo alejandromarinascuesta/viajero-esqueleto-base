@@ -52,8 +52,8 @@ export function accionRecomendada(
   }
   if (f.tendenciaInteres === null) {
     return {
-      titulo: "Refrescar las fuentes",
-      detalle: "Sin señal de demanda no hay decisión que tomar. Ejecuta la ingesta.",
+      titulo: "Faltan datos de demanda",
+      detalle: "Sin señal de búsquedas no hay decisión que tomar. Usa «Actualizar los datos» en el menú de la izquierda.",
     };
   }
   if (f.tendenciaInteres >= 25 && f.cupo >= 15) {
