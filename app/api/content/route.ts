@@ -17,11 +17,18 @@ export const maxDuration = 30;
  */
 async function buscarActivos(destino: Parameters<typeof buscarActivosCommons>[0]) {
   if (hayPexels()) {
-    const activos = await buscarActivosPexels(destino);
-    if (activos.length) return { activos, fuente: "Pexels" };
+    const r = await buscarActivosPexels(destino);
+    if (r.activos.length) {
+      return { activos: r.activos, fuente: "Pexels", verificados: r.verificados, descartados: r.descartados };
+    }
   }
   const respaldo = await buscarActivosCommons(destino);
-  return { activos: respaldo, fuente: hayPexels() ? "Wikimedia Commons (respaldo)" : "Wikimedia Commons" };
+  return {
+    activos: respaldo,
+    fuente: hayPexels() ? "Wikimedia Commons (respaldo)" : "Wikimedia Commons",
+    verificados: respaldo.length,
+    descartados: 0,
+  };
 }
 
 /** Alterna vídeo y foto sin perder ninguno de los dos. */
@@ -47,7 +54,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: { code: "DESTINATION_NOT_FOUND", message: "Destino no encontrado" } }, { status: 404 });
   }
 
-  const [{ plan, uso }, { activos: encontrados, fuente }] = await Promise.all([
+  const [{ plan, uso }, { activos: encontrados, fuente, verificados, descartados }] = await Promise.all([
     generarPlanContenido(destino, entrada.data),
     buscarActivos(destino),
   ]);
@@ -68,6 +75,8 @@ export async function POST(request: Request) {
       estado: activos.length ? "live" : "unavailable",
       videos: videos.length,
       fotos: fotos.length,
+      verificados,
+      descartados,
     },
     voz: { disponible: hayLocucion() },
     modelo: uso,

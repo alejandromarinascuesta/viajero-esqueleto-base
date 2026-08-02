@@ -38,6 +38,36 @@ test("sin clave configurada no se llama al banco y no se rompe nada", async () =
   assert.equal(hayPexels(), false);
   assert.deepEqual(
     await buscarActivosPexels({ id: "EXP01", destino: "Creta", pais: "Grecia", tipo: "playa" } as never),
-    [],
+    { activos: [], verificados: 0, descartados: 0 },
   );
+});
+
+test("un video de otra ciudad no entra en la campania de este destino", async () => {
+  const { nombraOtroSitio } = await import("../lib/pexels");
+  const sevilla = ["seville", "sevilla", "andalusia", "giralda", "alcazar"];
+  // El caso real: buscando Sevilla, el banco devolvio el ayuntamiento de Madrid.
+  assert.equal(nombraOtroSitio("https://www.pexels.com/video/city-hall-of-madrid-12345/", sevilla), true);
+  assert.equal(nombraOtroSitio("https://www.pexels.com/video/sagrada-familia-barcelona-99/", sevilla), true);
+  assert.equal(nombraOtroSitio("https://www.pexels.com/video/plaza-de-espana-seville-77/", sevilla), false);
+});
+
+test("si nombra el destino se acepta aunque nombre tambien otro sitio", async () => {
+  const { nombraOtroSitio } = await import("../lib/pexels");
+  const sevilla = ["seville", "sevilla"];
+  assert.equal(nombraOtroSitio("train from madrid to seville", sevilla), false);
+});
+
+test("se da por verificado solo lo que nombra el destino", async () => {
+  const { nombraDestino } = await import("../lib/pexels");
+  const creta = ["crete", "balos", "elafonissi"];
+  assert.equal(nombraDestino("https://www.pexels.com/video/balos-beach-aerial-1/", creta), true);
+  assert.equal(nombraDestino("https://www.pexels.com/video/beautiful-turquoise-water-2/", creta), false);
+});
+
+test("lo generico entra, pero detras y sin contar como verificado", async () => {
+  const { nombraDestino, nombraOtroSitio } = await import("../lib/pexels");
+  const creta = ["crete", "balos"];
+  const generico = "https://www.pexels.com/video/waves-on-the-shore-9/";
+  assert.equal(nombraOtroSitio(generico, creta), false, "no deberia descartarse");
+  assert.equal(nombraDestino(generico, creta), false, "tampoco deberia darse por bueno");
 });

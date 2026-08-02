@@ -59,7 +59,7 @@ test("el respaldo declara que no puede separar rotulo y voz", async () => {
   assert.equal(seSolapan(plan.escenas[0].textoPantalla, plan.escenas[0].locucion), false);
   assert.equal(seSolapan(plan.escenas.at(-1)!.textoPantalla, plan.escenas.at(-1)!.locucion), false);
   // En las centrales solo puede acortar el motivo, y lo dice en vez de callarlo.
-  assert.ok(plan.advertencias.some((a) => a.includes("rótulo")), "el respaldo deberia declarar su limitacion");
+  assert.ok(plan.advertencias.some((a) => a.includes("inventar")), "el respaldo deberia declarar su limitacion");
 });
 
 test("el hook del respaldo sigue siendo una pregunta", async () => {

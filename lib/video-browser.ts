@@ -152,13 +152,13 @@ function partir(ctx: CanvasRenderingContext2D, texto: string, max: number, tope:
 
 /** Ajusta el cuerpo hasta que el titular quepa en tres lineas como maximo. */
 function titularAjustado(ctx: CanvasRenderingContext2D, texto: string, max: number) {
-  for (const cuerpo of [62, 56, 50, 45]) {
+  for (const cuerpo of [72, 64, 58, 52, 46]) {
     ctx.font = `800 ${cuerpo}px Arial, Helvetica, sans-serif`;
-    const lineas = partir(ctx, texto, max, 4);
+    const lineas = partir(ctx, texto, max, 5);
     if (lineas.length <= 3) return { cuerpo, lineas };
   }
-  ctx.font = "800 45px Arial, Helvetica, sans-serif";
-  return { cuerpo: 45, lineas: partir(ctx, texto, max, 3) };
+  ctx.font = "800 46px Arial, Helvetica, sans-serif";
+  return { cuerpo: 46, lineas: partir(ctx, texto, max, 4) };
 }
 
 function marca(ctx: CanvasRenderingContext2D, entrada: number) {
@@ -199,13 +199,12 @@ function textos(ctx: CanvasRenderingContext2D, plan: PlanContenido, indice: numb
   progresoEscenas(ctx, plan.escenas.length, indice, dentro);
   marca(ctx, entrada);
 
+  // Un solo mensaje en pantalla. Antes se pintaba el rotulo y debajo la
+  // locucion: el ojo leia dos veces lo mismo y la pieza parecia un subtitulo de
+  // si misma. Lo que se oye ya lo cuenta; la pantalla solo titula.
   const { cuerpo, lineas } = titularAjustado(ctx, escena.textoPantalla, max);
   const alturaLinea = cuerpo * 1.16;
-
-  ctx.font = "600 26px Arial, Helvetica, sans-serif";
-  const apoyo = partir(ctx, escena.locucion, max, 2);
-
-  const bloque = lineas.length * alturaLinea + (apoyo.length ? apoyo.length * 34 + 22 : 0);
+  const bloque = lineas.length * alturaLinea;
   let y = ALTO - SEGURO_INF - bloque + alturaLinea * 0.82 + deslizamiento;
 
   ctx.shadowColor = "rgba(0,0,0,.55)";
@@ -218,15 +217,6 @@ function textos(ctx: CanvasRenderingContext2D, plan: PlanContenido, indice: numb
     y += alturaLinea;
   }
 
-  if (apoyo.length) {
-    y += 12;
-    ctx.font = "600 26px Arial, Helvetica, sans-serif";
-    ctx.fillStyle = "rgba(255,255,255,.86)";
-    for (const linea of apoyo) {
-      ctx.fillText(linea, MARGEN, y);
-      y += 34;
-    }
-  }
   ctx.shadowColor = "transparent";
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 0;

@@ -55,31 +55,111 @@ type FotoPexels = {
  * negocio: describen que lugar debe verse en pantalla. Sin esto, "Creta"
  * devuelve cualquier cosa rodada en Grecia y la pieza deja de reconocerse.
  */
-const CONSULTAS: Record<string, string[]> = {
-  "Creta": ["Balos lagoon Crete", "Elafonissi beach Crete", "Crete Greece coast"],
-  "Santorini": ["Santorini Oia sunset", "Santorini caldera", "Santorini white houses"],
-  "París": ["Paris Eiffel Tower", "Paris street", "Paris Seine river"],
-  "Sevilla": ["Seville Plaza de Espana", "Seville Spain street", "Andalusia architecture"],
-  "Lisboa": ["Lisbon tram", "Lisbon Portugal viewpoint", "Belem tower Lisbon"],
-  "Mallorca": ["Mallorca beach", "Mallorca Serra de Tramuntana", "Palma de Mallorca"],
-  "Tenerife": ["Tenerife Teide", "Tenerife beach", "Canary islands coast"],
-  "Ibiza": ["Ibiza beach sunset", "Ibiza Es Vedra", "Ibiza coast"],
-  "Roma": ["Rome Colosseum", "Rome Trevi fountain", "Rome Italy street"],
-  "Praga": ["Prague Charles bridge", "Prague old town", "Prague castle"],
-  "Maldivas": ["Maldives overwater villa", "Maldives beach aerial", "Maldives turquoise water"],
-  "Marrakech": ["Marrakech medina", "Marrakech riad", "Morocco desert"],
-  "Ámsterdam": ["Amsterdam canal", "Amsterdam bikes", "Amsterdam houses"],
-  "Riviera Maya": ["Tulum beach ruins", "Mexico cenote", "Riviera Maya caribbean"],
-  "Nueva York": ["New York skyline", "New York Brooklyn bridge", "Manhattan street"],
+type Visual = { consultas: string[]; terminos: string[] };
+
+/**
+ * Consultas editoriales y terminos de comprobacion, por destino.
+ *
+ * Las consultas dicen que buscar. Los terminos sirven para VERIFICAR que lo que
+ * ha devuelto el banco es realmente de ese sitio: el buscador de un banco de
+ * stock es semantico y aproximado, y buscando Sevilla devuelve plazas
+ * monumentales espanolas en general. Una campania de Sevilla con el ayuntamiento
+ * de Madrid no es un fallo estetico, es un fallo de producto.
+ */
+const DESTINOS_VISUALES: Record<string, Visual> = {
+  "Creta": {
+    consultas: ["Balos lagoon Crete", "Elafonissi beach Crete", "Crete Greece coast"],
+    terminos: ["crete", "creta", "balos", "elafonissi", "chania", "heraklion", "knossos"],
+  },
+  "Santorini": {
+    consultas: ["Santorini Oia sunset", "Santorini caldera", "Santorini Greece"],
+    terminos: ["santorini", "oia", "thira", "caldera", "fira"],
+  },
+  "París": {
+    consultas: ["Paris Eiffel Tower", "Paris street France", "Paris Seine river"],
+    terminos: ["paris", "eiffel", "louvre", "seine", "montmartre", "champs"],
+  },
+  "Sevilla": {
+    consultas: ["Seville Plaza de Espana", "Seville Andalusia Spain", "Seville cathedral Giralda"],
+    terminos: ["seville", "sevilla", "andalusia", "andalucia", "giralda", "alcazar", "triana", "guadalquivir"],
+  },
+  "Lisboa": {
+    consultas: ["Lisbon tram Portugal", "Lisbon viewpoint", "Belem tower Lisbon"],
+    terminos: ["lisbon", "lisboa", "portugal", "belem", "alfama", "tejo", "tagus"],
+  },
+  "Mallorca": {
+    consultas: ["Mallorca beach Spain", "Serra de Tramuntana Mallorca", "Palma de Mallorca"],
+    terminos: ["mallorca", "majorca", "palma", "tramuntana", "balearic", "baleares"],
+  },
+  "Ibiza": {
+    consultas: ["Ibiza beach sunset", "Ibiza Es Vedra", "Ibiza coast Spain"],
+    terminos: ["ibiza", "eivissa", "vedra", "balearic", "baleares", "formentera"],
+  },
+  "Roma": {
+    consultas: ["Rome Colosseum Italy", "Rome Trevi fountain", "Rome street Italy"],
+    terminos: ["rome", "roma", "colosseum", "colosseo", "trevi", "vatican", "pantheon", "italy"],
+  },
+  "Maldivas": {
+    consultas: ["Maldives overwater villa", "Maldives beach aerial", "Maldives turquoise lagoon"],
+    terminos: ["maldives", "maldivas", "atoll", "overwater", "male"],
+  },
+  "Marrakech": {
+    consultas: ["Marrakech medina Morocco", "Marrakech riad", "Marrakech souk"],
+    terminos: ["marrakech", "marrakesh", "morocco", "marruecos", "medina", "koutoubia", "jemaa", "souk"],
+  },
+  "Riviera Maya": {
+    consultas: ["Tulum beach ruins Mexico", "Mexico cenote", "Riviera Maya caribbean"],
+    terminos: ["tulum", "riviera maya", "cenote", "mexico", "yucatan", "cancun", "playa del carmen", "akumal"],
+  },
+  "Nueva York": {
+    consultas: ["New York skyline", "New York Brooklyn bridge", "Manhattan street New York"],
+    terminos: ["new york", "nyc", "manhattan", "brooklyn", "times square", "central park"],
+  },
 };
 
-function consultasDe(destino: Destino) {
-  const propias = CONSULTAS[destino.destino];
-  if (propias) return propias;
+/** Terminos de otros destinos y confusiones habituales del buscador. */
+const AJENOS = [
+  "madrid", "barcelona", "valencia", "granada", "cordoba", "malaga", "bilbao", "toledo", "segovia",
+  "london", "berlin", "amsterdam", "prague", "praha", "vienna", "budapest", "venice", "florence",
+  "milan", "naples", "athens", "mykonos", "dubai", "bali", "thailand", "tenerife", "gran canaria",
+  "lanzarote", "porto", "istanbul", "tokyo", "singapore", "miami", "los angeles", "chicago",
+];
+
+function visualDe(destino: Destino): Visual {
+  const propio = DESTINOS_VISUALES[destino.destino];
+  if (propio) return propio;
   const base = `${destino.destino} ${destino.pais}`;
-  return destino.tipo === "playa"
-    ? [`${base} beach`, `${base} coast`, base]
-    : [`${base} landmark`, `${base} old town`, base];
+  return {
+    consultas: destino.tipo === "playa"
+      ? [`${base} beach`, `${base} coast`, base]
+      : [`${base} landmark`, `${base} old town`, base],
+    terminos: [destino.destino.toLowerCase(), destino.pais.toLowerCase()],
+  };
+}
+
+const normalizar = (v: string) =>
+  v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+
+/**
+ * El banco no tiene metadatos de lugar fiables, asi que se mira lo unico que
+ * viene con cada activo: la direccion publica —que lleva el titulo en la ruta—
+ * y el texto alternativo o el autor.
+ *
+ * Dos preguntas distintas y por eso dos funciones:
+ *   nombraDestino   ¿puedo afirmar que es de aqui?      -> va como verificado
+ *   nombraOtroSitio ¿puedo afirmar que es de otro sitio? -> se descarta
+ * Lo que no responde ni a una ni a otra es material generico: entra, pero
+ * detras y sin contar como verificado.
+ */
+export function nombraDestino(texto: string, terminos: string[]) {
+  const t = normalizar(texto);
+  return terminos.some((termino) => t.includes(normalizar(termino)));
+}
+
+export function nombraOtroSitio(texto: string, terminos: string[], ajenos: string[] = AJENOS) {
+  if (nombraDestino(texto, terminos)) return false;
+  const t = normalizar(texto);
+  return ajenos.some((ajeno) => t.includes(normalizar(ajeno)));
 }
 
 async function pedir<T>(url: string, clave: string, signal: AbortSignal): Promise<T | null> {
@@ -112,6 +192,15 @@ export function elegirFichero(ficheros: FicheroVideo[] = []): FicheroVideo | nul
 export function ordenarPorVerticalidad<T extends { width?: number | null; height?: number | null }>(lista: T[]) {
   const ratio = (x: T) => (x.height ?? 1) / Math.max(1, x.width ?? 1);
   return [...lista].sort((a, b) => ratio(b) - ratio(a));
+}
+
+/** Todo lo que el banco nos da para saber que es: la ruta publica y el autor. */
+function huellaVideo(video: VideoPexels) {
+  return `${video.url ?? ""} ${video.user?.name ?? ""}`;
+}
+
+function huellaFoto(foto: FotoPexels) {
+  return `${foto.url ?? ""} ${foto.alt ?? ""}`;
 }
 
 function videoAActivo(video: VideoPexels): ActivoVisual | null {
@@ -148,14 +237,16 @@ export function hayPexels() {
   return Boolean(process.env.PEXELS_API_KEY);
 }
 
-export async function buscarActivosPexels(destino: Destino): Promise<ActivoVisual[]> {
+export type ResultadoBanco = { activos: ActivoVisual[]; verificados: number; descartados: number };
+
+export async function buscarActivosPexels(destino: Destino): Promise<ResultadoBanco> {
   const clave = process.env.PEXELS_API_KEY;
-  if (!clave) return [];
+  if (!clave) return { activos: [], verificados: 0, descartados: 0 };
 
   const control = new AbortController();
   const reloj = setTimeout(() => control.abort(), 12_000);
   try {
-    const consultas = consultasDe(destino);
+    const { consultas, terminos } = visualDe(destino);
     const respuestas = await Promise.all(
       consultas.flatMap((consulta) => [
         pedir<{ videos?: VideoPexels[] }>(
@@ -180,25 +271,44 @@ export async function buscarActivosPexels(destino: Destino): Promise<ActivoVisua
     }
 
     const vistos = new Set<string>();
-    const clips: ActivoVisual[] = [];
-    for (const video of ordenarPorVerticalidad(videos)) {
-      const activo = videoAActivo(video);
-      if (!activo || vistos.has(activo.id)) continue;
-      vistos.add(activo.id);
-      clips.push(activo);
-      if (clips.length >= 8) break;
-    }
-    const imagenes: ActivoVisual[] = [];
-    for (const foto of ordenarPorVerticalidad(fotos)) {
-      const activo = fotoAActivo(foto);
-      if (!activo || vistos.has(activo.id)) continue;
-      vistos.add(activo.id);
-      imagenes.push(activo);
-      if (imagenes.length >= 8) break;
-    }
-    return [...clips, ...imagenes];
+    let descartados = 0;
+
+    // Dos cestas: lo que nombra el destino y lo que simplemente no nombra otro.
+    // Lo verificado va primero y es lo que acaba en el video.
+    const recoger = <T,>(
+      lista: T[],
+      convertir: (x: T) => ActivoVisual | null,
+      huella: (x: T) => string,
+    ) => {
+      const seguros: ActivoVisual[] = [];
+      const dudosos: ActivoVisual[] = [];
+      for (const item of ordenarPorVerticalidad(lista as never[])) {
+        const activo = convertir(item as T);
+        if (!activo || vistos.has(activo.id)) continue;
+        const texto = huella(item as T);
+        if (nombraOtroSitio(texto, terminos)) { descartados += 1; continue; }
+        vistos.add(activo.id);
+        (nombraDestino(texto, terminos) ? seguros : dudosos).push(activo);
+      }
+      return { seguros, dudosos };
+    };
+
+    const clips = recoger(videos, videoAActivo, huellaVideo);
+    const imagenes = recoger(fotos, fotoAActivo, huellaFoto);
+
+    const activos = [
+      ...clips.seguros.slice(0, 6),
+      ...imagenes.seguros.slice(0, 6),
+      ...clips.dudosos.slice(0, 3),
+      ...imagenes.dudosos.slice(0, 3),
+    ];
+    return {
+      activos,
+      verificados: Math.min(clips.seguros.length, 6) + Math.min(imagenes.seguros.length, 6),
+      descartados,
+    };
   } catch {
-    return [];
+    return { activos: [], verificados: 0, descartados: 0 };
   } finally {
     clearTimeout(reloj);
   }

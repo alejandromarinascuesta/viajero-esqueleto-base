@@ -17,7 +17,7 @@ type FicheroVideo = { blob: Blob; url: string; extension: string };
 type RespuestaContenido = {
   plan?: PlanContenido;
   activos?: ActivoVisual[];
-  media?: { estado: string; fuente: string; licencia: string; videos?: number; fotos?: number };
+  media?: { estado: string; fuente: string; licencia: string; videos?: number; fotos?: number; verificados?: number; descartados?: number };
   voz?: { disponible: boolean };
   modelo?: { ok: boolean; modelo: string; tokensEntrada: number | null; tokensSalida: number | null };
   error?: { code: string; message: string };
@@ -60,7 +60,7 @@ export default function ContentStudio({
   const [progreso, setProgreso] = useState(0);
   const [renderizando, setRenderizando] = useState(false);
   const [video, setVideo] = useState<FicheroVideo | null>(null);
-  const [medios, setMedios] = useState<{ fuente: string; videos: number; fotos: number } | null>(null);
+  const [medios, setMedios] = useState<{ fuente: string; videos: number; fotos: number; verificados: number; descartados: number } | null>(null);
   const [vozDisponible, setVozDisponible] = useState(false);
   const [usarVoz, setUsarVoz] = useState(true);
   const [probandoVoz, setProbandoVoz] = useState(false);
@@ -112,11 +112,20 @@ export default function ContentStudio({
       if (!r.ok || !datos.plan) throw new Error(datos.error?.message ?? "No se ha podido generar el contenido.");
       setPlan(datos.plan); setActivos(datos.activos ?? []); setReproduciendo(true);
       setVozDisponible(Boolean(datos.voz?.disponible));
-      setMedios(datos.media ? { fuente: datos.media.fuente, videos: datos.media.videos ?? 0, fotos: datos.media.fotos ?? 0 } : null);
+      setMedios(datos.media ? {
+        fuente: datos.media.fuente,
+        videos: datos.media.videos ?? 0,
+        fotos: datos.media.fotos ?? 0,
+        verificados: datos.media.verificados ?? 0,
+        descartados: datos.media.descartados ?? 0,
+      } : null);
+      const descartados = datos.media?.descartados ?? 0;
       setMensaje(
-        datos.activos?.length
-          ? `Guion listo y ${datos.media?.videos ?? 0} clips verticales traídos de ${datos.media?.fuente ?? "el banco"}.`
-          : "Guion preparado. El banco no devolvió material para este destino y la pieza saldrá con dirección de arte de marca.",
+        !datos.activos?.length
+          ? "Guion preparado. El banco no devolvió material para este destino y la pieza saldrá con dirección de arte de marca."
+          : `Guion listo · ${datos.media?.verificados ?? 0} de ${datos.activos.length} activos confirmados como del destino` +
+            (descartados ? ` · ${descartados} descartados por ser de otro sitio` : "") +
+            (datos.plan.modo === "fallback-verificado" ? " · ATENCIÓN: guion de respaldo, el modelo no respondió" : ""),
       );
     } catch (e) { setMensaje(e instanceof Error ? e.message : "No se ha podido generar el contenido."); }
     finally { setCargando(false); }
@@ -324,7 +333,7 @@ export default function ContentStudio({
                       ) : activoVisual ? <img src={activoVisual.miniatura} alt="" className="absolute inset-0 h-full w-full object-cover" /> : null}
                       <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.1) 40%,rgba(0,0,0,.9))" }} />
                       <div className="absolute left-4 top-4 text-[8px] font-black tracking-[.12em] text-[var(--green)]">DESTINATION PULSE</div>
-                      <div className="absolute inset-x-4 bottom-14"><b className="block text-[24px] leading-tight">{plan.escenas[escena]?.textoPantalla}</b><span className="mt-2 block text-[11px] leading-relaxed text-white/80">{plan.escenas[escena]?.locucion}</span></div>
+                      <div className="absolute inset-x-4 bottom-14"><b className="block text-[26px] leading-tight">{plan.escenas[escena]?.textoPantalla}</b></div>
                       <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between"><span className="text-[9px]">{escena + 1}/{plan.escenas.length}</span><button type="button" aria-label={reproduciendo ? "Pausar" : "Reproducir"} className="grid h-8 w-8 place-items-center rounded-full bg-[var(--green)] text-[#092116]" onClick={() => setReproduciendo(!reproduciendo)}>{reproduciendo ? <Pause size={14} /> : <Play size={14} />}</button></div>
                     </>
                   )}
@@ -338,6 +347,11 @@ export default function ContentStudio({
                 <ol className="grid gap-2 sm:grid-cols-2">
                   {plan.escenas.map((e, i) => <li key={`${e.titulo}-${i}`}><button type="button" onClick={() => { setEscena(i); setReproduciendo(false); }} className="subpanel h-full w-full p-3 text-left" style={{ borderColor: escena === i ? "var(--line-strong)" : undefined }}><span className="text-[9px] text-[var(--dim)]">ESCENA {i + 1}</span><b className="mt-1 block text-[12px]">{e.textoPantalla}</b><span className="mt-1 block text-[10px] leading-relaxed text-[var(--muted)]">{e.locucion}</span></button></li>)}
                 </ol>
+                {plan.advertencias.length > 1 ? (
+                  <ul className="subpanel space-y-1 p-3 text-[10px] leading-relaxed text-[var(--dim)]">
+                    {plan.advertencias.map((a) => <li key={a}>· {a}</li>)}
+                  </ul>
+                ) : null}
                 <div className="subpanel p-3"><div className="flex items-start justify-between gap-3"><p className="text-[12px] leading-relaxed">{plan.caption}<br/><span className="text-[var(--green)]">{plan.hashtags.join(" ")}</span></p><button type="button" className="btn btn-ghost p-2" aria-label="Copiar texto" onClick={() => { void navigator.clipboard.writeText(`${plan.caption}\n${plan.hashtags.join(" ")}`); setMensaje("Texto copiado."); }}><Copy size={14}/></button></div></div>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" className="btn btn-primary" disabled={renderizando} onClick={() => void crearVideo(true)}><Download size={14} className="mr-1.5 inline" />Generar y descargar vídeo</button>
@@ -357,7 +371,13 @@ export default function ContentStudio({
 
       {mensaje ? <div className="subpanel flex items-center gap-2 px-4 py-3 text-[12px]"><Check size={14} className="shrink-0 text-[var(--green)]"/>{mensaje}</div> : null}
 
-      {activos.length ? <Panel titulo={`Material audiovisual · ${activos.filter((a) => a.tipo === "video").length} vídeos · ${activos.filter((a) => a.tipo === "imagen").length} imágenes`} extra={medios ? <span className="pill pill-line">{medios.fuente.toUpperCase()}</span> : null}><div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-6">{activos.slice(0,6).map((a) => <a key={a.id} href={a.paginaFuente} target="_blank" rel="noreferrer" className="group relative overflow-hidden rounded-xl border" style={{ borderColor: "var(--line)" }}>{a.tipo === "video" ? <video src={a.url} poster={a.miniatura} muted loop playsInline preload="metadata" onMouseEnter={(e) => void e.currentTarget.play().catch(() => undefined)} onMouseLeave={(e) => e.currentTarget.pause()} className="aspect-[9/16] w-full object-cover"/> : <img src={a.miniatura} alt={a.titulo} className="aspect-[9/16] w-full object-cover"/>}{a.tipo === "video" ? <span className="absolute left-2 top-2 rounded-md bg-black/70 px-2 py-1 text-[8px] font-black tracking-[.1em] text-white">VÍDEO</span> : null}<span className="block p-2 text-[9px] leading-relaxed text-[var(--dim)]">{a.licencia} · {a.autor.slice(0,55)} <ExternalLink size={9} className="inline"/></span></a>)}</div></Panel> : null}
+      {activos.length ? <Panel titulo={`Material audiovisual · ${activos.filter((a) => a.tipo === "video").length} vídeos · ${activos.filter((a) => a.tipo === "imagen").length} imágenes`} extra={medios ? (
+        <span className="flex items-center gap-2">
+          <span className="pill pill-line">{medios.fuente.toUpperCase()}</span>
+          <span className="pill pill-green">{medios.verificados} VERIFICADOS</span>
+          {medios.descartados ? <span className="pill pill-line">{medios.descartados} DESCARTADOS</span> : null}
+        </span>
+      ) : null}><div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-6">{activos.slice(0,6).map((a) => <a key={a.id} href={a.paginaFuente} target="_blank" rel="noreferrer" className="group relative overflow-hidden rounded-xl border" style={{ borderColor: "var(--line)" }}>{a.tipo === "video" ? <video src={a.url} poster={a.miniatura} muted loop playsInline preload="metadata" onMouseEnter={(e) => void e.currentTarget.play().catch(() => undefined)} onMouseLeave={(e) => e.currentTarget.pause()} className="aspect-[9/16] w-full object-cover"/> : <img src={a.miniatura} alt={a.titulo} className="aspect-[9/16] w-full object-cover"/>}{a.tipo === "video" ? <span className="absolute left-2 top-2 rounded-md bg-black/70 px-2 py-1 text-[8px] font-black tracking-[.1em] text-white">VÍDEO</span> : null}{medios && activos.indexOf(a) >= medios.verificados ? <span className="absolute right-2 top-2 rounded-md bg-black/70 px-2 py-1 text-[8px] font-black tracking-[.1em]" style={{ color: "#FF9868" }} title="No hemos podido confirmar que sea de este destino">GENÉRICO</span> : null}<span className="block p-2 text-[9px] leading-relaxed text-[var(--dim)]">{a.licencia} · {a.autor.slice(0,55)} <ExternalLink size={9} className="inline"/></span></a>)}</div></Panel> : null}
 
       {guardados.length ? <Panel titulo={`Biblioteca de campañas · ${guardados.length}`}><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">{guardados.slice(0,8).map((p) => <button type="button" key={p.creadoEn} className="subpanel p-3 text-left" onClick={() => { setPlan(p); setDestinoId(p.destinoId); setEscena(0); setVideo(null); }}><span className="text-[9px] text-[var(--dim)]">{new Date(p.creadoEn).toLocaleDateString("es-ES")}</span><b className="mt-1 block text-[13px]">{p.destino}</b><span className="mt-1 block text-[10px] text-[var(--muted)]">{p.concepto}</span></button>)}</div></Panel> : null}
     </div>

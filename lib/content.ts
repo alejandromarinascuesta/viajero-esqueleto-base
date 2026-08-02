@@ -128,10 +128,7 @@ const SalidaModelo = z.object({
     texto_pantalla: z.string().min(2).max(70),
     locucion: z.string().min(3).max(120),
     consulta_visual: z.string().min(2).max(100),
-  }).refine(
-    (e) => !seSolapan(e.texto_pantalla, e.locucion),
-    "El rótulo y la locución dicen lo mismo",
-  )).min(4).max(6),
+  })).min(4).max(6),
   caption: z.string().min(20).max(600),
   cta: z.string().min(3).max(80),
   hashtags: z.array(z.string().min(2).max(35)).min(3).max(8),
@@ -226,10 +223,12 @@ export function contenidoFallback(
 
   const escenas = [
     { titulo: destino.destino, textoPantalla: apertura.rotulo, locucion: apertura.voz, consultaVisual: `${destino.destino} viaje` },
+    // Con un solo mensaje en pantalla el motivo cabe entero: ya no hace falta
+    // trocearlo a las cinco primeras palabras, que era lo que producia rotulos
+    // cortados a mitad de frase.
     ...motivos.slice(0, 3).map((m) => ({
       titulo: destino.destino,
-      // El rotulo se queda con las primeras palabras del motivo; la voz lo dice entero.
-      textoPantalla: m.split(/\s+/).slice(0, 5).join(" "),
+      textoPantalla: m,
       locucion: m,
       consultaVisual: `${destino.destino} ${m}`,
     })),
@@ -257,7 +256,7 @@ export function contenidoFallback(
     hechosUtilizados: motivos.slice(0, 3),
     advertencias: [
       "Guion de continuidad generado únicamente con la ficha verificada del catálogo.",
-      "Sin modelo disponible el rótulo solo puede acortar la locución, así que en las escenas centrales dicen lo mismo. Con modelo, se exige que no.",
+      "Sin modelo disponible no hay paráfrasis posible sin inventar, así que la voz lee el motivo tal cual está escrito en la ficha.",
     ],
   };
 }
@@ -288,8 +287,20 @@ export async function generarPlanContenido(
   // decide nada, se redacta. Lo que se afirma ya esta acotado por los hechos
   // permitidos y se verifica despues, asi que el riesgo de subirla es cero y lo
   // que se gana es que dos piezas no salgan calcadas.
-  const respuesta = await pedirJson<unknown>(INSTRUCCION, contexto, 0.85);
-  const validada = SalidaModelo.safeParse(respuesta.datos);
+  let respuesta = await pedirJson<unknown>(INSTRUCCION, contexto, 0.85);
+  let validada = SalidaModelo.safeParse(respuesta.datos);
+
+  // Un segundo intento antes de rendirse. El respaldo no puede parafrasear sin
+  // inventar, asi que su resultado es notablemente peor: merece la pena gastar
+  // una llamada mas en evitarlo.
+  if (!validada.success) {
+    const correccion = `${INSTRUCCION}\n\nEl intento anterior no cumplió el formato: ${validada.error.issues
+      .slice(0, 3)
+      .map((i) => `${i.path.join(".")}: ${i.message}`)
+      .join("; ")}. Corrígelo y devuelve solo el JSON.`;
+    respuesta = await pedirJson<unknown>(correccion, contexto, 0.7);
+    validada = SalidaModelo.safeParse(respuesta.datos);
+  }
   if (!validada.success) return { plan: contenidoFallback(destino, entrada), uso: respuesta.uso };
 
   const usadosValidos = validada.data.hechos_utilizados.every((h) => permitidos.includes(h));
@@ -324,7 +335,12 @@ export async function generarPlanContenido(
       cta: validada.data.cta,
       hashtags: validada.data.hashtags.map(limpiarHashtag).filter(Boolean),
       hechosUtilizados: validada.data.hechos_utilizados,
-      advertencias: ["Revisión humana obligatoria antes de publicar."],
+      advertencias: [
+        "Revisión humana obligatoria antes de publicar.",
+        ...(validada.data.escenas.some((e) => seSolapan(e.texto_pantalla, e.locucion))
+          ? ["En alguna escena el rótulo y la voz dicen lo mismo con las mismas palabras."]
+          : []),
+      ],
     },
     uso: respuesta.uso,
   };
