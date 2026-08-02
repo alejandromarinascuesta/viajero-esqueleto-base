@@ -126,8 +126,15 @@ export default function Shell({
               </button>
             ) : null}
             <div className="min-w-0">
+              {vista === "destino" ? (
+                <span className="block text-[9px] font-bold tracking-[.14em] text-[var(--green)]">DESTINO 360</span>
+              ) : null}
               <h1 className="truncate text-[22px] tracking-tight">{titulo}</h1>
-              <span className="text-[10px] text-[var(--dim)]">Señales reales · decisiones explicables</span>
+              <span className="text-[10px] text-[var(--dim)]">
+                {vista === "destino"
+                  ? "De dónde sale cada número de este destino"
+                  : "Señales reales · decisiones explicables"}
+              </span>
             </div>
           </div>
           <Frescor estado={origen.frescura} detalle={origen.detalle} />
