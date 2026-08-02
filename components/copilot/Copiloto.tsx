@@ -187,7 +187,7 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_26rem]">
       <div className="space-y-4">
         <Panel
-          titulo="Datos del cliente"
+          titulo="1 · Quién viaja y cómo"
           extra={
             <div className="flex gap-1 rounded-xl p-1" style={{ border: "1px solid var(--line)" }}>
               {(["guiado", "notas"] as const).map((m) => (
@@ -372,16 +372,39 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
         ) : null}
 
         {respuesta?.resultado ? (
+          <>
+          {/* El descarte era una línea de once píxeles en la esquina, y es el
+              momento en el que el producto demuestra lo que hace. Ahora es un
+              paso con su propio sitio. */}
+          <section className="panel p-4">
+            <span className="block text-[10px] font-bold tracking-[.12em] text-[var(--dim)]">
+              2 · QUÉ HA DESCARTADO EL SISTEMA
+            </span>
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px]">
+              <b className="text-[22px] tabular-nums">{respuesta.resultado.candidatas}</b>
+              <span className="text-[var(--muted)]">destinos evaluados</span>
+              <span className="text-[var(--dim)]">→</span>
+              <b className="text-[22px] tabular-nums" style={{ color: "#FF9868" }}>
+                {respuesta.resultado.candidatas - respuesta.resultado.supervivientes}
+              </b>
+              <span className="text-[var(--muted)]">descartados por las reglas</span>
+              <span className="text-[var(--dim)]">→</span>
+              <b className="text-[22px] tabular-nums" style={{ color: "var(--green)" }}>
+                {respuesta.resultado.propuestas.length}
+              </b>
+              <span className="text-[var(--muted)]">propuestas</span>
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-[var(--dim)]">
+              El descarte lo hace código, no el modelo. Una regla inviolable no se puede negociar
+              ni resucitar: si el vuelo es largo y viaja un menor de seis años, ese destino no sale.
+            </p>
+          </section>
+
           <Panel
             titulo={
               respuesta.resultado.modo === "recomendadas"
-                ? "Propuestas para este cliente"
-                : "Ninguna opción cumple todo"
-            }
-            extra={
-              <span className="text-[11px] text-[var(--dim)]">
-                {respuesta.resultado.candidatas} evaluadas · {respuesta.resultado.supervivientes} superan las reglas
-              </span>
+                ? "3 · Lo que le propones al cliente"
+                : "3 · Ninguna opción cumple todo"
             }
           >
             {respuesta.resultado.mensaje ? (
@@ -510,15 +533,16 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
             )}
 
             <p className="mt-4 text-[11px] leading-relaxed text-[var(--dim)]">
-              Las recomendaciones deben ser revisadas por un agente antes de enviarse al cliente.
+              Revisa siempre la propuesta antes de enviarla al cliente.
               {destinoSugerido ? ` Destino abierto en el radar: ${destinoSugerido}.` : ""}
             </p>
           </Panel>
+          </>
         ) : null}
       </div>
 
       <div className="space-y-4">
-        <Panel titulo="Perfil extraído">
+        <Panel titulo="Lo que hemos entendido">
           {!perfil ? (
             <Vacio mensaje="Escribe las notas de la llamada y el perfil aparecerá aquí, con la frase de la que sale cada dato." />
           ) : (
@@ -569,7 +593,7 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
         </Panel>
 
         <Panel
-          titulo="Modo técnico"
+          titulo="Para el equipo técnico"
           extra={
             <button
               type="button"
@@ -583,8 +607,8 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
         >
           {!tecnico ? (
             <p className="text-[12px] leading-relaxed text-[var(--muted)]">
-              Abre la orquestación: qué descartó cada regla, los pesos aplicados y el resultado de la
-              verificación del argumento.
+              La traza completa: qué descartó cada regla, con qué pesos se ordenó lo que quedó, y el
+              resultado de la verificación del argumento. No hace falta para usar la herramienta.
             </p>
           ) : !respuesta?.traza ? (
             <Vacio mensaje="Lanza una propuesta para ver la traza." />
