@@ -99,8 +99,9 @@ export default function Radar({
           <div className="space-y-3 border-t px-4 pb-4 pt-4 text-[12px] leading-relaxed" style={{ borderColor: "var(--line)" }}>
             <p className="text-[var(--muted)]">
               Cada destino empieza con 100 puntos por repartir. Estas cinco medidas se los van llevando,
-              y lo que suman es su puntuación. El reparto lo decide la dirección en la pestaña de criterio comercial,
-              no el sistema.
+              y lo que suman es su puntuación. Este reparto mide la oportunidad de mercado y es fijo.
+              Lo que la dirección sí ajusta, en Ajustes de dirección, es el criterio con el que se
+              recomienda a un cliente concreto: son dos preguntas distintas y por eso dos fórmulas.
             </p>
             <ul className="grid gap-2 sm:grid-cols-2">
               {[
