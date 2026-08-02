@@ -22,7 +22,20 @@ export type FilaSenal = {
   estado: "ok" | "no_disponible" | "no_aplicable";
 };
 
-export type ResumenFuente = { fuente: string; detalle: string; ok: number; fallos: number; ms: number };
+/**
+ * El resumen distingue lo que no aplica de lo que falta, porque es la misma
+ * distincion sobre la que se sostiene el producto. Contar el INE de Maldivas
+ * como un fallo seria contradecir en la interfaz lo que el motor hace bien.
+ */
+export type ResumenFuente = {
+  fuente: string;
+  detalle: string;
+  ok: number;
+  noAplican: number;
+  sinDato: number;
+  motivo: string | null;
+  ms: number;
+};
 
 /**
  * Tandas pequenas con pausa. Lanzar 30 peticiones simultaneas contra una API

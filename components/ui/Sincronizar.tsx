@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LoaderCircle, RefreshCw } from "lucide-react";
 
-type Resumen = { fuente: string; detalle: string; ok: number; fallos: number };
+type Resumen = { fuente: string; detalle: string; ok: number; noAplican: number; sinDato: number; motivo: string | null };
 
 /**
  * Boton de sincronizacion.
@@ -63,11 +63,16 @@ export default function Sincronizar({ compacto = false }: { compacto?: boolean }
       ) : null}
 
       {detalle.length ? (
-        <ul className="grid gap-1 text-[10px] text-[var(--dim)] sm:grid-cols-2">
+        <ul className="space-y-1 text-[10px] leading-relaxed">
           {detalle.map((f) => (
-            <li key={f.fuente}>
-              · <b className="text-[var(--text)]">{f.fuente}</b> — {f.ok} señales
-              {f.fallos ? `, ${f.fallos} sin dato` : ""}
+            <li key={f.fuente} className="flex flex-wrap items-baseline gap-x-1.5">
+              <b className="text-[var(--text)]">{f.fuente}</b>
+              <span style={{ color: "var(--green)" }}>{f.ok} con dato</span>
+              {f.noAplican ? <span className="text-[var(--dim)]">· {f.noAplican} no aplican</span> : null}
+              {f.sinDato ? <span style={{ color: "#FF9868" }}>· {f.sinDato} sin dato</span> : null}
+              {f.sinDato && f.motivo ? (
+                <span className="block w-full text-[var(--dim)]">↳ {f.motivo}</span>
+              ) : null}
             </li>
           ))}
         </ul>

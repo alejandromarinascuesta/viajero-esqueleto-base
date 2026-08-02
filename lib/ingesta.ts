@@ -50,9 +50,13 @@ export async function ejecutarIngestaNocturna(mes: number): Promise<ResultadoIng
       ? `Google Trends · omitido: ${trends.omitido}`
       : `${trends.proveedor} · automático · ${trends.consultas} consultas`,
     ok: trends.filas.filter((fila) => fila.estado === "ok").length,
-    fallos: trends.omitido
+    noAplican: trends.filas.filter((fila) => fila.estado === "no_aplicable").length,
+    sinDato: trends.omitido
       ? destinos.length
-      : trends.filas.filter((fila) => fila.estado !== "ok").length,
+      : trends.filas.filter((fila) => fila.estado === "no_disponible").length,
+    motivo: trends.omitido
+      ?? (trends.filas.find((f) => f.estado === "no_disponible")?.valor_bruto as { motivo?: string } | undefined)?.motivo
+      ?? null,
     ms: Date.now() - inicioTrends,
   });
 
@@ -69,7 +73,9 @@ export async function ejecutarIngestaNocturna(mes: number): Promise<ResultadoIng
       fuente,
       detalle,
       ok: resultado.filter((fila) => fila.estado === "ok").length,
-      fallos: resultado.filter((fila) => fila.estado !== "ok").length,
+      noAplican: resultado.filter((fila) => fila.estado === "no_aplicable").length,
+      sinDato: resultado.filter((fila) => fila.estado === "no_disponible").length,
+      motivo: (resultado.find((f) => f.estado === "no_disponible")?.valor_bruto as { motivo?: string } | undefined)?.motivo ?? null,
       ms: Date.now() - inicio,
     });
   }
