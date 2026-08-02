@@ -1,7 +1,125 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { Activity, LoaderCircle } from "lucide-react";
 import type { OrigenDatos } from "@/lib/data";
 import { Panel } from "@/components/ui";
+
+type Consumo = {
+  llamadas: number;
+  fallos: number;
+  tasaError: number;
+  costeTotal: number;
+  costePorCaso: number;
+  latenciaP95: number;
+  porTipo: Record<string, { llamadas: number; coste: number; msMedio: number }>;
+  proyeccion4000Propuestas: number;
+  presupuestoMensual: number | null;
+  alerta: string | null;
+};
+
+const ETIQUETA_TIPO: Record<string, string> = {
+  perfil: "Leer las notas del agente",
+  argumento: "Redactar el argumento",
+  guion: "Guion de contenido",
+  voz: "Locución",
+};
+
+const euros = (v: number) =>
+  v >= 1 ? `${v.toFixed(2)} €` : `${(v * 100).toFixed(2)} cént.`;
+
+/**
+ * Observabilidad del gasto en IA, visible.
+ *
+ * Contar tokens no le dice nada a quien firma el presupuesto. Aqui se ve en
+ * euros, por tipo de peticion, y proyectado al volumen real de la agencia.
+ */
+function GastoIA() {
+  const [datos, setDatos] = useState<Consumo | null>(null);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    const control = new AbortController();
+    fetch("/api/observabilidad", { signal: control.signal })
+      .then((r) => r.json())
+      .then((d: Consumo) => setDatos(d))
+      .catch(() => undefined)
+      .finally(() => setCargando(false));
+    return () => control.abort();
+  }, []);
+
+  return (
+    <Panel
+      titulo="Lo que cuesta la IA, medido"
+      extra={<span className="pill pill-line">EN DIRECTO</span>}
+    >
+      {cargando ? (
+        <p className="flex items-center gap-2 text-[12px] text-[var(--dim)]">
+          <LoaderCircle size={13} className="animate-spin" /> Consultando el registro de consumo…
+        </p>
+      ) : !datos || datos.llamadas === 0 ? (
+        <p className="text-[12px] leading-relaxed text-[var(--muted)]">
+          Todavía no hay llamadas en esta ventana. Genera una propuesta en el Copiloto o una pieza
+          en el Content Studio y vuelve aquí: cada llamada al modelo se registra con su coste en euros.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-4">
+            {[
+              ["Coste por caso", euros(datos.costePorCaso), "un cliente atendido de principio a fin"],
+              ["Gasto acumulado", euros(datos.costeTotal), `${datos.llamadas} llamadas registradas`],
+              ["Latencia p95", `${(datos.latenciaP95 / 1000).toFixed(1)} s`, "19 de cada 20 por debajo"],
+              ["Errores", `${Math.round(datos.tasaError * 100)} %`, `${datos.fallos} de ${datos.llamadas}`],
+            ].map(([k, v, n]) => (
+              <div key={k} className="subpanel p-3">
+                <span className="block text-[9px] tracking-[.1em] text-[var(--dim)]">{k.toUpperCase()}</span>
+                <b className="mt-1 block text-[20px] text-[var(--green)]">{v}</b>
+                <span className="mt-0.5 block text-[10px] leading-relaxed text-[var(--dim)]">{n}</span>
+              </div>
+            ))}
+          </div>
+
+          {Object.keys(datos.porTipo).length ? (
+            <div className="subpanel p-3">
+              <span className="block text-[9px] tracking-[.1em] text-[var(--dim)]">DÓNDE SE VA EL DINERO</span>
+              <ul className="mt-2 space-y-1.5">
+                {Object.entries(datos.porTipo).map(([tipo, t]) => (
+                  <li key={tipo} className="flex items-center justify-between gap-3 text-[11px]">
+                    <span>{ETIQUETA_TIPO[tipo] ?? tipo}</span>
+                    <span className="text-[var(--dim)]">
+                      {t.llamadas} · {Math.round(t.msMedio)} ms · <b className="text-[var(--text)]">{euros(t.coste)}</b>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <div className="subpanel p-3">
+            <div className="flex items-start gap-2">
+              <Activity size={14} className="mt-0.5 shrink-0 text-[var(--green)]" />
+              <p className="text-[11px] leading-relaxed">
+                A este ritmo, <b>4.000 propuestas al mes costarían {euros(datos.proyeccion4000Propuestas)}</b> en
+                modelo y voz.{" "}
+                {datos.presupuestoMensual
+                  ? `Presupuesto declarado: ${datos.presupuestoMensual} €/mes.`
+                  : "No hay presupuesto mensual declarado, así que no hay alerta que dar."}
+              </p>
+            </div>
+            {datos.alerta ? (
+              <p className="mt-2 text-[11px] font-bold" style={{ color: "#FF9868" }}>{datos.alerta}</p>
+            ) : null}
+          </div>
+
+          <p className="text-[10px] leading-relaxed text-[var(--dim)]">
+            Ventana reciente de este proceso. El histórico completo se guarda en la base de datos con su
+            traza, para poder reconstruir cualquier llamada.
+          </p>
+        </div>
+      )}
+    </Panel>
+  );
+}
 
 const CAPAS = [
   {
@@ -119,6 +237,8 @@ export default function Arquitectura({ origen }: { origen: OrigenDatos }) {
           ))}
         </div>
       </Panel>
+
+      <GastoIA />
 
       <Panel titulo="Decisiones y lo que cuestan">
         <div className="grid gap-3 lg:grid-cols-2">
