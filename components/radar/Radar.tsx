@@ -192,9 +192,9 @@ export default function Radar({
                             type="button"
                             className="btn btn-ghost px-2.5 py-1.5"
                             disabled={!activable}
-                            title={activable ? `Crear contenido de ${d.destino}` : `${d.destino} está fuera del top ${ACTIVABLES}: todavía no se produce contenido para él`}
+                            title={activable ? `Crear contenido para ${d.destino}` : `${d.destino} está fuera del top ${ACTIVABLES}: todavía no se produce contenido para él`}
                             onClick={() => onAbrirContenido(d.id)}
-                            aria-label={`Crear contenido de ${d.destino}`}
+                            aria-label={`Crear contenido para ${d.destino}`}
                           ><Clapperboard size={13} aria-hidden /></button>
                           <button type="button" className="btn btn-primary px-3 py-1.5 text-[11px]" onClick={() => onAbrirDestino(d.id)}>Ver</button>
                         </div>

@@ -22,10 +22,10 @@ export type DestinoConScore = Destino & { oportunidad: Oportunidad };
 // distintos para llegar a cinco sitios, y dos de ellos desaparecían en
 // pantallas estrechas: nadie descubría media aplicación.
 const VISTAS = [
-  { id: "radar", nombre: "Dónde vender", icono: Activity, pista: "El catálogo, ordenado" },
-  { id: "destino", nombre: "Ficha del destino", icono: MapPin, pista: "De dónde sale cada dato" },
-  { id: "copiloto", nombre: "Preparar propuesta", icono: MessageSquare, pista: "Para un cliente concreto" },
-  { id: "contenido", nombre: "Crear contenido", icono: Clapperboard, pista: "Vídeo vertical para redes" },
+  { id: "radar", nombre: "Radar", icono: Activity, pista: "Dónde vender ahora" },
+  { id: "destino", nombre: "Destino 360", icono: MapPin, pista: "De dónde sale cada dato" },
+  { id: "copiloto", nombre: "Copiloto", icono: MessageSquare, pista: "Preparar una propuesta" },
+  { id: "contenido", nombre: "Content Studio", icono: Clapperboard, pista: "Vídeo vertical para redes" },
   { id: "criterio", nombre: "Ajustes de dirección", icono: SlidersHorizontal, pista: "El criterio comercial" },
 ] as const;
 
