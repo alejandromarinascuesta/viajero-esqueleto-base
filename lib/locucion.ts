@@ -105,7 +105,7 @@ export async function sintetizar(
       const inicio = Date.now();
       try {
         const resultado = await pedirVoz(modelo, texto, voz, velocidad, clave, control.signal);
-        registrar({
+        await registrar({
           traza: nuevaTraza(), tipo: "voz", modelo,
           ok: "audio" in resultado, ms: Date.now() - inicio,
           tokensEntrada: null, tokensSalida: null, caracteres: texto.length,

@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   return NextResponse.json({
-    ...resumen(),
+    ...(await resumen()),
     nota: "Ventana reciente del proceso. El histórico completo vive en la tabla consumo_ia.",
   });
 }

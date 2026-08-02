@@ -7,10 +7,10 @@
  * pregunta "cuanto cuesta atender a un cliente" tiene respuesta y no
  * estimacion.
  *
- * Se guarda en memoria del proceso y, si hay base de datos, tambien en ella.
- * En serverless la memoria no sobrevive entre ejecuciones, asi que la copia
- * persistida es la que vale para el histórico; la de memoria sirve para
- * responder rapido en la misma ejecucion.
+ * En serverless cada peticion puede caer en una instancia distinta, asi que la
+ * memoria del proceso NO sirve para acumular: lo que registra una llamada no lo
+ * ve la siguiente. Por eso el registro se guarda en base de datos y el resumen
+ * se lee de ahi. La memoria queda solo como respaldo si no hay base de datos.
  */
 
 export type TipoLlamada = "perfil" | "argumento" | "guion" | "voz";
@@ -78,10 +78,16 @@ export function nuevaTraza() {
 const VENTANA = 200;
 const reciente: Consumo[] = [];
 
-async function persistir(c: Consumo) {
+function credenciales() {
   const url = process.env.SUPABASE_URL;
   const clave = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !clave) return;
+  return url && clave ? { url, clave } : null;
+}
+
+async function persistir(c: Consumo) {
+  const cred = credenciales();
+  if (!cred) return;
+  const { url, clave } = cred;
   try {
     await fetch(`${url}/rest/v1/consumo_ia`, {
       method: "POST",
@@ -100,7 +106,12 @@ async function persistir(c: Consumo) {
   } catch { /* la observabilidad nunca puede tumbar la peticion que observa */ }
 }
 
-export function registrar(datos: Omit<Consumo, "coste" | "momento">): Consumo {
+/**
+ * Se espera al guardado a proposito. Dispararlo sin esperar parece mas rapido,
+ * pero en serverless la funcion puede terminar antes de que salga la peticion y
+ * el registro se pierde. Cuesta unas decenas de milisegundos.
+ */
+export async function registrar(datos: Omit<Consumo, "coste" | "momento">): Promise<Consumo> {
   const consumo: Consumo = {
     ...datos,
     coste: calcularCoste(datos.modelo, datos.tokensEntrada, datos.tokensSalida, datos.caracteres),
@@ -108,8 +119,37 @@ export function registrar(datos: Omit<Consumo, "coste" | "momento">): Consumo {
   };
   reciente.push(consumo);
   if (reciente.length > VENTANA) reciente.shift();
-  void persistir(consumo);
+  await persistir(consumo);
   return consumo;
+}
+
+/** Lee las ultimas llamadas de la base de datos. Sin ella, lo que haya en memoria. */
+async function ultimasLlamadas(limite = 300): Promise<Consumo[]> {
+  const cred = credenciales();
+  if (!cred) return reciente;
+  try {
+    const r = await fetch(
+      `${cred.url}/rest/v1/consumo_ia?select=*&order=momento.desc&limit=${limite}`,
+      { headers: { apikey: cred.clave, Authorization: `Bearer ${cred.clave}` }, cache: "no-store" },
+    );
+    if (!r.ok) return reciente;
+    const filas = (await r.json()) as Record<string, unknown>[];
+    return filas.map((f) => ({
+      traza: String(f.traza),
+      tipo: f.tipo as TipoLlamada,
+      modelo: String(f.modelo),
+      ok: f.ok === true,
+      ms: Number(f.ms),
+      tokensEntrada: f.tokens_entrada === null ? null : Number(f.tokens_entrada),
+      tokensSalida: f.tokens_salida === null ? null : Number(f.tokens_salida),
+      caracteres: f.caracteres === null ? null : Number(f.caracteres),
+      coste: Number(f.coste),
+      error: (f.error as string) ?? null,
+      momento: String(f.momento),
+    }));
+  } catch {
+    return reciente;
+  }
 }
 
 /** Umbral de gasto declarado. Si no se configura, no hay alerta que dar. */
@@ -124,12 +164,13 @@ function percentil(valores: number[], p: number) {
   return orden[Math.min(orden.length - 1, Math.floor((p / 100) * orden.length))];
 }
 
-export function resumen() {
-  const total = reciente.reduce((s, c) => s + c.coste, 0);
-  const fallos = reciente.filter((c) => !c.ok).length;
+export async function resumen() {
+  const llamadas = await ultimasLlamadas();
+  const total = llamadas.reduce((s, c) => s + c.coste, 0);
+  const fallos = llamadas.filter((c) => !c.ok).length;
 
   const porTipo: Record<string, { llamadas: number; coste: number; msMedio: number }> = {};
-  for (const c of reciente) {
+  for (const c of llamadas) {
     const t = (porTipo[c.tipo] ??= { llamadas: 0, coste: 0, msMedio: 0 });
     t.llamadas += 1;
     t.coste += c.coste;
@@ -138,23 +179,23 @@ export function resumen() {
   for (const t of Object.values(porTipo)) t.msMedio = Math.round(t.msMedio / t.llamadas);
 
   // Un "caso" es un cliente atendido: una extraccion de perfil y su argumento.
-  const casos = reciente.filter((c) => c.tipo === "argumento").length || 1;
+  const casos = llamadas.filter((c) => c.tipo === "argumento").length || 1;
   const presupuesto = presupuestoMensual();
   const proyeccionMes = total > 0 && casos > 0 ? (total / casos) * 4000 : 0;
 
   return {
-    llamadas: reciente.length,
+    llamadas: llamadas.length,
     fallos,
-    tasaError: reciente.length ? Number((fallos / reciente.length).toFixed(3)) : 0,
+    tasaError: llamadas.length ? Number((fallos / llamadas.length).toFixed(3)) : 0,
     costeTotal: Number(total.toFixed(4)),
     costePorCaso: Number((total / casos).toFixed(4)),
-    latenciaP95: percentil(reciente.map((c) => c.ms), 95),
+    latenciaP95: percentil(llamadas.map((c) => c.ms), 95),
     porTipo,
     presupuestoMensual: presupuesto,
     proyeccion4000Propuestas: Number(proyeccionMes.toFixed(2)),
     alerta: presupuesto !== null && proyeccionMes > presupuesto
       ? `La proyección mensual (${proyeccionMes.toFixed(2)} €) supera el presupuesto declarado (${presupuesto} €)`
       : null,
-    ultimas: reciente.slice(-10).reverse(),
+    ultimas: llamadas.slice(0, 10),
   };
 }

@@ -14,12 +14,16 @@ export async function GET() {
     modeloLenguaje: hayModelo() ? "configurado" : "no configurado",
     bancoVisual: hayPexels() ? "Pexels" : "Wikimedia Commons (respaldo)",
     locucion: hayLocucion() ? "configurada" : "no configurada",
-    observabilidad: {
-      llamadasEnVentana: resumen().llamadas,
-      costeAcumulado: resumen().costeTotal,
-      presupuestoMensual: presupuestoMensual(),
-      alerta: resumen().alerta,
-    },
+    observabilidad: await (async () => {
+      const r = await resumen();
+      return {
+        llamadas: r.llamadas,
+        costeAcumulado: r.costeTotal,
+        costePorCaso: r.costePorCaso,
+        presupuestoMensual: presupuestoMensual(),
+        alerta: r.alerta,
+      };
+    })(),
     origenDatos: origen.modo,
     frescura: origen.frescura,
     ingestadoEn: origen.ingestadoEn,

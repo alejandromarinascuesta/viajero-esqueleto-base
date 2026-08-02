@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { calcularCoste, nuevaTraza } from "../lib/observabilidad";
+import { calcularCoste, nuevaTraza, registrar } from "../lib/observabilidad";
 import { dentroDelLimite } from "../lib/limite";
 
 test("el coste sale en euros a partir de los tokens", () => {
@@ -45,4 +45,15 @@ test("origenes distintos no se estorban entre si", () => {
   dentroDelLimite(a, 1, 60_000);
   assert.equal(dentroDelLimite(a, 1, 60_000).permitido, false);
   assert.equal(dentroDelLimite(b, 1, 60_000).permitido, true);
+});
+
+test("registrar devuelve el coste calculado y no revienta sin base de datos", async () => {
+  delete process.env.SUPABASE_URL;
+  const c = await registrar({
+    traza: nuevaTraza(), tipo: "argumento", modelo: "claude-sonnet-4-5",
+    ok: true, ms: 1200, tokensEntrada: 2500, tokensSalida: 700,
+    caracteres: null, error: null,
+  });
+  assert.ok(c.coste > 0);
+  assert.ok(c.momento.includes("T"));
 });

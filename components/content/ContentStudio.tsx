@@ -347,11 +347,6 @@ export default function ContentStudio({
                 <ol className="grid gap-2 sm:grid-cols-2">
                   {plan.escenas.map((e, i) => <li key={`${e.titulo}-${i}`}><button type="button" onClick={() => { setEscena(i); setReproduciendo(false); }} className="subpanel h-full w-full p-3 text-left" style={{ borderColor: escena === i ? "var(--line-strong)" : undefined }}><span className="text-[9px] text-[var(--dim)]">ESCENA {i + 1}</span><b className="mt-1 block text-[12px]">{e.textoPantalla}</b><span className="mt-1 block text-[10px] leading-relaxed text-[var(--muted)]">{e.locucion}</span></button></li>)}
                 </ol>
-                {plan.advertencias.length > 1 ? (
-                  <ul className="subpanel space-y-1 p-3 text-[10px] leading-relaxed text-[var(--dim)]">
-                    {plan.advertencias.map((a) => <li key={a}>· {a}</li>)}
-                  </ul>
-                ) : null}
                 <div className="subpanel p-3"><div className="flex items-start justify-between gap-3"><p className="text-[12px] leading-relaxed">{plan.caption}<br/><span className="text-[var(--green)]">{plan.hashtags.join(" ")}</span></p><button type="button" className="btn btn-ghost p-2" aria-label="Copiar texto" onClick={() => { void navigator.clipboard.writeText(`${plan.caption}\n${plan.hashtags.join(" ")}`); setMensaje("Texto copiado."); }}><Copy size={14}/></button></div></div>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" className="btn btn-primary" disabled={renderizando} onClick={() => void crearVideo(true)}><Download size={14} className="mr-1.5 inline" />Generar y descargar vídeo</button>

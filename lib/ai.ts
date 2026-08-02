@@ -87,8 +87,8 @@ export async function pedirJson<T>(
   };
 
   /** Toda salida pasa por aqui: asi ninguna llamada se queda sin registrar. */
-  const cerrar = (uso: UsoModelo): UsoModelo => {
-    const c = registrar({
+  const cerrar = async (uso: UsoModelo): Promise<UsoModelo> => {
+    const c = await registrar({
       traza, tipo, modelo: uso.modelo, ok: uso.ok, ms: uso.ms,
       tokensEntrada: uso.tokensEntrada, tokensSalida: uso.tokensSalida,
       caracteres: null, error: uso.error,
@@ -96,7 +96,7 @@ export async function pedirJson<T>(
     return { ...uso, coste: c.coste };
   };
 
-  if (!p) return { datos: null, uso: cerrar({ ...base, error: "sin clave de modelo configurada" }) };
+  if (!p) return { datos: null, uso: await cerrar({ ...base, error: "sin clave de modelo configurada" }) };
 
   try {
     const control = new AbortController();
@@ -129,7 +129,7 @@ export async function pedirJson<T>(
     });
     clearTimeout(reloj);
     const ms = Date.now() - inicio;
-    if (!r.ok) return { datos: null, uso: cerrar({ ...base, ms, error: `el modelo respondió ${r.status}` }) };
+    if (!r.ok) return { datos: null, uso: await cerrar({ ...base, ms, error: `el modelo respondió ${r.status}` }) };
 
     const cuerpo = (await r.json()) as {
       choices?: { message?: { content?: string } }[];
@@ -145,7 +145,7 @@ export async function pedirJson<T>(
     const datos = extraerJson(texto) as T | null;
     return {
       datos,
-      uso: cerrar({
+      uso: await cerrar({
         ...base,
         ok: datos !== null,
         ms,
@@ -157,7 +157,7 @@ export async function pedirJson<T>(
   } catch (e) {
     return {
       datos: null,
-      uso: cerrar({ ...base, ms: Date.now() - inicio, error: e instanceof Error ? e.message : "fallo de red" }),
+      uso: await cerrar({ ...base, ms: Date.now() - inicio, error: e instanceof Error ? e.message : "fallo de red" }),
     };
   }
 }
