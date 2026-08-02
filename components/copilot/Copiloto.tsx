@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Send } from "lucide-react";
 import { Panel, Vacio } from "@/components/ui";
+import { cabecerasAgente } from "@/lib/agente-local";
 import type { Recomendacion } from "@/types";
 
 type Argumento = { id: string; argumento: string[]; camposCitados: string[]; verificado: boolean; motivo: string | null };
@@ -115,7 +116,7 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
     try {
       const r = await fetch("/api/ai", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: cabecerasAgente({ "Content-Type": "application/json" }),
         body: JSON.stringify(
           usarFormulario
             ? { perfil: perfilDelFormulario(), excluidos: fuera }
@@ -163,7 +164,7 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
     // sabriamos que se rechazo, no por que.
     void fetch("/api/descarte", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: cabecerasAgente({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         recomendacionId: respuesta?.recomendacionId ?? null,
         destinoId: id,

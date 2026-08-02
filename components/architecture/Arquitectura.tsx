@@ -13,6 +13,7 @@ type Consumo = {
   costePorCaso: number;
   latenciaP95: number;
   porTipo: Record<string, { llamadas: number; coste: number; msMedio: number }>;
+  porActor: Record<string, { llamadas: number; coste: number; casos: number }>;
   proyeccion4000Propuestas: number;
   presupuestoMensual: number | null;
   alerta: string | null;
@@ -95,6 +96,27 @@ function GastoIA() {
             </div>
           ) : null}
 
+          {datos.porActor && Object.keys(datos.porActor).length ? (
+            <div className="subpanel p-3">
+              <span className="block text-[9px] tracking-[.1em] text-[var(--dim)]">GASTO POR AGENTE</span>
+              <ul className="mt-2 space-y-1.5">
+                {Object.entries(datos.porActor).map(([actor, a]) => (
+                  <li key={actor} className="flex items-center justify-between gap-3 text-[11px]">
+                    <span className="font-mono text-[10px]">{actor}</span>
+                    <span className="text-[var(--dim)]">
+                      {a.casos} {a.casos === 1 ? "cliente" : "clientes"} · {a.llamadas} llamadas ·{" "}
+                      <b className="text-[var(--text)]">{euros(a.coste)}</b>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-[10px] leading-relaxed text-[var(--dim)]">
+                Hoy el agente se identifica por navegador, porque todavía no hay inicio de sesión.
+                Cuando lo haya, aquí aparece el usuario real sin cambiar nada más.
+              </p>
+            </div>
+          ) : null}
+
           <div className="subpanel p-3">
             <div className="flex items-start gap-2">
               <Activity size={14} className="mt-0.5 shrink-0 text-[var(--green)]" />
@@ -112,8 +134,8 @@ function GastoIA() {
           </div>
 
           <p className="text-[10px] leading-relaxed text-[var(--dim)]">
-            Ventana reciente de este proceso. El histórico completo se guarda en la base de datos con su
-            traza, para poder reconstruir cualquier llamada.
+            Histórico persistido en base de datos: cada llamada guarda su traza, su coste y a quién
+            atribuirla. Sobrevive a los despliegues.
           </p>
         </div>
       )}

@@ -1,3 +1,4 @@
+import { actorActual } from "@/lib/contexto";
 /**
  * Observabilidad del gasto en IA.
  *
@@ -17,6 +18,7 @@ export type TipoLlamada = "perfil" | "argumento" | "guion" | "voz";
 
 export type Consumo = {
   traza: string;
+  actor: string;
   tipo: TipoLlamada;
   modelo: string;
   ok: boolean;
@@ -98,7 +100,7 @@ async function persistir(c: Consumo) {
         Prefer: "return=minimal",
       },
       body: JSON.stringify({
-        traza: c.traza, tipo: c.tipo, modelo: c.modelo, ok: c.ok, ms: c.ms,
+        traza: c.traza, actor: c.actor, tipo: c.tipo, modelo: c.modelo, ok: c.ok, ms: c.ms,
         tokens_entrada: c.tokensEntrada, tokens_salida: c.tokensSalida,
         caracteres: c.caracteres, coste: c.coste, error: c.error, momento: c.momento,
       }),
@@ -111,9 +113,10 @@ async function persistir(c: Consumo) {
  * pero en serverless la funcion puede terminar antes de que salga la peticion y
  * el registro se pierde. Cuesta unas decenas de milisegundos.
  */
-export async function registrar(datos: Omit<Consumo, "coste" | "momento">): Promise<Consumo> {
+export async function registrar(datos: Omit<Consumo, "coste" | "momento" | "actor">): Promise<Consumo> {
   const consumo: Consumo = {
     ...datos,
+    actor: actorActual(),
     coste: calcularCoste(datos.modelo, datos.tokensEntrada, datos.tokensSalida, datos.caracteres),
     momento: new Date().toISOString(),
   };
@@ -136,6 +139,7 @@ async function ultimasLlamadas(limite = 300): Promise<Consumo[]> {
     const filas = (await r.json()) as Record<string, unknown>[];
     return filas.map((f) => ({
       traza: String(f.traza),
+      actor: String(f.actor ?? "anonimo"),
       tipo: f.tipo as TipoLlamada,
       modelo: String(f.modelo),
       ok: f.ok === true,
@@ -179,6 +183,14 @@ export async function resumen() {
   for (const t of Object.values(porTipo)) t.msMedio = Math.round(t.msMedio / t.llamadas);
 
   // Un "caso" es un cliente atendido: una extraccion de perfil y su argumento.
+  const porActor: Record<string, { llamadas: number; coste: number; casos: number }> = {};
+  for (const c of llamadas) {
+    const a = (porActor[c.actor] ??= { llamadas: 0, coste: 0, casos: 0 });
+    a.llamadas += 1;
+    a.coste += c.coste;
+    if (c.tipo === "argumento") a.casos += 1;
+  }
+
   const casos = llamadas.filter((c) => c.tipo === "argumento").length || 1;
   const presupuesto = presupuestoMensual();
   const proyeccionMes = total > 0 && casos > 0 ? (total / casos) * 4000 : 0;
@@ -191,6 +203,11 @@ export async function resumen() {
     costePorCaso: Number((total / casos).toFixed(4)),
     latenciaP95: percentil(llamadas.map((c) => c.ms), 95),
     porTipo,
+    porActor: Object.fromEntries(
+      Object.entries(porActor)
+        .sort((a, b) => b[1].coste - a[1].coste)
+        .map(([k, v]) => [k, { ...v, coste: Number(v.coste.toFixed(4)) }]),
+    ),
     presupuestoMensual: presupuesto,
     proyeccion4000Propuestas: Number(proyeccionMes.toFixed(2)),
     alerta: presupuesto !== null && proyeccionMes > presupuesto

@@ -1,3 +1,4 @@
+import { actorDe, conActor } from "@/lib/contexto";
 import { frenar } from "@/lib/limite";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -86,183 +87,185 @@ async function registrar(
 }
 
 export async function POST(request: Request) {
-  const freno = frenar(request, "ai", 20);
-  if (freno) return freno;
+  return conActor(actorDe(request), async () => {
+    const freno = frenar(request, "ai", 20);
+    if (freno) return freno;
 
-  let cuerpo: unknown;
-  try {
-    cuerpo = await request.json();
-  } catch {
-    return NextResponse.json({ error: { code: "BAD_JSON", message: "Cuerpo no válido" } }, { status: 400 });
-  }
-  const parseado = Entrada.safeParse(cuerpo);
-  if (!parseado.success) {
-    return NextResponse.json(
-      { error: { code: "INVALID_INPUT", message: "Rellena el formulario o escribe las notas de la llamada." } },
-      { status: 400 },
-    );
-  }
-  const { perfil: perfilDirecto, notas, excluidos = [], campanas, pesos } = parseado.data;
-  if (!perfilDirecto && !notas) {
-    return NextResponse.json(
-      { error: { code: "INVALID_INPUT", message: "Hace falta el perfil o las notas de la llamada." } },
-      { status: 400 },
-    );
-  }
+    let cuerpo: unknown;
+    try {
+      cuerpo = await request.json();
+    } catch {
+      return NextResponse.json({ error: { code: "BAD_JSON", message: "Cuerpo no válido" } }, { status: 400 });
+    }
+    const parseado = Entrada.safeParse(cuerpo);
+    if (!parseado.success) {
+      return NextResponse.json(
+        { error: { code: "INVALID_INPUT", message: "Rellena el formulario o escribe las notas de la llamada." } },
+        { status: 400 },
+      );
+    }
+    const { perfil: perfilDirecto, notas, excluidos = [], campanas, pesos } = parseado.data;
+    if (!perfilDirecto && !notas) {
+      return NextResponse.json(
+        { error: { code: "INVALID_INPUT", message: "Hace falta el perfil o las notas de la llamada." } },
+        { status: 400 },
+      );
+    }
 
-  // 1 · Si viene del formulario guiado no hay nada que extraer. Si vienen notas,
-  // la extraccion determinista siempre funciona: sin red, sin clave y sin coste.
-  const extraido = notas
-    ? extraerPerfilDeterminista(notas)
-    : {
-        adultos: perfilDirecto!.adultos,
-        ninos: perfilDirecto!.edadesNinos,
-        presupuesto_total: perfilDirecto!.presupuestoTotal,
-        presupuesto_es_por_persona: false,
-        flexible: perfilDirecto!.presupuestoFlexible,
-        mes: perfilDirecto!.mes,
-        dias: perfilDirecto!.dias,
-        motivacion: perfilDirecto!.motivacion,
-        intensidad: perfilDirecto!.intensidad,
-        restricciones: perfilDirecto!.restricciones,
-        destinos_mencionados: [],
-        tension: perfilDirecto!.tensionDeclarada || null,
-        no_consta: [],
-        literales: {},
-      };
-  // Si hay fecha concreta, el mes se deriva de ella: manda la fecha.
-  const mesDeLaFecha = perfilDirecto?.fechaSalida
-    ? Number(perfilDirecto.fechaSalida.slice(5, 7))
-    : null;
-  let perfil: Perfil = perfilDirecto
-    ? { ...perfilDirecto, mes: mesDeLaFecha && mesDeLaFecha >= 1 && mesDeLaFecha <= 12 ? mesDeLaFecha : perfilDirecto.mes }
-    : {
-    adultos: extraido.adultos ?? 2,
-    edadesNinos: extraido.ninos ?? [],
-    presupuestoTotal: extraido.presupuesto_total ?? 0,
-    presupuestoFlexible: extraido.flexible === true,
-    mes: extraido.mes ?? new Date().getMonth() + 1,
-    dias: extraido.dias ?? 7,
-    motivacion: (MOTIVACIONES.includes(extraido.motivacion ?? "")
-      ? extraido.motivacion
-      : "descanso") as Perfil["motivacion"],
-    intensidad: extraido.intensidad ?? 2,
-    restricciones: (extraido.restricciones ?? []).filter((r) => RESTRICCIONES.includes(r)),
-    destinosVisitados: [],
-    tensionDeclarada: extraido.tension ?? "",
-    fechaSalida: null,
-      };
-
-  if (!perfil.presupuestoTotal) {
-    return NextResponse.json({
-      modo: "perfil-incompleto",
-      perfil: extraido,
-      mensaje:
-        "No he encontrado el presupuesto en tus notas. Añádelo y vuelve a enviarlo: sin presupuesto no puedo descartar nada.",
-    });
-  }
-
-  // 2 · El motor decide. Determinista, sin IA.
-  const { destinos, origen } = await cargarDestinos();
-  const topeReferenciado = notas ? detectarTopePrecioReferenciado(notas, destinos) : null;
-  if (topeReferenciado) {
-    perfil = {
-      ...perfil,
-      precioMaximoReferenciaPp: topeReferenciado.precioMaximoPp,
-      destinoReferenciaPrecio: topeReferenciado.destino,
-    };
-  }
-  // El criterio comercial que ha configurado la direccion. Lo que llega en la
-  // peticion solo sirve para previsualizar cambios sin guardarlos todavia.
-  const criterio = await leerCriterio();
-  const resultado = recomendar(
-    destinos,
-    perfil,
-    { pesos: pesos ?? criterio.pesos, campanas: campanas ?? criterio.campanas, vetos: criterio.vetos },
-    excluidos,
-  );
-
-  // 3 · La IA solo redacta sobre las dos ya elegidas, y se verifica.
-  let argumentos: {
-    id: string;
-    argumento: string[];
-    camposCitados: string[];
-    verificado: boolean;
-    motivo: string | null;
-  }[] = [];
-  let uso = null as unknown;
-
-  if (resultado.propuestas.length > 0) {
-    const elegidos = resultado.propuestas
-      .map((p) => destinos.find((d) => d.id === p.id))
-      .filter((d): d is Destino => Boolean(d));
-
-    const r = await pedirJson<{
-      propuestas?: { id: string; argumento: string[]; campos_citados: string[] }[];
-    }>(INSTRUCCION_ARGUMENTO, contextoParaArgumento(perfil, elegidos), 0.3);
-    uso = r.uso;
-
-    argumentos = resultado.propuestas.map((p) => {
-      const d = elegidos.find((x) => x.id === p.id);
-      const redactado = r.datos?.propuestas?.find((x) => x.id === p.id);
-      if (!redactado || !Array.isArray(redactado.argumento) || !d) {
-        return {
-          id: p.id, argumento: p.motivos, camposCitados: [], verificado: false,
-          motivo: r.uso.error ?? "sin redacción del modelo",
+    // 1 · Si viene del formulario guiado no hay nada que extraer. Si vienen notas,
+    // la extraccion determinista siempre funciona: sin red, sin clave y sin coste.
+    const extraido = notas
+      ? extraerPerfilDeterminista(notas)
+      : {
+          adultos: perfilDirecto!.adultos,
+          ninos: perfilDirecto!.edadesNinos,
+          presupuesto_total: perfilDirecto!.presupuestoTotal,
+          presupuesto_es_por_persona: false,
+          flexible: perfilDirecto!.presupuestoFlexible,
+          mes: perfilDirecto!.mes,
+          dias: perfilDirecto!.dias,
+          motivacion: perfilDirecto!.motivacion,
+          intensidad: perfilDirecto!.intensidad,
+          restricciones: perfilDirecto!.restricciones,
+          destinos_mencionados: [],
+          tension: perfilDirecto!.tensionDeclarada || null,
+          no_consta: [],
+          literales: {},
         };
-      }
-      const ficha: Record<string, unknown> = {
-        precio_desde_pp: d.precioDesdePp, noches: d.noches, horas_vuelo: d.horasVuelo,
-        motivo_1: d.motivos[0], motivo_2: d.motivos[1], motivo_3: d.motivos[2],
-        temperatura_media:
-          senalMasReciente(d.senales, "temperatura_media")?.valor ?? null,
+    // Si hay fecha concreta, el mes se deriva de ella: manda la fecha.
+    const mesDeLaFecha = perfilDirecto?.fechaSalida
+      ? Number(perfilDirecto.fechaSalida.slice(5, 7))
+      : null;
+    let perfil: Perfil = perfilDirecto
+      ? { ...perfilDirecto, mes: mesDeLaFecha && mesDeLaFecha >= 1 && mesDeLaFecha <= 12 ? mesDeLaFecha : perfilDirecto.mes }
+      : {
+      adultos: extraido.adultos ?? 2,
+      edadesNinos: extraido.ninos ?? [],
+      presupuestoTotal: extraido.presupuesto_total ?? 0,
+      presupuestoFlexible: extraido.flexible === true,
+      mes: extraido.mes ?? new Date().getMonth() + 1,
+      dias: extraido.dias ?? 7,
+      motivacion: (MOTIVACIONES.includes(extraido.motivacion ?? "")
+        ? extraido.motivacion
+        : "descanso") as Perfil["motivacion"],
+      intensidad: extraido.intensidad ?? 2,
+      restricciones: (extraido.restricciones ?? []).filter((r) => RESTRICCIONES.includes(r)),
+      destinosVisitados: [],
+      tensionDeclarada: extraido.tension ?? "",
+      fechaSalida: null,
+        };
+
+    if (!perfil.presupuestoTotal) {
+      return NextResponse.json({
+        modo: "perfil-incompleto",
+        perfil: extraido,
+        mensaje:
+          "No he encontrado el presupuesto en tus notas. Añádelo y vuelve a enviarlo: sin presupuesto no puedo descartar nada.",
+      });
+    }
+
+    // 2 · El motor decide. Determinista, sin IA.
+    const { destinos, origen } = await cargarDestinos();
+    const topeReferenciado = notas ? detectarTopePrecioReferenciado(notas, destinos) : null;
+    if (topeReferenciado) {
+      perfil = {
+        ...perfil,
+        precioMaximoReferenciaPp: topeReferenciado.precioMaximoPp,
+        destinoReferenciaPrecio: topeReferenciado.destino,
       };
-      const v = verificarArgumento(redactado.argumento, redactado.campos_citados ?? [], ficha);
-      // Si no se puede verificar, NO se muestra el texto del modelo.
-      return v.valido
-        ? { id: p.id, argumento: redactado.argumento, camposCitados: v.camposCitados, verificado: true, motivo: null }
-        : {
-            id: p.id, argumento: p.motivos, camposCitados: v.camposCitados, verificado: false,
-            motivo: [
-              v.camposInexistentes.length ? `campos inexistentes: ${v.camposInexistentes.join(", ")}` : null,
-              v.numerosInventados.length ? `cifras fuera de la ficha: ${v.numerosInventados.join(", ")}` : null,
-            ].filter(Boolean).join(" · ") || "no verificable",
+    }
+    // El criterio comercial que ha configurado la direccion. Lo que llega en la
+    // peticion solo sirve para previsualizar cambios sin guardarlos todavia.
+    const criterio = await leerCriterio();
+    const resultado = recomendar(
+      destinos,
+      perfil,
+      { pesos: pesos ?? criterio.pesos, campanas: campanas ?? criterio.campanas, vetos: criterio.vetos },
+      excluidos,
+    );
+
+    // 3 · La IA solo redacta sobre las dos ya elegidas, y se verifica.
+    let argumentos: {
+      id: string;
+      argumento: string[];
+      camposCitados: string[];
+      verificado: boolean;
+      motivo: string | null;
+    }[] = [];
+    let uso = null as unknown;
+
+    if (resultado.propuestas.length > 0) {
+      const elegidos = resultado.propuestas
+        .map((p) => destinos.find((d) => d.id === p.id))
+        .filter((d): d is Destino => Boolean(d));
+
+      const r = await pedirJson<{
+        propuestas?: { id: string; argumento: string[]; campos_citados: string[] }[];
+      }>(INSTRUCCION_ARGUMENTO, contextoParaArgumento(perfil, elegidos), 0.3);
+      uso = r.uso;
+
+      argumentos = resultado.propuestas.map((p) => {
+        const d = elegidos.find((x) => x.id === p.id);
+        const redactado = r.datos?.propuestas?.find((x) => x.id === p.id);
+        if (!redactado || !Array.isArray(redactado.argumento) || !d) {
+          return {
+            id: p.id, argumento: p.motivos, camposCitados: [], verificado: false,
+            motivo: r.uso.error ?? "sin redacción del modelo",
           };
+        }
+        const ficha: Record<string, unknown> = {
+          precio_desde_pp: d.precioDesdePp, noches: d.noches, horas_vuelo: d.horasVuelo,
+          motivo_1: d.motivos[0], motivo_2: d.motivos[1], motivo_3: d.motivos[2],
+          temperatura_media:
+            senalMasReciente(d.senales, "temperatura_media")?.valor ?? null,
+        };
+        const v = verificarArgumento(redactado.argumento, redactado.campos_citados ?? [], ficha);
+        // Si no se puede verificar, NO se muestra el texto del modelo.
+        return v.valido
+          ? { id: p.id, argumento: redactado.argumento, camposCitados: v.camposCitados, verificado: true, motivo: null }
+          : {
+              id: p.id, argumento: p.motivos, camposCitados: v.camposCitados, verificado: false,
+              motivo: [
+                v.camposInexistentes.length ? `campos inexistentes: ${v.camposInexistentes.join(", ")}` : null,
+                v.numerosInventados.length ? `cifras fuera de la ficha: ${v.numerosInventados.join(", ")}` : null,
+              ].filter(Boolean).join(" · ") || "no verificable",
+            };
+      });
+    }
+
+    // Probabilidad estimada de conversion por propuesta. Es un MODELO, no un dato:
+    // declara su base y sobre cuantas observaciones reales se apoya.
+    const historico = await leerHistorico();
+    const conversiones = resultado.propuestas.map((p) => {
+      const d = destinos.find((x) => x.id === p.id);
+      return {
+        id: p.id,
+        ...(d
+          ? estimarConversion(d, perfil, p.puntuacion, historico[p.id])
+          : { probabilidad: 0, base: 0, ajustes: [], empirica: false, observaciones: 0, explicacion: "" }),
+      };
     });
-  }
 
-  // Probabilidad estimada de conversion por propuesta. Es un MODELO, no un dato:
-  // declara su base y sobre cuantas observaciones reales se apoya.
-  const historico = await leerHistorico();
-  const conversiones = resultado.propuestas.map((p) => {
-    const d = destinos.find((x) => x.id === p.id);
-    return {
-      id: p.id,
-      ...(d
-        ? estimarConversion(d, perfil, p.puntuacion, historico[p.id])
-        : { probabilidad: 0, base: 0, ajustes: [], empirica: false, observaciones: 0, explicacion: "" }),
-    };
-  });
+    // El bucle: cada recomendacion y cada descarte quedan registrados. Es el
+    // unico dato que ningun proveedor puede vender —que funciona en ESTA
+    // agencia— y el cimiento de la v2.
+    const recomendacionId = await registrar(perfil, resultado, excluidos);
 
-  // El bucle: cada recomendacion y cada descarte quedan registrados. Es el
-  // unico dato que ningun proveedor puede vender —que funciona en ESTA
-  // agencia— y el cimiento de la v2.
-  const recomendacionId = await registrar(perfil, resultado, excluidos);
-
-  return NextResponse.json({
-    modo: "ok",
-    recomendacionId,
-    perfilExtraido: extraido,
-    perfil,
-    resultado,
-    argumentos,
-    conversiones,
-    origen,
-    traza: {
-      ...resultado.traza,
-      redaccion: uso,
-      camposCitados: argumentos.reduce((n, a) => n + a.camposCitados.length, 0),
-      argumentosVerificados: argumentos.filter((a) => a.verificado).length,
-    },
+    return NextResponse.json({
+      modo: "ok",
+      recomendacionId,
+      perfilExtraido: extraido,
+      perfil,
+      resultado,
+      argumentos,
+      conversiones,
+      origen,
+      traza: {
+        ...resultado.traza,
+        redaccion: uso,
+        camposCitados: argumentos.reduce((n, a) => n + a.camposCitados.length, 0),
+        argumentosVerificados: argumentos.filter((a) => a.verificado).length,
+      },
+    });
   });
 }

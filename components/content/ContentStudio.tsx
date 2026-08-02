@@ -10,7 +10,8 @@ import type { DestinoConScore } from "@/components/layout/Shell";
 import { Panel, Vacio } from "@/components/ui";
 import type { ActivoVisual, PlanContenido } from "@/types";
 import { contenedorDisponible, renderizarVideo } from "@/lib/video-browser";
-import { OBJETIVOS_CONTENIDO } from "@/lib/content";
+import { OBJETIVOS_CONTENIDO } from "@/lib/opciones-contenido";
+import { cabecerasAgente } from "@/lib/agente-local";
 
 type FicheroVideo = { blob: Blob; url: string; extension: string };
 
@@ -105,7 +106,7 @@ export default function ContentStudio({
     try {
       const r = await fetch("/api/content", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: cabecerasAgente({ "Content-Type": "application/json" }),
         body: JSON.stringify({ destinationId: destino.id, objective: objetivo, tone: tono, duration: duracion, visualMix: mezclaVisual }),
       });
       const datos = (await r.json()) as RespuestaContenido;
@@ -138,7 +139,7 @@ export default function ContentStudio({
     try {
       const r = await fetch("/api/tts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: cabecerasAgente({ "Content-Type": "application/json" }),
         body: JSON.stringify({ locuciones: actual.escenas.map((e) => e.locucion), duracion: actual.duracion, voz: actual.voz }),
       });
       if (!r.ok) {
@@ -208,7 +209,7 @@ export default function ContentStudio({
     try {
       const blob = video?.blob ?? await crearVideo(false);
       const init = await fetch("/api/tiktok", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: cabecerasAgente({ "Content-Type": "application/json" }),
         body: JSON.stringify({ action: "initialize", size: blob.size, mime: video?.extension === "webm" ? "video/webm" : "video/mp4" }),
       });
       const datos = (await init.json()) as { publishId?: string; uploadUrl?: string; error?: { code: string; message: string } };

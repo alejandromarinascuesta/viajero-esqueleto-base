@@ -78,13 +78,18 @@ function filaSinDato(destino: Destino, motivo: string, periodo: string): FilaSen
 export async function conectorGoogleTrends(destinos: Destino[]): Promise<ResultadoGoogleTrends> {
   // `SERPAPI_API_KEY` es el nombre estándar. `SerpAPI` se mantiene como alias
   // por compatibilidad con la variable ya configurada en este despliegue.
-  const clave = process.env.SERPAPI_API_KEY ?? process.env.SerpAPI;
+  // Se aceptan varias grafías porque el nombre de la variable es un sitio
+  // habitual de error, y un fallo de configuración no debe parecer un fallo de
+  // datos. La búsqueda distingue mayúsculas, así que se prueban todas.
+  const NOMBRES = ["SERPAPI_API_KEY", "SerpAPI", "SerpApi", "SERPAPI", "serpapi", "SERP_API_KEY"];
+  const nombreUsado = NOMBRES.find((n) => (process.env[n] ?? "").trim().length > 0);
+  const clave = nombreUsado ? (process.env[nombreUsado] as string).trim() : null;
   if (!clave) {
     return {
       filas: [],
       consultas: 0,
       proveedor: "SerpApi / Google Trends",
-      omitido: "SERPAPI_API_KEY o SerpAPI no configurada",
+      omitido: `no hay clave: ninguna de estas variables está definida en el despliegue (${NOMBRES.join(", ")})`,
     };
   }
 
@@ -110,8 +115,19 @@ export async function conectorGoogleTrends(destinos: Destino[]): Promise<Resulta
         signal: AbortSignal.timeout(15_000),
         cache: "no-store",
       });
-      if (r.ok) respuesta = (await r.json()) as RespuestaSerpApi;
-      else respuesta = { error: `respuesta ${r.status}` };
+      if (r.ok) {
+        respuesta = (await r.json()) as RespuestaSerpApi;
+      } else if (r.status === 401) {
+        // 401 significa que la clave SÍ se ha enviado y el proveedor la ha
+        // rechazado: el problema es el valor, no el nombre de la variable.
+        respuesta = {
+          error: `clave rechazada por SerpApi (401). La variable ${nombreUsado} existe y termina en …${clave.slice(-4)}, así que el valor es incorrecto o corresponde a una clave revocada`,
+        };
+      } else if (r.status === 429) {
+        respuesta = { error: "SerpApi ha agotado la cuota de búsquedas (429)" };
+      } else {
+        respuesta = { error: `SerpApi respondió ${r.status}` };
+      }
     } catch (error) {
       respuesta = { error: error instanceof Error ? error.message : "fallo de red" };
     }

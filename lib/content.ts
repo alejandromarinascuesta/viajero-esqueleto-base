@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { OBJETIVOS_CONTENIDO } from "@/lib/opciones-contenido";
 import { pedirJson, type UsoModelo } from "@/lib/ai";
 import type { Destino, PlanContenido } from "@/types";
 import { vozPara } from "@/lib/locucion";
@@ -11,10 +12,7 @@ import { vozPara } from "@/lib/locucion";
  * y la otra no le pide nada, y eso cambia el ritmo, el cierre y hasta si se
  * menciona el precio.
  */
-export const OBJETIVOS_CONTENIDO = [
-  "Generar solicitudes de presupuesto",
-  "Inspirar y aumentar notoriedad",
-] as const;
+export { OBJETIVOS_CONTENIDO } from "@/lib/opciones-contenido";
 
 /** Direccion creativa de cada objetivo. Es lo que hace que no salga lo mismo. */
 export const DIRECCION_OBJETIVO: Record<(typeof OBJETIVOS_CONTENIDO)[number], string> = {
