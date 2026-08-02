@@ -1,3 +1,4 @@
+import { frenar } from "@/lib/limite";
 import { NextResponse } from "next/server";
 import { guionHablado, recortarAlPresupuesto, sintetizar, velocidadPara, vozValida } from "@/lib/locucion";
 
@@ -5,6 +6,9 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 export async function POST(request: Request) {
+  const freno = frenar(request, "tts", 10);
+  if (freno) return freno;
+
   let cuerpo: { locuciones?: unknown; duracion?: unknown; voz?: unknown };
   try {
     cuerpo = (await request.json()) as typeof cuerpo;

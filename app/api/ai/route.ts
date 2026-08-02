@@ -1,3 +1,4 @@
+import { frenar } from "@/lib/limite";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { cargarDestinos } from "@/lib/data";
@@ -85,6 +86,9 @@ async function registrar(
 }
 
 export async function POST(request: Request) {
+  const freno = frenar(request, "ai", 20);
+  if (freno) return freno;
+
   let cuerpo: unknown;
   try {
     cuerpo = await request.json();

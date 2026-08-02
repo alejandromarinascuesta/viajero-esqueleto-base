@@ -1,3 +1,4 @@
+import { frenar } from "@/lib/limite";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,9 @@ const ORIGENES = new Set([
 const TIPOS = ["image/", "video/"];
 
 export async function GET(request: Request) {
+  const freno = frenar(request, "proxy", 120);
+  if (freno) return freno;
+
   const valor = new URL(request.url).searchParams.get("url");
   if (!valor) return NextResponse.json({ error: "URL obligatoria" }, { status: 400 });
   let url: URL;

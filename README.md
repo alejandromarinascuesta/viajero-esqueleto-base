@@ -136,6 +136,8 @@ y el argumento cae a los motivos del catálogo.
 | `IA_API_KEY`, `IA_URL`, `IA_MODELO` | Redacción del argumento. Anthropic o cualquier API compatible con OpenAI: se detecta por el prefijo de la clave. También se aceptan `ANTHROPIC_API_KEY` y `OPENAI_API_KEY` |
 | `SERPAPI_API_KEY` | Importación nocturna de Google Trends para todo el catálogo. Quince destinos se agrupan en tres consultas |
 | `CRON_SECRET` | Protege la ruta de sincronización invocada por Vercel Cron |
+| `PRESUPUESTO_IA_MES` | Umbral de gasto mensual en euros. Si la proyección lo supera, `/api/health` y `/api/observabilidad` lo declaran |
+| `TARIFAS_IA` | JSON opcional para sobreescribir las tarifas por millón de tokens sin tocar código |
 | `PEXELS_API_KEY` | Banco de vídeo e imagen vertical del Content Studio. Gratis en pexels.com/api. Sin ella el Studio cae al respaldo de Wikimedia Commons |
 | `OPENAI_API_KEY` | Locución del guion con síntesis de voz. Solo se acepta una clave de OpenAI: la de Anthropic no hace voz. Sin ella la pieza sale con música y rótulos |
 | `TIKTOK_ACCESS_TOKEN` | Token server-side de una cuenta autorizada para enviar el vídeo como borrador mediante la API oficial |

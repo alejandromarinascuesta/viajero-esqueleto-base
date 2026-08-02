@@ -1,5 +1,6 @@
 import type { Destino, Perfil } from "@/types";
 import { senalMasReciente } from "@/lib/signals";
+import { nuevaTraza, registrar, type TipoLlamada } from "@/lib/observabilidad";
 
 /**
  * El proveedor del modelo es intercambiable por variable de entorno: cualquier
@@ -14,6 +15,10 @@ export type UsoModelo = {
   tokensEntrada: number | null;
   tokensSalida: number | null;
   error: string | null;
+  /** Identificador para reconstruir la llamada en el registro de consumo. */
+  traza?: string;
+  /** Coste en euros de esta llamada concreta. */
+  coste?: number;
 };
 
 type Proveedor = { familia: "anthropic" | "openai"; url: string; modelo: string; clave: string };
@@ -71,14 +76,27 @@ export async function pedirJson<T>(
   instruccion: string,
   entrada: string,
   temperatura = 0,
+  tipo: TipoLlamada = "argumento",
 ): Promise<{ datos: T | null; uso: UsoModelo }> {
   const inicio = Date.now();
+  const traza = nuevaTraza();
   const p = proveedor();
   const base: UsoModelo = {
     ok: false, ms: 0, modelo: p?.modelo ?? "sin proveedor",
-    tokensEntrada: null, tokensSalida: null, error: null,
+    tokensEntrada: null, tokensSalida: null, error: null, traza,
   };
-  if (!p) return { datos: null, uso: { ...base, error: "sin clave de modelo configurada" } };
+
+  /** Toda salida pasa por aqui: asi ninguna llamada se queda sin registrar. */
+  const cerrar = (uso: UsoModelo): UsoModelo => {
+    const c = registrar({
+      traza, tipo, modelo: uso.modelo, ok: uso.ok, ms: uso.ms,
+      tokensEntrada: uso.tokensEntrada, tokensSalida: uso.tokensSalida,
+      caracteres: null, error: uso.error,
+    });
+    return { ...uso, coste: c.coste };
+  };
+
+  if (!p) return { datos: null, uso: cerrar({ ...base, error: "sin clave de modelo configurada" }) };
 
   try {
     const control = new AbortController();
@@ -111,7 +129,7 @@ export async function pedirJson<T>(
     });
     clearTimeout(reloj);
     const ms = Date.now() - inicio;
-    if (!r.ok) return { datos: null, uso: { ...base, ms, error: `el modelo respondió ${r.status}` } };
+    if (!r.ok) return { datos: null, uso: cerrar({ ...base, ms, error: `el modelo respondió ${r.status}` }) };
 
     const cuerpo = (await r.json()) as {
       choices?: { message?: { content?: string } }[];
@@ -127,19 +145,19 @@ export async function pedirJson<T>(
     const datos = extraerJson(texto) as T | null;
     return {
       datos,
-      uso: {
+      uso: cerrar({
         ...base,
         ok: datos !== null,
         ms,
         tokensEntrada: cuerpo.usage?.prompt_tokens ?? cuerpo.usage?.input_tokens ?? null,
         tokensSalida: cuerpo.usage?.completion_tokens ?? cuerpo.usage?.output_tokens ?? null,
         error: datos === null ? "el modelo no devolvió JSON válido" : null,
-      },
+      }),
     };
   } catch (e) {
     return {
       datos: null,
-      uso: { ...base, ms: Date.now() - inicio, error: e instanceof Error ? e.message : "fallo de red" },
+      uso: cerrar({ ...base, ms: Date.now() - inicio, error: e instanceof Error ? e.message : "fallo de red" }),
     };
   }
 }

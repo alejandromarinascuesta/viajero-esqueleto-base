@@ -10,6 +10,8 @@
  * musical y sin voz. La locucion es una mejora, no un requisito.
  */
 
+import { nuevaTraza, registrar } from "@/lib/observabilidad";
+
 const VOCES = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"] as const;
 export type Voz = (typeof VOCES)[number];
 
@@ -100,8 +102,15 @@ export async function sintetizar(
   const fallos: string[] = [];
   try {
     for (const modelo of candidatos) {
+      const inicio = Date.now();
       try {
         const resultado = await pedirVoz(modelo, texto, voz, velocidad, clave, control.signal);
+        registrar({
+          traza: nuevaTraza(), tipo: "voz", modelo,
+          ok: "audio" in resultado, ms: Date.now() - inicio,
+          tokensEntrada: null, tokensSalida: null, caracteres: texto.length,
+          error: "error" in resultado ? resultado.error.slice(0, 120) : null,
+        });
         if ("audio" in resultado) return { audio: resultado.audio, modelo };
         fallos.push(`${modelo}: ${resultado.error}`);
         // 401, 403 y 429 no se arreglan cambiando de modelo: es la clave o el saldo.

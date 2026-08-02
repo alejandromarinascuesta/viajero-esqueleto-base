@@ -1,3 +1,4 @@
+import { frenar } from "@/lib/limite";
 import { NextResponse } from "next/server";
 import { ErrorIngesta, ejecutarIngestaNocturna } from "@/lib/ingesta";
 
@@ -6,6 +7,9 @@ export const maxDuration = 60;
 
 /** Endpoint operativo. La interfaz no lo invoca: lo usa el proceso programado. */
 export async function POST(request: Request) {
+  const freno = frenar(request, "ingesta", 3);
+  if (freno) return freno;
+
   const secreto = process.env.CRON_SECRET;
   if (!secreto || request.headers.get("authorization") !== `Bearer ${secreto}`) {
     return NextResponse.json(

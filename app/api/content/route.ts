@@ -1,3 +1,4 @@
+import { frenar } from "@/lib/limite";
 import { NextResponse } from "next/server";
 import { cargarDestinos } from "@/lib/data";
 import { EntradaContenido, generarPlanContenido } from "@/lib/content";
@@ -38,6 +39,9 @@ function intercalar(videos: ActivoVisual[], fotos: ActivoVisual[]) {
 }
 
 export async function POST(request: Request) {
+  const freno = frenar(request, "content", 10);
+  if (freno) return freno;
+
   let cuerpo: unknown;
   try {
     cuerpo = await request.json();

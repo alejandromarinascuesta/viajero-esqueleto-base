@@ -3,6 +3,7 @@ import { cargarDestinos } from "@/lib/data";
 import { hayModelo } from "@/lib/ai";
 import { hayPexels } from "@/lib/pexels";
 import { hayLocucion } from "@/lib/locucion";
+import { presupuestoMensual, resumen } from "@/lib/observabilidad";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,12 @@ export async function GET() {
     modeloLenguaje: hayModelo() ? "configurado" : "no configurado",
     bancoVisual: hayPexels() ? "Pexels" : "Wikimedia Commons (respaldo)",
     locucion: hayLocucion() ? "configurada" : "no configurada",
+    observabilidad: {
+      llamadasEnVentana: resumen().llamadas,
+      costeAcumulado: resumen().costeTotal,
+      presupuestoMensual: presupuestoMensual(),
+      alerta: resumen().alerta,
+    },
     origenDatos: origen.modo,
     frescura: origen.frescura,
     ingestadoEn: origen.ingestadoEn,
