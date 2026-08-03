@@ -93,10 +93,12 @@ export async function conectorGoogleTrends(destinos: Destino[]): Promise<Resulta
     };
   }
 
-  const filas: FilaSenal[] = [];
   let consultas = 0;
 
-  for (const grupo of lotes(destinos, TAMANO_LOTE)) {
+  // Los lotes van a la vez: en secuencia, tres consultas de hasta nueve
+  // segundos sumaban casi media ingesta y desbordaban el limite de la funcion.
+  const gruposEnParalelo = await Promise.all(lotes(destinos, TAMANO_LOTE).map(async (grupo) => {
+    const delLote: FilaSenal[] = [];
     const terminos = grupo.map(termino);
     const parametros = new URLSearchParams({
       engine: "google_trends",
@@ -112,7 +114,7 @@ export async function conectorGoogleTrends(destinos: Destino[]): Promise<Resulta
     try {
       consultas += 1;
       const r = await fetch(`https://serpapi.com/search.json?${parametros}`, {
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(9_000),
         cache: "no-store",
       });
       if (r.ok) {
@@ -139,7 +141,7 @@ export async function conectorGoogleTrends(destinos: Destino[]): Promise<Resulta
     for (const [indiceDestino, destino] of grupo.entries()) {
       const consulta = termino(destino);
       if (respuesta?.error || respuesta?.search_metadata?.status === "Error") {
-        filas.push(filaSinDato(destino, respuesta.error ?? "consulta fallida", periodo));
+        delLote.push(filaSinDato(destino, respuesta.error ?? "consulta fallida", periodo));
         continue;
       }
 
@@ -156,11 +158,11 @@ export async function conectorGoogleTrends(destinos: Destino[]): Promise<Resulta
       const momentum = calcularMomentumTrends(serie);
 
       if (momentum === null) {
-        filas.push(filaSinDato(destino, `serie insuficiente: ${serie.length} periodos`, periodo));
+        delLote.push(filaSinDato(destino, `serie insuficiente: ${serie.length} periodos`, periodo));
         continue;
       }
 
-      filas.push({
+      delLote.push({
         fuente: "trends",
         destino_id: destino.id,
         periodo,
@@ -177,7 +179,9 @@ export async function conectorGoogleTrends(destinos: Destino[]): Promise<Resulta
         estado: "ok",
       });
     }
-  }
+    return delLote;
+  }));
 
+  const filas = gruposEnParalelo.flat();
   return { filas, consultas, proveedor: "SerpApi / Google Trends", omitido: null };
 }

@@ -291,7 +291,10 @@ export async function generarPlanContenido(
   // Un segundo intento antes de rendirse. El respaldo no puede parafrasear sin
   // inventar, asi que su resultado es notablemente peor: merece la pena gastar
   // una llamada mas en evitarlo.
-  if (!validada.success) {
+  // El reintento duplica el tiempo de la peticion. Si el primer intento ya fue
+  // lento, reintentar es la forma segura de agotar el limite de la funcion y
+  // devolver un error de servidor en vez de un guion de respaldo utilizable.
+  if (!validada.success && respuesta.uso.ms < 14_000) {
     const correccion = `${INSTRUCCION}\n\nEl intento anterior no cumplió el formato: ${validada.error.issues
       .slice(0, 3)
       .map((i) => `${i.path.join(".")}: ${i.message}`)

@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { guionHablado, recortarAlPresupuesto, sintetizar, velocidadPara, vozValida } from "@/lib/locucion";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 30;
+export const maxDuration = 45;
 
 export async function POST(request: Request) {
   return conActor(actorDe(request), async () => {

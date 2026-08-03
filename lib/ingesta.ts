@@ -41,8 +41,18 @@ export async function ejecutarIngestaNocturna(mes: number): Promise<ResultadoIng
   const resumen: ResumenFuente[] = [];
   const filas: FilaSenal[] = [];
 
+  // Las cinco fuentes se consultan a la vez. En secuencia, el coste era la
+  // SUMA de todas y la ingesta se pasaba del limite de la funcion en cuanto
+  // Trends empezo a responder de verdad: antes fallaba rapido con un 401 y
+  // por eso cabia. En paralelo el coste es la mas lenta, no la suma.
   const inicioTrends = Date.now();
-  const trends = await conectorGoogleTrends(destinos);
+  const [trends, ...otras] = await Promise.all([
+    conectorGoogleTrends(destinos),
+    conectorClima(destinos, mes),
+    conectorInteres(destinos, mes),
+    conectorDivisa(destinos, mes),
+    conectorIne(destinos, mes),
+  ]);
   filas.push(...trends.filas);
   resumen.push({
     fuente: "trends",
@@ -60,14 +70,15 @@ export async function ejecutarIngestaNocturna(mes: number): Promise<ResultadoIng
     ms: Date.now() - inicioTrends,
   });
 
-  for (const [fuente, detalle, ejecutar] of [
-    ["clima", "Open-Meteo · archivo histórico · sin clave", () => conectorClima(destinos, mes)],
-    ["interes", "Wikimedia · vistas diarias · respaldo", () => conectorInteres(destinos, mes)],
-    ["divisa", "Banco Central Europeo · tipos de referencia", () => conectorDivisa(destinos, mes)],
-    ["ine", "INE · viajeros por provincia · último dato oficial", () => conectorIne(destinos, mes)],
-  ] as const) {
-    const inicio = Date.now();
-    const resultado = await ejecutar();
+  const DESCRIPCION = [
+    ["clima", "Open-Meteo · archivo histórico · sin clave"],
+    ["interes", "Wikimedia · vistas diarias · respaldo"],
+    ["divisa", "Banco Central Europeo · tipos de referencia"],
+    ["ine", "INE · viajeros por provincia · último dato oficial"],
+  ] as const;
+
+  for (const [indice, [fuente, detalle]] of DESCRIPCION.entries()) {
+    const resultado = otras[indice];
     filas.push(...resultado);
     resumen.push({
       fuente,
@@ -76,7 +87,7 @@ export async function ejecutarIngestaNocturna(mes: number): Promise<ResultadoIng
       noAplican: resultado.filter((fila) => fila.estado === "no_aplicable").length,
       sinDato: resultado.filter((fila) => fila.estado === "no_disponible").length,
       motivo: (resultado.find((f) => f.estado === "no_disponible")?.valor_bruto as { motivo?: string } | undefined)?.motivo ?? null,
-      ms: Date.now() - inicio,
+      ms: Date.now() - inicioTrends,
     });
   }
 

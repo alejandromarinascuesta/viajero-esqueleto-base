@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LoaderCircle, RefreshCw } from "lucide-react";
+import { leerJson } from "@/lib/respuesta";
 
 type Resumen = { fuente: string; detalle: string; ok: number; noAplican: number; sinDato: number; motivo: string | null };
 
@@ -25,10 +26,7 @@ export default function Sincronizar({ compacto = false }: { compacto?: boolean }
     setDetalle([]);
     try {
       const r = await fetch("/api/sincronizar", { method: "POST" });
-      const datos = (await r.json()) as {
-        resumen?: Resumen[]; guardadas?: number; error?: { message: string };
-      };
-      if (!r.ok) throw new Error(datos.error?.message ?? "No se ha podido sincronizar.");
+      const datos = await leerJson<{ resumen?: Resumen[]; guardadas?: number }>(r);
       setEstado("hecho");
       setDetalle(datos.resumen ?? []);
       setMensaje(`${datos.guardadas ?? 0} señales guardadas. Actualizando la pantalla…`);

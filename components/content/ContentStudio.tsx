@@ -12,6 +12,7 @@ import type { ActivoVisual, PlanContenido } from "@/types";
 import { contenedorDisponible, renderizarVideo } from "@/lib/video-browser";
 import { OBJETIVOS_CONTENIDO } from "@/lib/opciones-contenido";
 import { cabecerasAgente } from "@/lib/agente-local";
+import { leerJson } from "@/lib/respuesta";
 
 type FicheroVideo = { blob: Blob; url: string; extension: string };
 
@@ -109,8 +110,8 @@ export default function ContentStudio({
         headers: cabecerasAgente({ "Content-Type": "application/json" }),
         body: JSON.stringify({ destinationId: destino.id, objective: objetivo, tone: tono, duration: duracion, visualMix: mezclaVisual }),
       });
-      const datos = (await r.json()) as RespuestaContenido;
-      if (!r.ok || !datos.plan) throw new Error(datos.error?.message ?? "No se ha podido generar el contenido.");
+      const datos = await leerJson<RespuestaContenido>(r);
+      if (!datos.plan) throw new Error("El servidor no ha devuelto ninguna campaña.");
       setPlan(datos.plan); setActivos(datos.activos ?? []); setReproduciendo(true);
       setVozDisponible(Boolean(datos.voz?.disponible));
       setMedios(datos.media ? {

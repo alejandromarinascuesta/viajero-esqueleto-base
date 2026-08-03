@@ -9,7 +9,7 @@ import { hayLocucion } from "@/lib/locucion";
 import type { ActivoVisual } from "@/types";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 /**
  * Pexels es la fuente principal porque es un banco comercial con clips
