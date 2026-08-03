@@ -72,7 +72,6 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
     ninos: "" as string,
     presupuestoTotal: 3500,
     presupuestoFlexible: false,
-    fechaSalida: "",
     mes: new Date().getMonth() + 1,
     dias: 7,
     motivacion: "descanso" as "descanso" | "cultura" | "aventura" | "romantico" | "celebracion",
@@ -98,7 +97,6 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
       presupuestoFlexible: form.presupuestoFlexible,
       mes: form.mes,
       dias: form.dias,
-      fechaSalida: form.fechaSalida || null,
       motivacion: form.motivacion,
       intensidad: form.intensidad,
       restricciones: form.restricciones,
@@ -236,14 +234,8 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
                     onChange={(e) => setForm({ ...form, presupuestoTotal: Number(e.target.value) })} />
                 </Campo>
 
-                <Campo etiqueta="Fecha de salida" id="f-fecha" ayuda="si el cliente ya la tiene">
-                  <input id="f-fecha" type="date" className="field"
-                    value={form.fechaSalida}
-                    onChange={(e) => setForm({ ...form, fechaSalida: e.target.value })} />
-                </Campo>
-
-                <Campo etiqueta="Mes del viaje" id="f-mes" ayuda={form.fechaSalida ? "lo manda la fecha" : "si aún no hay fecha"}>
-                  <select id="f-mes" className="field" value={form.mes} disabled={Boolean(form.fechaSalida)}
+                <Campo etiqueta="Mes del viaje" id="f-mes" ayuda="cuándo quiere viajar">
+                  <select id="f-mes" className="field" value={form.mes}
                     onChange={(e) => setForm({ ...form, mes: Number(e.target.value) })}>
                     {MESES.map((m, i) => (
                       <option key={m} value={i + 1}>{m}</option>
@@ -341,7 +333,7 @@ export default function Copiloto({ destinoSugerido }: { destinoSugerido: string 
               />
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                 <span className="text-[11px] text-[var(--dim)]">
-                  La extracción funciona sin modelo de lenguaje: son reglas, no una IA adivinando.
+                  Primero lo leen unas reglas y después el modelo rellena solo lo que falte. Nunca sobreescribe lo que las reglas ya han entendido.
                 </span>
                 <button type="submit" className="btn btn-primary" disabled={cargando || notas.trim().length < 3}>
                   <Send size={14} className="mr-1.5 inline" aria-hidden />

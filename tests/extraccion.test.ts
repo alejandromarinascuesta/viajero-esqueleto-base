@@ -82,3 +82,32 @@ test("deduce dos adultos de las formas en que un agente lo escribe", () => {
     assert.equal(extraerPerfilDeterminista(notas).adultos, esperado, notas);
   }
 });
+
+test("entiende el presupuesto escrito como lo escribe la gente", () => {
+  const casos: [string, number][] = [
+    ["2 adultos con 1 niño de 3 años, gastar menos de 3mil euros, en agosto", 3000],
+    ["presupuesto de 3 mil euros", 3000],
+    ["unos 3.000 euros para los dos", 3000],
+    ["tienen 3000 euros", 3000],
+    ["hasta 12mil euros", 12000],
+  ];
+  for (const [notas, esperado] of casos) {
+    assert.equal(extraerPerfilDeterminista(notas).presupuesto_total, esperado, notas);
+  }
+});
+
+test("«con vuelos cortos» es la misma restriccion que «sin vuelos largos»", () => {
+  const p = extraerPerfilDeterminista("2 adultos y un niño de 3 años, en agosto, con vuelos cortos");
+  assert.ok(p.restricciones.includes("no vuelos largos"), JSON.stringify(p.restricciones));
+});
+
+test("el caso completo de la demo se entiende entero", () => {
+  const p = extraerPerfilDeterminista(
+    "2 adultos con 1 niño de 3 años, gastar menos de 3mil euros, en agosto, con vuelos cortos",
+  );
+  assert.equal(p.adultos, 2);
+  assert.deepEqual(p.ninos, [3]);
+  assert.equal(p.presupuesto_total, 3000);
+  assert.equal(p.mes, 8);
+  assert.ok(p.restricciones.includes("no vuelos largos"));
+});

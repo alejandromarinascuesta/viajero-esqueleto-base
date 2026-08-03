@@ -122,11 +122,17 @@ export function extraerPerfilDeterminista(notas: string): PerfilExtraido {
   // --- presupuesto ---
   let presupuesto: number | null = null;
   let porPersona: boolean | null = null;
-  const mDinero = t.match(
-    /(?:unos?|sobre|hasta|maximo|presupuesto de|tienen|tenemos)?\s*(\d{1,3}(?:\.\d{3})+|\d{3,6})\s*(?:€|euros?|eur)?/,
+  // «3mil», «3 mil» y «3.000» son la misma cifra escrita como la escribe la
+  // gente. Se prueba primero la forma con «mil» porque la otra expresion
+  // capturaria solo el 3 y daria un presupuesto de tres euros.
+  const mMiles = t.match(
+    /(?:unos?|sobre|hasta|maximo|menos de|presupuesto de|gastar)?\s*(\d{1,3})\s*mil(?:es)?\s*(?:€|euros?|eur|pavos)?/,
+  );
+  const mDinero = mMiles ?? t.match(
+    /(?:unos?|sobre|hasta|maximo|menos de|presupuesto de|gastar|tienen|tenemos)?\s*(\d{1,3}(?:\.\d{3})+|\d{3,6})\s*(?:€|euros?|eur|pavos)?/,
   );
   if (mDinero) {
-    const valor = aNumero(mDinero[1]);
+    const valor = mMiles ? aNumero(mDinero[1]) * 1000 : aNumero(mDinero[1]);
     if (valor >= 200) {
       presupuesto = valor;
       guardar("presupuesto_total", mDinero[0]);
@@ -221,7 +227,7 @@ export function extraerPerfilDeterminista(notas: string): PerfilExtraido {
   // Cubre desde "vuelo corto" hasta "no quieren volar" o "quieren ir en coche":
   // el agente escribe como habla, no como un formulario.
   if (
-    /no quier[ea]n? vuelos largos|vuelo corto|nada de vuelos largos|sin vuelos largos|no quier[ea]n? volar|sin volar|nada de avion|miedo a volar|en coche|por carretera|en tren/.test(
+    /no quier[ea]n? vuelos largos|vuelos? cortos?|cerca de casa|nada de vuelos largos|sin vuelos largos|no quier[ea]n? volar|sin volar|nada de avion|miedo a volar|en coche|por carretera|en tren/.test(
       t,
     )
   )
@@ -274,4 +280,75 @@ export function extraerPerfilDeterminista(notas: string): PerfilExtraido {
 export function cobertura(p: PerfilExtraido): number {
   const clave = [p.adultos, p.presupuesto_total, p.mes, p.dias, p.motivacion];
   return clave.filter((v) => v !== null && v !== undefined).length / clave.length;
+}
+
+/**
+ * Segunda pasada con modelo de lenguaje, sobre los huecos que las reglas no han
+ * podido llenar.
+ *
+ * El orden importa y es el argumento entero: las reglas van PRIMERO y lo que
+ * encuentran no se toca. El modelo solo puede rellenar lo que quedo vacio, y
+ * nunca sobreescribe un dato ya extraido. Asi el sistema funciona sin clave,
+ * sin red y sin coste —degradado, pero funcionando—, y cuando hay modelo capta
+ * lo que un patron no puede: «ella quiere playa y el se aburre».
+ */
+export const INSTRUCCION_PERFIL = `Eres el asistente de un agente de viajes. Recibes las notas informales de una llamada y devuelves SOLO los datos que las notas dicen.
+
+REGLA ABSOLUTA: extrae únicamente lo que las notas dicen. No completes, no supongas y no infieras. Si un dato no aparece, déjalo a null. Es preferible un perfil incompleto que el agente completa, a un perfil inventado en el que confía sin darse cuenta.
+
+Devuelve exclusivamente este JSON, sin texto alrededor:
+{
+  "adultos": entero o null,
+  "ninos": [edades como enteros] o [],
+  "presupuesto_total": entero en euros o null,
+  "presupuesto_es_por_persona": true, false o null si no queda claro,
+  "flexible": true solo si las notas dicen que hay margen, si no null,
+  "mes": 1-12 o null,
+  "dias": entero o null,
+  "motivacion": "descanso" | "cultura" | "aventura" | "romantico" | "celebracion" | null,
+  "intensidad": 1 (no quieren moverse) a 5 (mochila y ruta) o null,
+  "restricciones": ["movilidad reducida", "no vuelos largos", "presupuesto ajustado", ...] o [],
+  "destinos_mencionados": [destinos que el cliente nombra, quiera o descarte],
+  "tension": "una frase con la contradicción entre los viajeros si las notas la reflejan" o null,
+  "literales": {"campo": "el trozo exacto de las notas del que sale cada dato"}
+}`;
+
+type Perfil = PerfilExtraido;
+type PerfilModelo = Partial<Perfil> & { literales?: Record<string, string> };
+
+/** Fusiona sin pisar: lo que las reglas encontraron manda siempre. */
+export function fusionarPerfil(base: Perfil, delModelo: PerfilModelo | null): Perfil {
+  if (!delModelo) return base;
+  const fusionado: Perfil = { ...base };
+  const rellenados: string[] = [];
+
+  const campos = [
+    "adultos", "presupuesto_total", "presupuesto_es_por_persona",
+    "flexible", "mes", "dias", "motivacion", "intensidad", "tension",
+  ] as const;
+  for (const campo of campos) {
+    const actual = fusionado[campo] as unknown;
+    const propuesto = delModelo[campo] as unknown;
+    if ((actual === null || actual === undefined) && propuesto !== null && propuesto !== undefined) {
+      (fusionado as Record<string, unknown>)[campo] = propuesto;
+      rellenados.push(campo);
+    }
+  }
+  if (!fusionado.ninos?.length && delModelo.ninos?.length) {
+    fusionado.ninos = delModelo.ninos;
+    rellenados.push("ninos");
+  }
+  for (const r of delModelo.restricciones ?? []) {
+    if (!fusionado.restricciones.includes(r)) fusionado.restricciones.push(r);
+  }
+  for (const d of delModelo.destinos_mencionados ?? []) {
+    if (!fusionado.destinos_mencionados.includes(d)) fusionado.destinos_mencionados.push(d);
+  }
+  for (const [campo, literal] of Object.entries(delModelo.literales ?? {})) {
+    if (rellenados.includes(campo) && !fusionado.literales[campo]) {
+      fusionado.literales[campo] = literal;
+    }
+  }
+  fusionado.no_consta = fusionado.no_consta.filter((c) => !rellenados.includes(c));
+  return fusionado;
 }

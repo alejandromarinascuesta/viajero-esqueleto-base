@@ -3,8 +3,8 @@ import { frenar } from "@/lib/limite";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { cargarDestinos } from "@/lib/data";
-import { contextoParaArgumento, INSTRUCCION_ARGUMENTO, pedirJson } from "@/lib/ai";
-import { extraerPerfilDeterminista } from "@/lib/extraccion";
+import { contextoParaArgumento, INSTRUCCION_ARGUMENTO, pedirJson, type UsoModelo } from "@/lib/ai";
+import { extraerPerfilDeterminista, fusionarPerfil, INSTRUCCION_PERFIL } from "@/lib/extraccion";
 import { recomendar } from "@/lib/motor";
 import { leerCriterio } from "@/lib/criterio";
 import { verificarArgumento } from "@/lib/verificar";
@@ -112,10 +112,26 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1 · Si viene del formulario guiado no hay nada que extraer. Si vienen notas,
-    // la extraccion determinista siempre funciona: sin red, sin clave y sin coste.
+    // 1 · Si viene del formulario guiado no hay nada que extraer. Si vienen
+    // notas, primero las reglas —que funcionan sin red, sin clave y sin coste— y
+    // despues el modelo, que SOLO rellena lo que quedo vacio. Nunca sobreescribe
+    // un dato que las reglas ya encontraron: por eso sigue siendo predecible y
+    // sigue funcionando cuando el modelo no esta disponible.
+    const usoPerfil: { valor: UsoModelo | null } = { valor: null };
     const extraido = notas
-      ? extraerPerfilDeterminista(notas)
+      ? await (async () => {
+          const base = extraerPerfilDeterminista(notas);
+          if (!base.no_consta.length) return base;
+          const entrada = [
+            "Notas de la llamada:",
+            notas,
+            "",
+            `Campos que las reglas no han podido extraer: ${base.no_consta.join(", ")}.`,
+          ].join("\n");
+          const r = await pedirJson<Record<string, unknown>>(INSTRUCCION_PERFIL, entrada, 0, "perfil");
+          usoPerfil.valor = r.uso;
+          return fusionarPerfil(base, r.datos as never);
+        })()
       : {
           adultos: perfilDirecto!.adultos,
           ninos: perfilDirecto!.edadesNinos,
@@ -263,6 +279,14 @@ export async function POST(request: Request) {
       traza: {
         ...resultado.traza,
         redaccion: uso,
+        extraccionPerfil: usoPerfil.valor
+          ? {
+              modelo: usoPerfil.valor.modelo,
+              ms: usoPerfil.valor.ms,
+              ok: usoPerfil.valor.ok,
+              coste: usoPerfil.valor.coste,
+            }
+          : "solo reglas: no hizo falta el modelo",
         camposCitados: argumentos.reduce((n, a) => n + a.camposCitados.length, 0),
         argumentosVerificados: argumentos.filter((a) => a.verificado).length,
       },
